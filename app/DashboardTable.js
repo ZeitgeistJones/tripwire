@@ -128,6 +128,10 @@ const TABS = {
     { key: "1st Sellers 30d",  label: "1st Sellers (30d)",    type: "number", format: "int",  tooltip: "Wallets selling this token for the very first time in the last 30 days" },
     { key: "1st Sellers 7d",   label: "1st Sellers (7d)",     type: "number", format: "int",  tooltip: "Wallets selling for the first time in the last 7 days" },
     { key: "Buy/Sell Ratio",   label: "Buy/Sell Ratio (7d)",  type: "number", format: "dec2", tooltip: "Buyers 7d ÷ all unique sellers this week — above 1.0 means more wallets buying than selling" },
+    { key: "Whale Net 7d",     label: "Whale Net (7d)",       type: "number", format: "usd",  tooltip: "Net USD flow from large trades in the last 7 days — positive means whales are accumulating, negative means distributing. A whale trade is one in the top 10% of trade sizes for that token (min $100)" },
+    { key: "Accum %",          label: "Accum %",              type: "number", format: "pct1", tooltip: "Whale buys as a share of all whale volume (7d) — 50% is neutral, above ~65% suggests accumulation, below ~35% suggests distribution" },
+    { key: "Whale Buyers 7d",  label: "Whale Buyers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized buys in the last 7 days — distinguishes one whale accumulating from many" },
+    { key: "Whale Sellers 7d", label: "Whale Sellers (7d)",   type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized sells in the last 7 days" },
     { key: "Token Age Days",   label: "Age (days)",           type: "number", format: "int",  tooltip: "Days since this token's contract was first deployed on Base" },
     { key: "Non-Trade New 30d",label: "Non-Trade New (30d)",  type: "number", format: "int",  tooltip: "New wallets in the last 30 days that made no first buy or sell" },
     { key: "Top10 %",          label: "Top10 % (30d)",        type: "number", format: "pct1", tooltip: "Share of all 30-day transactions from the top 10 most active wallets — lower is healthier" },
@@ -224,14 +228,22 @@ function formatValue(val, format) {
 function StatusBanner({ lastUpdated }) {
   const formatted = lastUpdated
     ? new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "—";
+    : "unknown";
   return (
     <div style={{
       background: "var(--bg-subtle)", border: "1px solid var(--border)", borderRadius: "8px",
       padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5",
+      display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap",
     }}>
-      <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
-      <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
+      <div>
+        <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
+        <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
+      </div>
+      <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.6", flex: 1 }}>
+        <strong>v1 — free-tier infrastructure.</strong> Behavioral scores are refreshed manually, not live.
+        Dune credits exhausted — <strong>scores will refresh around July 20th.</strong> Price and Market Cap
+        update hourly. The Wire is paused until credits reset.
+      </div>
     </div>
   );
 }
