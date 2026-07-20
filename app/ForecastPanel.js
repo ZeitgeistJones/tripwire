@@ -158,13 +158,45 @@ export default function ForecastPanel({ state }) {
       <TabBar />
 
       <div style={{ marginBottom: "8px" }}>
-        <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
-          Forecast
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
+            Forecast
+          </div>
+          <span style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            padding: "3px 8px",
+            borderRadius: "999px",
+            background: "var(--read-amber-bg)",
+            color: "var(--read-amber-text)",
+          }}>
+            v1 beta
+          </span>
         </div>
         <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "6px", maxWidth: "720px", lineHeight: 1.5 }}>
           Four paper portfolios race each other. Three run different formulas; the fourth just holds
           the top {holdingsCount} market caps as a baseline. Equal-weight, rebalanced every {windowDays} days.
           Starting value ${startingValue} each. Formulas are placeholders — swap anytime.
+        </div>
+        <div style={{
+          marginTop: "12px",
+          padding: "12px 14px",
+          borderRadius: "8px",
+          border: "1px solid var(--border)",
+          background: "var(--bg-subtle)",
+          fontSize: "13px",
+          color: "var(--text-muted)",
+          lineHeight: 1.55,
+          maxWidth: "720px",
+        }}>
+          <strong style={{ color: "var(--text)" }}>How paper investing works:</strong>{" "}
+          When a window opens, each strategy “buys” its top {holdingsCount} picks at that moment’s prices
+          (equal weight, no real money). As live prices move, holdings and “This window” update.
+          After {windowDays} days the window locks, returns are graded, paper $ compounds, then a new
+          set of holdings is picked. <strong style={{ color: "var(--text)" }}>0.0% right now</strong> just
+          means the window just opened — entry price ≈ current price until the market moves.
         </div>
         <ExperimentDisclaimer style={{ marginTop: "14px", maxWidth: "720px" }} />
       </div>
