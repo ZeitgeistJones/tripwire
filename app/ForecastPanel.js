@@ -44,9 +44,13 @@ function fmtPct(n) {
   return `${sign}${n.toFixed(1)}%`;
 }
 
-function fmtPrice(n) {
-  if (n == null) return "—";
-  return `$${n.toPrecision(4)}`;
+function fmtWhen(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return iso;
+  }
 }
 
 function pctColor(n) {
@@ -56,7 +60,7 @@ function pctColor(n) {
   return "var(--text-muted)";
 }
 
-function StrategyCard({ p, rank, windowDays }) {
+function StrategyCard({ p, rank }) {
   return (
     <div
       style={{
@@ -83,38 +87,36 @@ function StrategyCard({ p, rank, windowDays }) {
           </div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontSize: "11px", color: "var(--text-faint)" }}>This window</div>
-          <div style={{ fontSize: "22px", fontWeight: 800, color: pctColor(p.openReturnPct) }}>
-            {fmtPct(p.openReturnPct)}
+          <div style={{ fontSize: "11px", color: "var(--text-faint)" }}>Paper value</div>
+          <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)" }}>
+            ${p.value?.toFixed?.(2) ?? "—"}
+          </div>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: pctColor(p.returnPct) }}>
+            {fmtPct(p.returnPct)}
           </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", fontSize: "12px" }}>
+      <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", fontSize: "12px", color: "var(--text-faint)" }}>
         <div>
-          <div style={{ color: "var(--text-faint)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Paper $</div>
-          <div style={{ fontWeight: 700, color: "var(--text)" }}>
-            ${p.cumulativeValue?.toFixed?.(2) ?? "100.00"}
-          </div>
-          <div style={{ color: pctColor(p.cumulativeReturnPct), fontSize: "11px" }}>
-            {fmtPct(p.cumulativeReturnPct)} all-time
-          </div>
+          <span style={{ fontWeight: 600, color: "var(--text-muted)" }}>{p.tradeCount || 0}</span> buys/sells
         </div>
-        <div>
-          <div style={{ color: "var(--text-faint)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Avg window</div>
-          <div style={{ fontWeight: 700, color: pctColor(p.avgReturnPct) }}>{fmtPct(p.avgReturnPct)}</div>
-          <div style={{ color: "var(--text-faint)", fontSize: "11px" }}>
-            {p.windows || 0} graded
+        {p.lastTrades && (p.lastTrades.bought.length > 0 || p.lastTrades.sold.length > 0) && (
+          <div>
+            last rebalance:{" "}
+            <span style={{ color: "var(--gate-ok-text)" }}>+{p.lastTrades.bought.length}</span>
+            {" / "}
+            <span style={{ color: "var(--gate-fail-text)" }}>−{p.lastTrades.sold.length}</span>
           </div>
-        </div>
+        )}
       </div>
 
       <div>
         <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
-          Holdings ({p.currentHoldings?.length || 0}) · equal weight · {windowDays}d window
+          Holdings ({p.holdings?.length || 0}) · equal weight · live
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          {(p.currentHoldings || []).map((h) => (
+          {(p.holdings || []).map((h) => (
             <div
               key={h.project}
               style={{
@@ -131,7 +133,7 @@ function StrategyCard({ p, rank, windowDays }) {
                 <span style={{ color: "var(--text-faint)", marginLeft: "5px" }}>{h.symbol}</span>
               </span>
               <span style={{ flexShrink: 0, color: pctColor(h.changePct) }}>
-                {h.changePct != null ? fmtPct(h.changePct) : fmtPrice(h.priceAtEntry)}
+                {fmtPct(h.changePct)}
               </span>
             </div>
           ))}
@@ -144,12 +146,14 @@ function StrategyCard({ p, rank, windowDays }) {
 export default function ForecastPanel({ state }) {
   const {
     leaderboard = [],
-    openSnapshot,
-    resolvedSnapshots = [],
+    history = [],
+    startedAt,
+    lastRebalanceAt,
+    justRebalanced,
     kvOk,
-    windowDays = 7,
     holdingsCount = 10,
     startingValue = 100,
+    rebalanceHours = 24,
     strategies = [],
   } = state || {};
 
@@ -176,9 +180,10 @@ export default function ForecastPanel({ state }) {
           </span>
         </div>
         <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "6px", maxWidth: "720px", lineHeight: 1.5 }}>
-          Four paper portfolios race each other. Three run different formulas; the fourth just holds
-          the top {holdingsCount} market caps as a baseline. Equal-weight, rebalanced every {windowDays} days.
-          Starting value ${startingValue} each. Formulas are placeholders — swap anytime.
+          Four ongoing paper portfolios. Three run different formulas; the fourth holds the top{" "}
+          {holdingsCount} market caps. Each starts at ${startingValue}, stays fully invested, and
+          rebalances about every {rebalanceHours}h — selling dropouts, buying new picks, reinvesting
+          the full value. No lockups. Formulas are placeholders — swap anytime.
         </div>
         <div style={{
           marginTop: "12px",
@@ -191,30 +196,31 @@ export default function ForecastPanel({ state }) {
           lineHeight: 1.55,
           maxWidth: "720px",
         }}>
-          <strong style={{ color: "var(--text)" }}>How paper investing works:</strong>{" "}
-          When a window opens, each strategy “buys” its top {holdingsCount} picks at that moment’s prices
-          (equal weight, no real money). As live prices move, holdings and “This window” update.
-          After {windowDays} days the window locks, returns are graded, paper $ compounds, then a new
-          set of holdings is picked. <strong style={{ color: "var(--text)" }}>0.0% right now</strong> just
-          means the window just opened — entry price ≈ current price until the market moves.
+          <strong style={{ color: "var(--text)" }}>How it works:</strong>{" "}
+          Portfolios mark to market continuously. On rebalance, total paper value is recalculated,
+          then redistributed equally into that formula&apos;s current top {holdingsCount}. Tokens that
+          fall off are sold; new ones are bought. Holding % is vs average cost since last buy into
+          that name. <strong style={{ color: "var(--text)" }}>0% early on</strong> is normal right
+          after a fresh start or rebalance.
         </div>
         <ExperimentDisclaimer style={{ marginTop: "14px", maxWidth: "720px" }} />
       </div>
 
       {!kvOk && (
         <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--gate-fail-text)" }}>
-          Storage unavailable — showing live picks only; window tracking paused this load.
+          Storage unavailable — portfolios may reset next load; tracking paused.
         </div>
       )}
 
-      {openSnapshot && (
-        <div style={{ marginTop: "16px", fontSize: "12px", color: "var(--text-faint)" }}>
-          Open window started <strong style={{ color: "var(--text-muted)" }}>{openSnapshot.date}</strong>
-          {" "}· marks to market live · locks in {windowDays} days
-        </div>
-      )}
+      <div style={{ marginTop: "14px", fontSize: "12px", color: "var(--text-faint)", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+        <span>Started <strong style={{ color: "var(--text-muted)" }}>{startedAt || "—"}</strong></span>
+        <span>
+          Last rebalance <strong style={{ color: "var(--text-muted)" }}>{fmtWhen(lastRebalanceAt)}</strong>
+          {justRebalanced ? " · just ran" : ""}
+        </span>
+        <span>Next check ~every {rebalanceHours}h</span>
+      </div>
 
-      {/* 4 portfolio cards */}
       <div
         className="forecast-grid"
         style={{
@@ -225,58 +231,54 @@ export default function ForecastPanel({ state }) {
         }}
       >
         {leaderboard.map((p, i) => (
-          <StrategyCard key={p.id} p={p} rank={i + 1} windowDays={windowDays} />
+          <StrategyCard key={p.id} p={p} rank={i + 1} />
         ))}
       </div>
 
-      {/* Graded windows */}
-      {resolvedSnapshots.length > 0 && (
+      {history.length > 1 && (
         <div style={{ marginTop: "36px" }}>
           <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)", marginBottom: "12px" }}>
-            Graded windows
+            Value history
           </div>
-          {resolvedSnapshots.map((s) => {
-            const sorted = [...(s.portfolios || [])].sort(
-              (a, b) => (b.returnPct ?? -Infinity) - (a.returnPct ?? -Infinity)
-            );
-            return (
-              <div
-                key={s.date}
-                style={{
-                  background: "var(--card-bg)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  padding: "14px 18px",
-                  marginBottom: "12px",
-                }}
-              >
-                <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", marginBottom: "10px" }}>
-                  {s.date}
-                  {s.resolvedAt ? (
-                    <span style={{ fontWeight: 400, color: "var(--text-faint)", marginLeft: "8px" }}>
-                      resolved {s.resolvedAt}
-                    </span>
-                  ) : null}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }} className="forecast-grid">
-                  {sorted.map((p) => (
-                    <div key={p.id} style={{ fontSize: "13px" }}>
-                      <div style={{ color: "var(--text-faint)", fontSize: "11px" }}>
-                        {p.name}{p.isBaseline ? " · baseline" : ""}
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: "18px", color: pctColor(p.returnPct) }}>
-                        {fmtPct(p.returnPct)}
-                      </div>
-                    </div>
+          <div style={{
+            background: "var(--card-bg)",
+            border: "1px solid var(--border)",
+            borderRadius: "12px",
+            padding: "12px 16px",
+            overflowX: "auto",
+          }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "12px" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "6px 8px", color: "var(--text-faint)", fontWeight: 600 }}>Date</th>
+                  {strategies.map((s) => (
+                    <th key={s.id} style={{ textAlign: "right", padding: "6px 8px", color: "var(--text-faint)", fontWeight: 600 }}>
+                      {s.name}
+                    </th>
                   ))}
-                </div>
-              </div>
-            );
-          })}
+                </tr>
+              </thead>
+              <tbody>
+                {[...history].reverse().slice(0, 14).map((row) => (
+                  <tr key={row.date}>
+                    <td style={{ padding: "6px 8px", color: "var(--text-muted)" }}>{row.date}</td>
+                    {strategies.map((s) => {
+                      const v = row.values?.[s.id];
+                      const ret = v != null ? Math.round(((v / startingValue - 1) * 1000)) / 10 : null;
+                      return (
+                        <td key={s.id} style={{ padding: "6px 8px", textAlign: "right", color: pctColor(ret), fontWeight: 600 }}>
+                          {v != null ? `$${Number(v).toFixed(2)}` : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Formula cards */}
       <div style={{ marginTop: "36px", paddingBottom: "24px" }}>
         <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)", marginBottom: "8px" }}>
           The formulas (swappable)
@@ -284,8 +286,8 @@ export default function ForecastPanel({ state }) {
         <div style={{ fontSize: "12px", color: "var(--text-faint)", marginBottom: "12px", maxWidth: "720px", lineHeight: 1.5 }}>
           Defined in <code style={{ color: "var(--text-muted)" }}>lib/predictions.js</code> as{" "}
           <code style={{ color: "var(--text-muted)" }}>STRATEGIES</code>. Replace any{" "}
-          <code style={{ color: "var(--text-muted)" }}>scoreFn</code> later (including Fable ones) —
-          keep the same <code style={{ color: "var(--text-muted)" }}>id</code> if you want history to stay attached.
+          <code style={{ color: "var(--text-muted)" }}>scoreFn</code> later — keep the same{" "}
+          <code style={{ color: "var(--text-muted)" }}>id</code> to preserve portfolio history.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "10px" }}>
           {strategies.map((s) => (
