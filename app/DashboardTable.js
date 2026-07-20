@@ -87,14 +87,14 @@ const TABS = {
     { key: "Mom",          label: "Mom",           type: "number",  format: "dec1", tooltip: "How fast this token is growing right now across wallets, transactions, and volume" },
     { key: "Sus",          label: "Sus",           type: "number",  format: "dec1", tooltip: "How sticky the growth is — whether users keep coming back, not just showing up once" },
     { key: "Prof",         label: "Prof",          type: "string",  tooltip: "Whether this token scores above or below average on both momentum and sustainability" },
-    { key: "priceUsd",     label: "Price",         type: "number",  format: "price", tooltip: "Live token price in USD from CoinGecko" },
-    { key: "marketCapUsd", label: "Market Cap",    type: "number",  format: "usd",   tooltip: "Live market cap in USD from CoinGecko" },
+    { key: "priceUsd",     label: "Price",         type: "number",  format: "price", tooltip: "Live token price in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "marketCapUsd", label: "Market Cap",    type: "number",  format: "usd",   tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
     { key: "signal",       label: "Signal",        type: "string",  tooltip: "Whether price and volume are moving in the same direction this week" },
     { key: "signalScore",  label: "Signal Score",  type: "number",  format: "dec1",  tooltip: "A single number combining price change and volume growth — positive means both are moving up" },
   ],
   Activity: [
     { key: "Project",      label: "Project",            type: "string" },
-    { key: "marketCapUsd", label: "Market Cap",         type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko" },
+    { key: "marketCapUsd", label: "Market Cap",         type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
     { key: "Vol 30d",      label: "Vol (30d)",          type: "number", format: "usd",  tooltip: "Total dollar value traded on DEX in the last 30 days" },
     { key: "Vol/Tx",       label: "Vol/Tx (30d)",       type: "number", format: "dec2", tooltip: "Average dollar value per transaction over the last 30 days" },
     { key: "Vol/Wlt",      label: "Vol/Wlt (30d)",      type: "number", format: "dec2", tooltip: "Average dollar volume per unique wallet over the last 30 days" },
@@ -106,7 +106,7 @@ const TABS = {
   ],
   Wallets: [
     { key: "Project",            label: "Project",                 type: "string" },
-    { key: "marketCapUsd",       label: "Market Cap",              type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko" },
+    { key: "marketCapUsd",       label: "Market Cap",              type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
     { key: "Wallets 30d",        label: "Wallets (30d)",           type: "number", format: "int",  tooltip: "Unique wallets that interacted with this token in the last 30 days" },
     { key: "Wallets 7d",         label: "Wallets (7d)",            type: "number", format: "int",  tooltip: "Unique wallets that interacted in the last 7 days" },
     { key: "User Grw %",         label: "User Grw % (WoW)",        type: "number", format: "pct1", tooltip: "Unique wallet count change: most recent 7 days vs the 7 days before that" },
@@ -118,7 +118,7 @@ const TABS = {
   ],
   "Buyers & Risk": [
     { key: "Project",          label: "Project",              type: "string" },
-    { key: "marketCapUsd",     label: "Market Cap",           type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko" },
+    { key: "marketCapUsd",     label: "Market Cap",           type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
     { key: "Qlty %",           label: "Qlty %",               type: "number", format: "pct1", tooltip: "How clean the activity looks — penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
     { key: "Traders",          label: "Traders (30d)",        type: "number", format: "int",  tooltip: "Unique wallets that bought or sold on DEX in the last 30 days" },
     { key: "Buyers 30d",       label: "Buyers (30d)",         type: "number", format: "int",  tooltip: "Unique wallets that bought in the last 30 days" },
@@ -136,8 +136,8 @@ const TABS = {
   Discover: [
     { key: "name",         label: "Project",    type: "string" },
     { key: "symbol",       label: "Symbol",     type: "string" },
-    { key: "marketCapUsd", label: "Market Cap", type: "number", format: "usd",   tooltip: "Live market cap in USD from CoinGecko" },
-    { key: "priceUsd",     label: "Price",      type: "number", format: "price", tooltip: "Live token price in USD from CoinGecko" },
+    { key: "marketCapUsd", label: "Market Cap", type: "number", format: "usd",   tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "priceUsd",     label: "Price",      type: "number", format: "price", tooltip: "Live token price in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
     { key: "address",      label: "Address",    type: "string" },
   ],
 };
@@ -701,9 +701,23 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         )}
         {columns.map((col) => {
           const rankInfo = !isRowGated ? getCellRank(col.key, col.type, d) : null;
+          const isFallbackPrice =
+            (col.key === "priceUsd" || col.key === "marketCapUsd") &&
+            d.priceSource === "dexscreener" &&
+            d[col.key] != null;
           const cellContent = col.key === "read"
             ? <ReadBadge value={d[col.key]} />
-            : col.format ? formatValue(d[col.key], col.format)
+            : col.format ? (
+                isFallbackPrice ? (
+                  <span
+                    title="Priced via DexScreener — this token isn’t tracked by CoinGecko"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {formatValue(d[col.key], col.format)}
+                    <span style={{ opacity: 0.6, marginLeft: "1px" }}>*</span>
+                  </span>
+                ) : formatValue(d[col.key], col.format)
+              )
             : (d[col.key] ?? "—");
           const rankTooltipContent = rankInfo ? (
             <div>
