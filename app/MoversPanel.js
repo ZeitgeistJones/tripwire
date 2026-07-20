@@ -31,6 +31,18 @@ const SIGNAL_NORMIE = {
   Cooling: "Activity fading",
 };
 
+const DASH_TABS = [
+  "Overview",
+  "Activity",
+  "Wallets",
+  "Buyers & Risk",
+  "Discover",
+  "Watchlist",
+  "CLAWD",
+  "The Wire",
+  "About",
+];
+
 // Build up to 3 plain-english reasons a token is moving
 function getReasons(t) {
   const reasons = [];
@@ -86,6 +98,45 @@ function getCoolingReasons(t) {
 
   reasons.sort((a, b) => b.w - a.w);
   return reasons.slice(0, 3).map((r) => r.text);
+}
+
+function StatusBanner({ lastUpdated }) {
+  const formatted = lastUpdated
+    ? new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+    : "—";
+  return (
+    <div style={{
+      background: "var(--bg-subtle)", border: "1px solid var(--border)", borderRadius: "8px",
+      padding: "12px 16px", marginBottom: "16px",
+    }}>
+      <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
+      <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
+    </div>
+  );
+}
+
+function TabBar() {
+  const tabStyle = (active) => ({
+    padding: "8px 16px",
+    borderRadius: "6px",
+    border: active ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+    background: active ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+    color: active ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+    fontWeight: active ? 600 : 400,
+    textDecoration: "none",
+    fontSize: "14px",
+  });
+
+  return (
+    <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+      <span style={tabStyle(true)}>Movers</span>
+      {DASH_TABS.map((tab) => (
+        <Link key={tab} href="/dashboard" style={tabStyle(false)}>
+          {tab}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 // ── card ──────────────────────────────────────────────────────
@@ -196,44 +247,26 @@ export default function MoversPanel({ data, lastUpdated }) {
     .slice(0, 3);
 
   return (
-    <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
-      {/* hero */}
-      <div style={{ padding: "24px 0 8px" }}>
-        <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
-          Tripwire
-        </div>
-        <div style={{ fontSize: "15px", color: "var(--text-muted)", marginTop: "6px", maxWidth: "560px", lineHeight: 1.5 }}>
+    <div>
+      <StatusBanner lastUpdated={lastUpdated} />
+      <TabBar />
+
+      <div style={{ marginBottom: "20px" }}>
+        <div style={{ fontSize: "15px", color: "var(--text-muted)", maxWidth: "640px", lineHeight: 1.5 }}>
           Which Base AI coins are actually moving right now — and why. Read straight
           from on-chain activity: real volume, real wallets, real whale flows. No hype feeds.
-        </div>
-        <div style={{ marginTop: "14px" }}>
-          <Link
-            href="/dashboard"
-            style={{
-              display: "inline-block",
-              fontSize: "13px",
-              fontWeight: 600,
-              padding: "8px 14px",
-              borderRadius: "8px",
-              background: "var(--btn-active-bg)",
-              color: "var(--btn-active-text)",
-              textDecoration: "none",
-            }}
-          >
-            Open the full dashboard →
-          </Link>
         </div>
       </div>
 
       {/* heating up */}
-      <div style={{ marginTop: "28px" }}>
+      <div>
         <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--gate-ok-text)", marginBottom: "12px" }}>
           Heating up
         </div>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
             gap: "14px",
           }}
         >
@@ -252,7 +285,7 @@ export default function MoversPanel({ data, lastUpdated }) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
               gap: "14px",
             }}
           >
@@ -267,8 +300,7 @@ export default function MoversPanel({ data, lastUpdated }) {
       <div style={{ marginTop: "32px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.6, paddingBottom: "40px" }}>
         Everything above is computed from on-chain data (Dune) plus live prices
         (CoinGecko, * = DexScreener). Behavioral scores refresh with the data pipeline;
-        prices update hourly.{lastUpdated ? ` Data last refreshed ${new Date(lastUpdated).toLocaleString()}.` : ""}{" "}
-        Not financial advice — DYOR.
+        prices update hourly. Not financial advice — DYOR.
       </div>
     </div>
   );

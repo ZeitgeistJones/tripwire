@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { base } from "wagmi/chains";
 import TripwirePanel from "./TripwirePanel";
@@ -228,22 +229,14 @@ function formatValue(val, format) {
 function StatusBanner({ lastUpdated }) {
   const formatted = lastUpdated
     ? new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "unknown";
+    : "—";
   return (
     <div style={{
       background: "var(--bg-subtle)", border: "1px solid var(--border)", borderRadius: "8px",
       padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5",
-      display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap",
     }}>
-      <div>
-        <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
-        <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
-      </div>
-      <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.6", flex: 1 }}>
-        <strong>v1 — free-tier infrastructure.</strong> Behavioral scores are refreshed manually, not live.
-        Dune credits exhausted — <strong>scores will refresh around July 20th.</strong> Price and Market Cap
-        update hourly. The Wire is paused until credits reset.
-      </div>
+      <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
+      <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
     </div>
   );
 }
@@ -803,6 +796,18 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       <StatusBanner lastUpdated={lastUpdated} />
 
       <div style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+        <Link
+          href="/"
+          style={{
+            padding: "8px 16px", borderRadius: "6px",
+            border: "1px solid var(--btn-inactive-border)",
+            background: "var(--btn-inactive-bg)",
+            color: "var(--btn-inactive-text)",
+            fontWeight: 400, textDecoration: "none",
+          }}
+        >
+          Movers
+        </Link>
         {allTabsToRender.map((tab) => (
           <button
             key={tab}
