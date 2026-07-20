@@ -1,4 +1,42 @@
 import Link from "next/link";
+import ExperimentDisclaimer from "./ExperimentDisclaimer";
+
+const DASH_TABS = [
+  "Overview",
+  "Activity",
+  "Wallets",
+  "Buyers & Risk",
+  "Discover",
+  "Watchlist",
+  "CLAWD",
+  "The Wire",
+  "About",
+];
+
+function TabBar() {
+  const tabStyle = (active) => ({
+    padding: "8px 16px",
+    borderRadius: "6px",
+    border: active ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+    background: active ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+    color: active ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+    fontWeight: active ? 600 : 400,
+    textDecoration: "none",
+    fontSize: "14px",
+  });
+
+  return (
+    <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+      <Link href="/" style={tabStyle(false)}>Movers</Link>
+      <span style={tabStyle(true)}>Forecast</span>
+      {DASH_TABS.map((tab) => (
+        <Link key={tab} href="/dashboard" style={tabStyle(false)}>
+          {tab}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 function fmtPrice(n) {
   if (n == null) return "—";
@@ -101,47 +139,19 @@ export default function ForecastPanel({ state }) {
   const topLive = live.slice(0, 9);
 
   return (
-    <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
+    <div>
+      <TabBar />
+
       {/* header */}
-      <div style={{ padding: "24px 0 8px" }}>
-        <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
+      <div style={{ marginBottom: "8px" }}>
+        <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
           Forecast
         </div>
         <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "6px", maxWidth: "640px", lineHeight: 1.5 }}>
           A transparent formula makes a {windowDays}-day call on every priced token — Up, Flat, or Down —
           then grades itself when the window closes. Every call and every miss stays on the record.
         </div>
-        <div
-          style={{
-            marginTop: "14px",
-            padding: "10px 14px",
-            borderRadius: "10px",
-            background: "var(--read-amber-bg)",
-            color: "var(--read-amber-text)",
-            fontSize: "12.5px",
-            lineHeight: 1.55,
-            maxWidth: "680px",
-          }}
-        >
-          <strong>⚠️ This is an experiment, not financial advice.</strong> These are automated
-          formula outputs from on-chain data — not recommendations to buy or sell anything.
-          The formula will be wrong, sometimes badly; that&apos;s why every call is graded publicly.
-          Nothing here accounts for your situation, and microcap tokens can go to zero. DYOR.
-        </div>
-        <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
-          <Link
-            href="/"
-            style={{ fontSize: "12px", color: "var(--text-muted)", textDecoration: "none", padding: "6px 10px", border: "1px solid var(--border)", borderRadius: "8px" }}
-          >
-            ← Movers
-          </Link>
-          <Link
-            href="/dashboard"
-            style={{ fontSize: "12px", color: "var(--text-muted)", textDecoration: "none", padding: "6px 10px", border: "1px solid var(--border)", borderRadius: "8px" }}
-          >
-            Full dashboard
-          </Link>
-        </div>
+        <ExperimentDisclaimer style={{ marginTop: "14px", maxWidth: "680px" }} />
       </div>
 
       {/* accuracy record */}
@@ -291,7 +301,6 @@ export default function ForecastPanel({ state }) {
         Forecast is intentionally computed independently so the track record can eventually answer
         whether it predicts any better than Opp does. It only uses on-chain behavior — no social
         sentiment, no narratives. This page exists to be graded, including when it&apos;s wrong.
-        Not financial advice.
       </div>
     </div>
   );

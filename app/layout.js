@@ -1,4 +1,5 @@
 import Providers from "./providers";
+import ExperimentDisclaimer from "./ExperimentDisclaimer";
 
 export const metadata = {
   title: "Tripwire",
@@ -130,7 +131,12 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <div style={{ padding: "0 24px 28px", width: "100%", boxSizing: "border-box" }}>
+            <ExperimentDisclaimer style={{ marginTop: 0 }} />
+          </div>
+        </Providers>
       </body>
     </html>
   );

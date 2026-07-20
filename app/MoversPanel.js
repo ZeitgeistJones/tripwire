@@ -116,6 +116,7 @@ function TabBar() {
   return (
     <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
       <span style={tabStyle(true)}>Movers</span>
+      <Link href="/forecast" style={tabStyle(false)}>Forecast</Link>
       {DASH_TABS.map((tab) => (
         <Link key={tab} href="/dashboard" style={tabStyle(false)}>
           {tab}
@@ -274,21 +275,6 @@ export default function MoversPanel({ data, lastUpdated }) {
           </div>
         </div>
       )}
-
-      <div style={{
-        marginTop: "28px",
-        padding: "14px 16px",
-        borderRadius: "8px",
-        border: "1px solid var(--border)",
-        background: "var(--bg-subtle)",
-        fontSize: "13px",
-        color: "var(--text-muted)",
-        lineHeight: 1.55,
-      }}>
-        <strong style={{ color: "var(--text)" }}>Disclaimer:</strong> Not financial advice.
-        Information may not be accurate or complete. This is an experiment — scores and signals
-        are best-effort, not guaranteed. Always DYOR.
-      </div>
 
       <style>{`
         @media (max-width: 1100px) {

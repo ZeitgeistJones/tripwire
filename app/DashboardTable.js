@@ -794,6 +794,18 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         >
           Movers
         </Link>
+        <Link
+          href="/forecast"
+          style={{
+            padding: "8px 16px", borderRadius: "6px",
+            border: "1px solid var(--btn-inactive-border)",
+            background: "var(--btn-inactive-bg)",
+            color: "var(--btn-inactive-text)",
+            fontWeight: 400, textDecoration: "none",
+          }}
+        >
+          Forecast
+        </Link>
         {allTabsToRender.map((tab) => (
           <button
             key={tab}
