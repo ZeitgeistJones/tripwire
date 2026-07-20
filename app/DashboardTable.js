@@ -224,22 +224,14 @@ function formatValue(val, format) {
 function StatusBanner({ lastUpdated }) {
   const formatted = lastUpdated
     ? new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "unknown";
+    : "—";
   return (
     <div style={{
       background: "var(--bg-subtle)", border: "1px solid var(--border)", borderRadius: "8px",
       padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5",
-      display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap",
     }}>
-      <div>
-        <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
-        <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
-      </div>
-      <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.6", flex: 1 }}>
-        <strong>v1 — free-tier infrastructure.</strong> Behavioral scores are refreshed manually, not live.
-        Dune credits exhausted — <strong>scores will refresh around July 20th.</strong> Price and Market Cap
-        update hourly. The Wire is paused until credits reset.
-      </div>
+      <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
+      <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
     </div>
   );
 }
