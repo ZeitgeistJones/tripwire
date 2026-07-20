@@ -7,13 +7,51 @@ import StatusBanner from "../StatusBanner";
 export const revalidate = 3600;
 
 export default async function Forecast() {
-  const { rows, lastUpdated } = await getDashboardData();
-  const state = await getForecastState(rows);
+  let rows = [];
+  let lastUpdated = null;
+  let state = null;
+  let loadError = null;
+
+  try {
+    const data = await getDashboardData();
+    rows = data.rows || [];
+    lastUpdated = data.lastUpdated;
+    state = await getForecastState(rows);
+  } catch (err) {
+    console.error("[forecast page]", err);
+    loadError = String(err?.message || err);
+    try {
+      state = await getForecastState(rows);
+    } catch {
+      state = {
+        leaderboard: [],
+        history: [],
+        kvOk: false,
+        kvError: loadError,
+        holdingsCount: 10,
+        startingValue: 100,
+        rebalanceHours: 24,
+        strategies: [],
+      };
+    }
+  }
 
   return (
     <main style={{ padding: "20px 24px", fontFamily: "sans-serif", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
       <Header />
       <StatusBanner lastUpdated={lastUpdated} />
+      {loadError && (
+        <div style={{
+          marginBottom: "12px",
+          padding: "10px 14px",
+          borderRadius: "8px",
+          background: "var(--gate-fail-bg)",
+          color: "var(--gate-fail-text)",
+          fontSize: "13px",
+        }}>
+          Forecast load issue: {loadError}
+        </div>
+      )}
       <ForecastPanel state={state} />
     </main>
   );

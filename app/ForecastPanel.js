@@ -151,6 +151,7 @@ export default function ForecastPanel({ state }) {
     lastRebalanceAt,
     justRebalanced,
     kvOk,
+    kvError,
     holdingsCount = 10,
     startingValue = 100,
     rebalanceHours = 24,
@@ -207,8 +208,18 @@ export default function ForecastPanel({ state }) {
       </div>
 
       {!kvOk && (
-        <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--gate-fail-text)" }}>
-          Storage unavailable — portfolios may reset next load; tracking paused.
+        <div style={{
+          marginTop: "12px",
+          padding: "10px 14px",
+          borderRadius: "8px",
+          background: "var(--gate-fail-bg)",
+          color: "var(--gate-fail-text)",
+          fontSize: "12px",
+          lineHeight: 1.5,
+        }}>
+          Storage unavailable — portfolios won&apos;t persist between visits (not a cron issue;
+          Forecast rebalances on page load via Vercel KV).
+          {kvError ? <> Details: {kvError}</> : null}
         </div>
       )}
 
