@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StatusBanner from "./StatusBanner";
 
 // ── formatting ────────────────────────────────────────────────
 function fmtPrice(n) {
@@ -100,21 +101,6 @@ function getCoolingReasons(t) {
   return reasons.slice(0, 3).map((r) => r.text);
 }
 
-function StatusBanner({ lastUpdated }) {
-  const formatted = lastUpdated
-    ? new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "—";
-  return (
-    <div style={{
-      background: "var(--bg-subtle)", border: "1px solid var(--border)", borderRadius: "8px",
-      padding: "12px 16px", marginBottom: "16px",
-    }}>
-      <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
-      <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
-    </div>
-  );
-}
-
 function TabBar() {
   const tabStyle = (active) => ({
     padding: "8px 16px",
@@ -153,42 +139,43 @@ function MoverCard({ t, cooling }) {
       style={{
         background: "var(--card-bg)",
         border: "1px solid var(--border)",
-        borderRadius: "12px",
-        padding: "20px",
+        borderRadius: "10px",
+        padding: "14px 16px",
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "8px",
+        minWidth: 0,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <div>
-          <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {t.Project}
           </div>
-          <div style={{ fontSize: "12px", color: "var(--text-faint)", marginTop: "2px" }}>
+          <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "2px" }}>
             {t.Symbol} · {fmtUsd(t.marketCapUsd)} mcap
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--text)" }}>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text)" }}>
             {fmtPrice(t.priceUsd)}
             {t.priceSource === "dexscreener" && (
-              <span style={{ opacity: 0.5, fontSize: "12px" }}>*</span>
+              <span style={{ opacity: 0.5, fontSize: "11px" }}>*</span>
             )}
           </div>
-          <div style={{ fontSize: "13px", fontWeight: 600, color: pxColor }}>
+          <div style={{ fontSize: "12px", fontWeight: 600, color: pxColor }}>
             {fmtPct(px)} <span style={{ fontWeight: 400, color: "var(--text-faint)" }}>24h</span>
           </div>
         </div>
       </div>
 
       {(signalText || profText) && (
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
           {signalText && (
             <span
               style={{
-                fontSize: "11px",
-                padding: "3px 8px",
+                fontSize: "10px",
+                padding: "2px 7px",
                 borderRadius: "999px",
                 background: cooling ? "var(--read-coral-bg)" : "var(--read-teal-bg)",
                 color: cooling ? "var(--read-coral-text)" : "var(--read-teal-text)",
@@ -200,8 +187,8 @@ function MoverCard({ t, cooling }) {
           {profText && (
             <span
               style={{
-                fontSize: "11px",
-                padding: "3px 8px",
+                fontSize: "10px",
+                padding: "2px 7px",
                 borderRadius: "999px",
                 background: "var(--badge-neutral-bg)",
                 color: "var(--badge-neutral-text)",
@@ -214,15 +201,15 @@ function MoverCard({ t, cooling }) {
       )}
 
       {reasons.length > 0 ? (
-        <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "5px" }}>
+        <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
           {reasons.map((r, i) => (
-            <li key={i} style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.45 }}>
+            <li key={i} style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.4 }}>
               {r}
             </li>
           ))}
         </ul>
       ) : (
-        <div style={{ fontSize: "13px", color: "var(--text-faint)" }}>
+        <div style={{ fontSize: "12px", color: "var(--text-faint)" }}>
           {cooling ? "Activity quietly winding down." : "Steady on-chain activity — nothing flashy, nothing broken."}
         </div>
       )}
@@ -238,57 +225,49 @@ export default function MoversPanel({ data, lastUpdated }) {
 
   const heating = [...withData]
     .sort((a, b) => (b.signalScore ?? -999) - (a.signalScore ?? -999) || (b.Opp ?? 0) - (a.Opp ?? 0))
-    .slice(0, 6);
+    .slice(0, 4);
 
   const heatingNames = new Set(heating.map((t) => t.Project));
   const cooling = [...withData]
     .filter((t) => !heatingNames.has(t.Project))
     .sort((a, b) => (a.signalScore ?? 999) - (b.signalScore ?? 999))
-    .slice(0, 3);
+    .slice(0, 4);
+
+  const gridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: "12px",
+  };
 
   return (
     <div>
       <StatusBanner lastUpdated={lastUpdated} />
       <TabBar />
 
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ fontSize: "15px", color: "var(--text-muted)", maxWidth: "640px", lineHeight: 1.5 }}>
+      <div style={{ marginBottom: "14px" }}>
+        <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: 1.5 }}>
           Which Base AI coins are actually moving right now — and why. Read straight
           from on-chain activity: real volume, real wallets, real whale flows. No hype feeds.
         </div>
       </div>
 
-      {/* heating up */}
       <div>
-        <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--gate-ok-text)", marginBottom: "12px" }}>
+        <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--gate-ok-text)", marginBottom: "10px" }}>
           Heating up
         </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-            gap: "14px",
-          }}
-        >
+        <div className="movers-grid" style={gridStyle}>
           {heating.map((t) => (
             <MoverCard key={t.Project} t={t} />
           ))}
         </div>
       </div>
 
-      {/* cooling off */}
       {cooling.length > 0 && (
-        <div style={{ marginTop: "36px" }}>
-          <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--gate-fail-text)", marginBottom: "12px" }}>
+        <div style={{ marginTop: "22px" }}>
+          <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--gate-fail-text)", marginBottom: "10px" }}>
             Cooling off
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: "14px",
-            }}
-          >
+          <div className="movers-grid" style={gridStyle}>
             {cooling.map((t) => (
               <MoverCard key={t.Project} t={t} cooling />
             ))}
@@ -296,12 +275,29 @@ export default function MoversPanel({ data, lastUpdated }) {
         </div>
       )}
 
-      {/* footer note */}
-      <div style={{ marginTop: "32px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.6, paddingBottom: "40px" }}>
-        Everything above is computed from on-chain data (Dune) plus live prices
-        (CoinGecko, * = DexScreener). Behavioral scores refresh with the data pipeline;
-        prices update hourly. Not financial advice — DYOR.
+      <div style={{
+        marginTop: "28px",
+        padding: "14px 16px",
+        borderRadius: "8px",
+        border: "1px solid var(--border)",
+        background: "var(--bg-subtle)",
+        fontSize: "13px",
+        color: "var(--text-muted)",
+        lineHeight: 1.55,
+      }}>
+        <strong style={{ color: "var(--text)" }}>Disclaimer:</strong> Not financial advice.
+        Information may not be accurate or complete. This is an experiment — scores and signals
+        are best-effort, not guaranteed. Always DYOR.
       </div>
+
+      <style>{`
+        @media (max-width: 1100px) {
+          .movers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        }
+        @media (max-width: 640px) {
+          .movers-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

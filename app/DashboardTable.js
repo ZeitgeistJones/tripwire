@@ -7,6 +7,7 @@ import TripwirePanel from "./TripwirePanel";
 import AboutPanel from "./AboutPanel";
 import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
+import StatusBanner from "./StatusBanner";
 
 
 // ── Custom delayed tooltip ────────────────────────────────────────────────────
@@ -224,21 +225,6 @@ function formatValue(val, format) {
   if (format === "dec1") return n.toFixed(1);
   if (format === "dec2") return n.toFixed(2);
   return val;
-}
-
-function StatusBanner({ lastUpdated }) {
-  const formatted = lastUpdated
-    ? new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "—";
-  return (
-    <div style={{
-      background: "var(--bg-subtle)", border: "1px solid var(--border)", borderRadius: "8px",
-      padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5",
-    }}>
-      <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "2px" }}>Scores last updated</div>
-      <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{formatted}</div>
-    </div>
-  );
 }
 
 function SummaryBar({ data }) {
