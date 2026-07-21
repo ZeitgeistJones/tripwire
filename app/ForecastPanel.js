@@ -202,9 +202,9 @@ export default function ForecastPanel({ state }) {
   } = state || {};
 
   return (
-    <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
+    <div>
       <TabBar />
-
+      <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
       <div style={{ padding: "8px 0" }}>
         <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
           Forecast — the portfolio race
@@ -292,6 +292,7 @@ export default function ForecastPanel({ state }) {
         card marks the era boundary, so a strategy can&apos;t quietly launder its past. This is a v1
         beta experiment with fake money — not financial advice, not a recommendation, and the
         formulas will sometimes be confidently wrong. That&apos;s what the race is for.
+      </div>
       </div>
     </div>
   );

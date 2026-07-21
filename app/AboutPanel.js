@@ -34,6 +34,7 @@ const GLOSSARY_ROWS = [
   ["Age (days)", "Days since this token's contract was first deployed on Base"],
   ["Price / Market Cap", "Live from CoinGecko when available; DexScreener fallback marked with *"],
   ["Signal / Signal Score", "Price vs volume agreement this week — see Signal section above"],
+  ["whales in / whales out", "On Absorbed only: Whale Net ≥ +$250 → whales in; ≤ −$250 → whales out. Disambiguates absorption"],
 ];
 
 export default function AboutPanel() {
@@ -235,6 +236,15 @@ export default function AboutPanel() {
           Signal compares volume growth vs price change: Confirmed Growth, Absorbed, Thin Rally, Cooling.
           <strong style={{ color: "var(--text)" }}> Read</strong> is the named verdict for Profile + Signal
           (e.g. Beacon, Flare, Flatline).
+        </p>
+        <p style={{ color: "var(--text-muted)" }}>
+          <strong style={{ color: "var(--text)" }}>Absorbed</strong> alone is ambiguous — volume up while price
+          is flat/down could be accumulation or quiet dumping. When{" "}
+          <strong style={{ color: "var(--text)" }}>Whale Net (7d)</strong> is at least ±$250, Overview shows a
+          badge next to Absorbed:{" "}
+          <strong style={{ color: "var(--text)" }}>whales in</strong> (net whale buying — leans genuine
+          accumulation) or <strong style={{ color: "var(--text)" }}>whales out</strong> (net whale selling —
+          possible distribution disguised as activity).
         </p>
 
         <h3 style={{ color: "var(--text)" }}>Column Glossary</h3>

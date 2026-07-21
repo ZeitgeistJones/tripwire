@@ -1,0 +1,297 @@
+﻿diff --git a/app/DashboardTable.js b/app/DashboardTable.js
+index d5d1c18..6502b7f 100644
+--- a/app/DashboardTable.js
++++ b/app/DashboardTable.js
+@@ -12,22 +12,6 @@ import StatusBanner from "./StatusBanner";
+ 
+ // ΓöÇΓöÇ Custom delayed tooltip ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ const HEADER_TOOLTIP_DELAY = 1200;
+-const RANK_TOOLTIP_DELAY = 350;
+-const LOWER_IS_BETTER_KEYS = new Set(["Risk %", "Top10 %"]);
+-
+-/** Competition rank among peers: 1 = best, total = worst. */
+-function peerRank(colKey, value, peers) {
+-  if (value == null || value === "" || Number.isNaN(Number(value))) return null;
+-  const val = Number(value);
+-  const asc = LOWER_IS_BETTER_KEYS.has(colKey);
+-  const values = peers
+-    .map((d) => d[colKey])
+-    .filter((v) => v != null && v !== "" && !Number.isNaN(Number(v)))
+-    .map(Number);
+-  if (values.length === 0) return null;
+-  const better = values.filter((v) => (asc ? v < val : v > val)).length;
+-  return { rank: better + 1, total: values.length };
+-}
+ 
+ function useDelayedTooltip() {
+   const [tooltip, setTooltip] = useState(null);
+@@ -78,17 +62,6 @@ function savePins(pins) {
+   try { localStorage.setItem("zdash-pins", JSON.stringify(pins)); }
+   catch {}
+ }
+-function loadCompact() {
+-  try {
+-    const v = localStorage.getItem("zdash-compact");
+-    if (v === null) return true; // default on
+-    return v === "1";
+-  } catch { return true; }
+-}
+-function saveCompact(on) {
+-  try { localStorage.setItem("zdash-compact", on ? "1" : "0"); }
+-  catch {}
+-}
+ 
+ const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "The Wire", "About"];
+ 
+@@ -164,11 +137,11 @@ const TABS = {
+     { key: "Accum %",          label: "Accum %",              type: "number", format: "pct1", tooltip: "Whale buys as a share of all whale volume (7d) \u2014 50% is neutral, above ~65% suggests accumulation, below ~35% suggests distribution" },
+     { key: "Whale Buyers 7d",  label: "Whale Buyers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized buys in the last 7 days \u2014 distinguishes one whale accumulating from many" },
+     { key: "Whale Sellers 7d", label: "Whale Sellers (7d)",   type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized sells in the last 7 days" },
+-    { key: "Hump Net 7d",      label: "Humpback Net (7d)",    type: "number", format: "usd",  tooltip: "Net USD flow from mega-whale (humpback) trades in the last 7 days \u2014 trades in the top 1% of sizes for that token (min $1,000). Humpback trades are a subset of whale trades" },
+-    { key: "Hump Buyers 7d",   label: "Humpback Buyers (7d)", type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized buys in the last 7 days \u2014 usually a handful of very large players" },
+-    { key: "Hump Sellers 7d",  label: "Humpback Sellers (7d)",type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized sells in the last 7 days" },
++    { key: "Hump Net 7d",      label: "Hump Net (7d)",        type: "number", format: "usd",  tooltip: "Net USD flow from mega-whale (humpback) trades in the last 7 days \u2014 trades in the top 1% of sizes for that token (min $1,000). Humpback trades are a subset of whale trades" },
++    { key: "Hump Buyers 7d",   label: "Hump Buyers (7d)",     type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized buys in the last 7 days \u2014 usually a handful of very large players" },
++    { key: "Hump Sellers 7d",  label: "Hump Sellers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized sells in the last 7 days" },
+     { key: "Retail Net 7d",    label: "Retail Net (7d)",      type: "number", format: "usd",  tooltip: "Net USD flow from all NON-whale trades in the last 7 days. Compare against Whale Net: whales buying while retail sells = accumulation from weak hands; whales selling into retail buying = distribution" },
+-    { key: "Whale Vol %",      label: "Whale Vol %",          type: "number", format: "pct1", tooltip: "Whale trades as a share of all 7-day volume \u2014 how much of the market whale flow represents. At 80%+ the retail column is thin and divergence reads are weak; around 30% a whale/retail split can mean two real crowds disagreeing" },
++    { key: "Whale Vol %",      label: "Whale Vol %",          type: "number", format: "pct1", tooltip: "Whale trades as a share of all 7-day volume \u2014 how much whale flow actually matters for this token. Low = whales are a sideshow; high = whale flow IS the market" },
+     { key: "Qlty %",           label: "Qlty %",               type: "number", format: "pct1", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
+     { key: "Risk %",           label: "Risk %",               type: "number", format: "pct1", tooltip: "How concentrated the volume is in a few wallets \u2014 higher means more concentrated" },
+     { key: "Top10 %",          label: "Top10 % (30d)",        type: "number", format: "pct1", tooltip: "Share of all 30-day transactions from the top 10 most active wallets \u2014 lower is healthier" },
+@@ -425,23 +398,10 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+   const [watchedAddresses, setWatchedAddresses] = useState([]);
+   const [watchlistColumnConfig, setWatchlistColumnConfig] = useState(null);
+   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
+-  const [compact, setCompact] = useState(true);
+   const dragKeyRef = useRef(null);
+-  const rootRef = useRef(null);
+   const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip } = useDelayedTooltip();
+ 
+-  useEffect(() => {
+-    setPinnedKeys(loadPins());
+-    setCompact(loadCompact());
+-  }, []);
+-
+-  function toggleCompact() {
+-    setCompact((prev) => {
+-      const next = !prev;
+-      saveCompact(next);
+-      return next;
+-    });
+-  }
++  useEffect(() => { setPinnedKeys(loadPins()); }, []);
+ 
+   const { address } = useAccount();
+   const { data: hasAccessRaw } = useReadContract({
+@@ -545,14 +505,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+     "Vol Grw %", "Tx Grw %", "User Grw %", "Txs 30d", "Vol 30d", "Txs/User", "Traders",
+     "Retention %", "New %", "New Wallets", "Returning Wallets", "Non-Trade New 30d",
+     "Buyers 30d", "Buyers 7d", "1st Buyers 30d", "1st Buyers 7d",
+-    "1st Sellers 30d", "1st Sellers 7d",
+-    "Whale Net 7d", "Accum %", "Whale Buyers 7d", "Whale Sellers 7d",
+-    "Hump Net 7d", "Hump Buyers 7d", "Hump Sellers 7d",
+-    "Retail Net 7d", "Whale Vol %",
+-    "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
++    "1st Sellers 30d", "1st Sellers 7d", "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
+   ];
++  const LOWER_IS_BETTER = new Set(["Risk %", "Top10 %"]);
+   const ranks = {};
+-  RANK_FIELDS.forEach((f) => { ranks[f] = rankBy(f, LOWER_IS_BETTER_KEYS.has(f)); });
++  RANK_FIELDS.forEach((f) => { ranks[f] = rankBy(f, LOWER_IS_BETTER.has(f)); });
+ 
+   function togglePin(key) {
+     setPinnedKeys((prev) => {
+@@ -595,7 +552,15 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+ 
+   function getCellRank(colKey, colType, rowData) {
+     if (colType !== "number" || isDiscover) return null;
+-    return peerRank(colKey, rowData[colKey], dataArr);
++    const val = rowData[colKey];
++    if (val == null || val === "" || Number.isNaN(Number(val))) return null;
++    const lowerBetter = new Set(["Risk %", "Top10 %"]);
++    const asc = lowerBetter.has(colKey);
++    const all = dataArr.map((d) => Number(d[colKey])).filter((v) => !Number.isNaN(v) && v != null);
++    if (all.length === 0) return null;
++    const sorted = [...all].sort((a, b) => asc ? a - b : b - a);
++    const rank = sorted.indexOf(Number(val)) + 1;
++    return { rank, total: sorted.length };
+   }
+ 
+   function handleTabChange(tab) {
+@@ -610,16 +575,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+     function handleKeyDown(e) {
+       const tag = e.target.tagName;
+       if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable) return;
+-
+-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+-        const scroller = rootRef.current?.querySelector("[data-h-scroll]");
+-        if (!scroller || scroller.scrollWidth <= scroller.clientWidth + 1) return;
+-        e.preventDefault();
+-        const step = Math.max(160, Math.round(scroller.clientWidth * 0.35));
+-        scroller.scrollBy({ left: e.key === "ArrowRight" ? step : -step, behavior: "smooth" });
+-        return;
+-      }
+-
+       if (e.key !== "[" && e.key !== "]") return;
+       const currentIndex = TAB_ORDER.indexOf(activeTab);
+       if (currentIndex === -1) return;
+@@ -703,12 +658,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+         }}
+       >
+         {!isDiscover && (
+-          <td style={{ padding: compact ? "2px 2px" : "4px 4px", whiteSpace: "nowrap", width: compact ? "40px" : "52px" }}>
++          <td style={{ padding: "4px 4px", whiteSpace: "nowrap", width: "52px" }}>
+             <button
+               onClick={() => toggleWatch(d["Address"])}
+               title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+               style={{
+-                background: "none", border: "none", cursor: "pointer", fontSize: compact ? "11px" : "14px",
++                background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                 lineHeight: 1, padding: "0 2px",
+                 color: isWatched ? "#f5c518" : "var(--text-faint)",
+                 opacity: isWatched ? 1 : 0.5,
+@@ -723,7 +678,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+               onClick={() => togglePin(d[rowKeyField])}
+               title={isPinned ? "Unpin" : "Pin to top"}
+               style={{
+-                background: "none", border: "none", cursor: "pointer", fontSize: compact ? "11px" : "14px",
++                background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                 lineHeight: 1, padding: "0 2px",
+                 color: isPinned ? "var(--btn-active-bg)" : "var(--text-faint)",
+                 opacity: isPinned ? 1 : 0.5,
+@@ -744,6 +699,28 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+             d[col.key] != null;
+           const cellContent = col.key === "read"
+             ? <ReadBadge value={d[col.key]} />
++            : col.key === "signal" && d.signalNote ? (
++                <span>
++                  {d[col.key]}
++                  <span
++                    title={d.signalNote === "whales in"
++                      ? "Volume is being absorbed WITH whales net buying \u2014 reads as genuine accumulation"
++                      : "Volume is being absorbed WHILE whales net sell \u2014 possible distribution disguised as activity"}
++                    style={{
++                      marginLeft: "6px",
++                      fontSize: "10px",
++                      fontWeight: 700,
++                      padding: "1px 6px",
++                      borderRadius: "999px",
++                      background: d.signalNote === "whales in" ? "var(--read-teal-bg)" : "var(--read-coral-bg)",
++                      color: d.signalNote === "whales in" ? "var(--read-teal-text)" : "var(--read-coral-text)",
++                      whiteSpace: "nowrap",
++                    }}
++                  >
++                    {d.signalNote}
++                  </span>
++                </span>
++              )
+             : col.format ? (
+                 isFallbackPrice ? (
+                   <span
+@@ -759,11 +736,9 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+           const rankTooltipContent = rankInfo ? (
+             <div>
+               <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
+-                #{rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>of {rankInfo.total}</span>
+-              </div>
+-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+-                Rank for <strong>{col.label}</strong> among tracked peers
++                {rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>/ {rankInfo.total}</span>
+               </div>
++              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Rank for <strong>{col.label}</strong></div>
+               <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "4px" }}>
+                 1 = best ┬╖ {rankInfo.total} = worst
+               </div>
+@@ -772,12 +747,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+           return (
+             <td
+               key={col.key}
+-              style={{
+-                padding: compact ? "3px 6px" : "6px 12px",
+-                whiteSpace: "nowrap",
+-                cursor: rankTooltipContent ? "help" : undefined,
+-              }}
+-              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
++              style={{ padding: "6px 12px", whiteSpace: "nowrap" }}
++              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, 3000) : undefined}
+               onMouseMove={rankTooltipContent ? moveTooltip : undefined}
+               onMouseLeave={rankTooltipContent ? hideTooltip : undefined}
+             >
+@@ -790,11 +761,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+   }
+ 
+   const tableBody = !isSpecialTab && (
+-    <div data-h-scroll style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
++    <div style={{ overflowX: "auto" }}>
+       <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
+         <thead>
+           <tr>
+-            {!isDiscover && <th style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
++            {!isDiscover && <th style={{ width: "52px", borderBottom: "1px solid var(--border-strong)", padding: "6px 8px" }} />}
+             {columns.map((col) => (
+               <th
+                 key={col.key}
+@@ -804,7 +775,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+                 onMouseLeave={col.tooltip ? hideTooltip : undefined}
+                 style={{
+                   textAlign: "left", borderBottom: "1px solid var(--border-strong)",
+-                  padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
++                  padding: "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+                 }}
+               >
+                 {col.label}
+@@ -838,7 +809,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+   const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire", "About"];
+ 
+   return (
+-    <div ref={rootRef}>
++    <div>
+       <StatusBanner lastUpdated={lastUpdated} />
+ 
+       <div style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+@@ -883,30 +854,9 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+         ))}
+       </div>
+ 
+-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
+-        <p style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
+-          Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Use <strong>ΓåÉ</strong> <strong>ΓåÆ</strong> to scroll wide tables. Hover a column header for its definition. Hover any number to see its rank among peers. Click Γ¡É to watch, ≡ƒôì to pin to top.
+-        </p>
+-        <button
+-          type="button"
+-          onClick={toggleCompact}
+-          title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
+-          style={{
+-            padding: "5px 12px",
+-            borderRadius: "6px",
+-            border: compact ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+-            background: compact ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+-            color: compact ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+-            cursor: "pointer",
+-            fontSize: "12px",
+-            fontWeight: compact ? 600 : 400,
+-            whiteSpace: "nowrap",
+-            flexShrink: 0,
+-          }}
+-        >
+-          {compact ? "Compact Γ£ô" : "Compact"}
+-        </button>
+-      </div>
++      <p style={{ fontSize: "12px", color: "var(--text-xfaint)", marginBottom: "10px" }}>
++        Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Hover a column header 1ΓÇô2s for its definition. Hover any number 3s to see its rank. Click Γ¡É to watch, ≡ƒôì to pin to top.
++      </p>
+ 
+       {!isSpecialTab && !isDiscover && (
+         <>
+@@ -951,10 +901,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
+               address={address}
+               columnConfig={watchlistColumnConfig}
+               onColumnConfigChange={handleColumnConfigChange}
+-              showTooltip={showTooltip}
+-              moveTooltip={moveTooltip}
+-              hideTooltip={hideTooltip}
+-              compact={compact}
+             />
+           </GatedSection>
+         )}
