@@ -16,12 +16,14 @@ export default async function Forecast() {
     const data = await getDashboardData();
     rows = data.rows || [];
     lastUpdated = data.lastUpdated;
-    state = await getForecastState(rows);
+    // lastUpdated is the Dune execution timestamp — it doubles as the
+    // data version: portfolios only trade when it changes (72h backstop).
+    state = await getForecastState(rows, lastUpdated);
   } catch (err) {
     console.error("[forecast page]", err);
     loadError = String(err?.message || err);
     try {
-      state = await getForecastState(rows);
+      state = await getForecastState(rows, lastUpdated);
     } catch {
       state = {
         leaderboard: [],
@@ -30,7 +32,9 @@ export default async function Forecast() {
         kvError: loadError,
         holdingsCount: 10,
         startingValue: 100,
-        rebalanceHours: 24,
+        feePct: 1,
+        minVol30d: 25000,
+        backstopHours: 72,
         strategies: [],
       };
     }
