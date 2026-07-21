@@ -56,6 +56,7 @@ function formatRowValue(val, format) {
   if (format === "dec1") return n.toFixed(1);
   if (format === "usd") return formatUsd(n);
   if (format === "usd2") return `$${n.toFixed(2)}`;
+  if (format === "usdNet") return `${n < 0 ? "\u2212" : "+"}$${Math.abs(Math.round(n)).toLocaleString()}`;
   return n;
 }
 
@@ -221,6 +222,15 @@ const COMPACT_SECTIONS = [
       { key: "Vol/Tx", label: "Vol/Tx", format: "usd2" },
     ],
   },
+  {
+    title: "Whales (7d)", color: "#0F6E56",
+    rows: [
+      { key: "Whale Net 7d", label: "Whale Net Flow", format: "usdNet" },
+      { key: "Accum %", label: "Accum %", format: "pct1" },
+      { key: "Whale Buyers 7d", label: "Whale Buyers", format: "int" },
+      { key: "Whale Sellers 7d", label: "Whale Sellers", format: "int" },
+    ],
+  }
 ];
 
 function ProfileSignalBanner({ profile, signal, read }) {
