@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { base } from "wagmi/chains";
-import TripwirePanel from "./TripwirePanel";
 import AboutPanel from "./AboutPanel";
 import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
@@ -955,7 +954,37 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       {activeTab === "Overview" && <ProfSignalKey />}
 
       <div style={{ minHeight: "500px" }}>
-        {isTripwire  && <TripwirePanel hasAccess={hasAccess} />}
+        {isTripwire && (
+          <div style={{
+            marginTop: "24px",
+            padding: "40px 24px",
+            border: "1px solid var(--border)",
+            borderRadius: "10px",
+            background: "var(--bg-subtle)",
+            textAlign: "center",
+          }}>
+            <div style={{
+              display: "inline-block",
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "var(--read-amber-text)",
+              background: "var(--read-amber-bg)",
+              padding: "4px 10px",
+              borderRadius: "999px",
+              marginBottom: "12px",
+            }}>
+              Under construction
+            </div>
+            <p style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--text)" }}>
+              The Wire is temporarily offline
+            </p>
+            <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)", maxWidth: "420px", marginLeft: "auto", marginRight: "auto" }}>
+              We&apos;re rebuilding this pulse check. Check back soon.
+            </p>
+          </div>
+        )}
         {isAbout     && <AboutPanel />}
         {isClawd     && (
           <GatedSection blurred={!hasAccess}>
