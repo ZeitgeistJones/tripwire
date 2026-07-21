@@ -78,6 +78,14 @@ function savePins(pins) {
   try { localStorage.setItem("zdash-pins", JSON.stringify(pins)); }
   catch {}
 }
+function loadCompact() {
+  try { return localStorage.getItem("zdash-compact") === "1"; }
+  catch { return false; }
+}
+function saveCompact(on) {
+  try { localStorage.setItem("zdash-compact", on ? "1" : "0"); }
+  catch {}
+}
 
 const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "The Wire", "About"];
 
@@ -412,10 +420,23 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const [watchedAddresses, setWatchedAddresses] = useState([]);
   const [watchlistColumnConfig, setWatchlistColumnConfig] = useState(null);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
+  const [compact, setCompact] = useState(false);
   const dragKeyRef = useRef(null);
+  const rootRef = useRef(null);
   const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip } = useDelayedTooltip();
 
-  useEffect(() => { setPinnedKeys(loadPins()); }, []);
+  useEffect(() => {
+    setPinnedKeys(loadPins());
+    setCompact(loadCompact());
+  }, []);
+
+  function toggleCompact() {
+    setCompact((prev) => {
+      const next = !prev;
+      saveCompact(next);
+      return next;
+    });
+  }
 
   const { address } = useAccount();
   const { data: hasAccessRaw } = useReadContract({
@@ -583,6 +604,16 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     function handleKeyDown(e) {
       const tag = e.target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable) return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const scroller = rootRef.current?.querySelector("[data-h-scroll]");
+        if (!scroller || scroller.scrollWidth <= scroller.clientWidth + 1) return;
+        e.preventDefault();
+        const step = Math.max(160, Math.round(scroller.clientWidth * 0.35));
+        scroller.scrollBy({ left: e.key === "ArrowRight" ? step : -step, behavior: "smooth" });
+        return;
+      }
+
       if (e.key !== "[" && e.key !== "]") return;
       const currentIndex = TAB_ORDER.indexOf(activeTab);
       if (currentIndex === -1) return;
@@ -666,12 +697,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         }}
       >
         {!isDiscover && (
-          <td style={{ padding: "4px 4px", whiteSpace: "nowrap", width: "52px" }}>
+          <td style={{ padding: compact ? "2px 2px" : "4px 4px", whiteSpace: "nowrap", width: compact ? "40px" : "52px" }}>
             <button
               onClick={() => toggleWatch(d["Address"])}
               title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
               style={{
-                background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                background: "none", border: "none", cursor: "pointer", fontSize: compact ? "11px" : "14px",
                 lineHeight: 1, padding: "0 2px",
                 color: isWatched ? "#f5c518" : "var(--text-faint)",
                 opacity: isWatched ? 1 : 0.5,
@@ -686,7 +717,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               onClick={() => togglePin(d[rowKeyField])}
               title={isPinned ? "Unpin" : "Pin to top"}
               style={{
-                background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                background: "none", border: "none", cursor: "pointer", fontSize: compact ? "11px" : "14px",
                 lineHeight: 1, padding: "0 2px",
                 color: isPinned ? "var(--btn-active-bg)" : "var(--text-faint)",
                 opacity: isPinned ? 1 : 0.5,
@@ -736,7 +767,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
             <td
               key={col.key}
               style={{
-                padding: "6px 12px",
+                padding: compact ? "3px 6px" : "6px 12px",
                 whiteSpace: "nowrap",
                 cursor: rankTooltipContent ? "help" : undefined,
               }}
@@ -753,11 +784,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   }
 
   const tableBody = !isSpecialTab && (
-    <div style={{ overflowX: "auto" }}>
+    <div data-h-scroll style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
       <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
         <thead>
           <tr>
-            {!isDiscover && <th style={{ width: "52px", borderBottom: "1px solid var(--border-strong)", padding: "6px 8px" }} />}
+            {!isDiscover && <th style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
             {columns.map((col) => (
               <th
                 key={col.key}
@@ -767,7 +798,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                 onMouseLeave={col.tooltip ? hideTooltip : undefined}
                 style={{
                   textAlign: "left", borderBottom: "1px solid var(--border-strong)",
-                  padding: "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+                  padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
                 }}
               >
                 {col.label}
@@ -801,7 +832,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire", "About"];
 
   return (
-    <div>
+    <div ref={rootRef}>
       <StatusBanner lastUpdated={lastUpdated} />
 
       <div style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
@@ -846,9 +877,30 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         ))}
       </div>
 
-      <p style={{ fontSize: "12px", color: "var(--text-xfaint)", marginBottom: "10px" }}>
-        Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
+        <p style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
+          Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Use <strong>←</strong> <strong>→</strong> to scroll wide tables. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
+        </p>
+        <button
+          type="button"
+          onClick={toggleCompact}
+          title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
+          style={{
+            padding: "5px 12px",
+            borderRadius: "6px",
+            border: compact ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+            background: compact ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+            color: compact ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: compact ? 600 : 400,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          {compact ? "Compact ✓" : "Compact"}
+        </button>
+      </div>
 
       {!isSpecialTab && !isDiscover && (
         <>
@@ -896,6 +948,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               showTooltip={showTooltip}
               moveTooltip={moveTooltip}
               hideTooltip={hideTooltip}
+              compact={compact}
             />
           </GatedSection>
         )}

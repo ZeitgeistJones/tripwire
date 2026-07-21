@@ -222,6 +222,7 @@ export default function WatchlistPanel({
   showTooltip,
   moveTooltip,
   hideTooltip,
+  compact = false,
 }) {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [sortKey, setSortKey] = useState("Opp");
@@ -306,18 +307,18 @@ export default function WatchlistPanel({
           Star tokens from any tab to build your watchlist.
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
+        <div data-h-scroll style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
           <table style={{ borderCollapse: "collapse", width: "100%" }}>
             <thead>
               <tr>
-                <th style={{ width: "28px", borderBottom: "1px solid var(--border-strong)", padding: "6px 8px" }} />
+                <th style={{ width: compact ? "22px" : "28px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />
                 {orderedActiveColumns.map((col) => (
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
                     style={{
                       textAlign: "left", borderBottom: "1px solid var(--border-strong)",
-                      padding: "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+                      padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
                       color: "var(--text)",
                     }}
                   >
@@ -330,13 +331,13 @@ export default function WatchlistPanel({
             <tbody>
               {sorted.map((d) => (
                 <tr key={d["Address"]}>
-                  <td style={{ padding: "4px 8px", whiteSpace: "nowrap", width: "28px" }}>
+                  <td style={{ padding: compact ? "2px 4px" : "4px 8px", whiteSpace: "nowrap", width: compact ? "22px" : "28px" }}>
                     <button
                       onClick={() => onUnwatch(d["Address"])}
                       title="Remove from watchlist"
                       style={{
                         background: "none", border: "none", cursor: "pointer",
-                        fontSize: "16px", lineHeight: 1, padding: "0 2px",
+                        fontSize: compact ? "12px" : "16px", lineHeight: 1, padding: "0 2px",
                         color: "#f5c518",
                       }}
                     >
@@ -367,7 +368,7 @@ export default function WatchlistPanel({
                       <td
                         key={col.key}
                         style={{
-                          padding: "6px 12px",
+                          padding: compact ? "3px 6px" : "6px 12px",
                           whiteSpace: "nowrap",
                           color: "var(--text)",
                           cursor: rankTooltipContent ? "help" : undefined,
