@@ -229,6 +229,9 @@ const COMPACT_SECTIONS = [
       { key: "Accum %", label: "Accum %", format: "pct1" },
       { key: "Whale Buyers 7d", label: "Whale Buyers", format: "int" },
       { key: "Whale Sellers 7d", label: "Whale Sellers", format: "int" },
+      { key: "Hump Net 7d", label: "Humpback Net Flow", format: "usdNet" },
+      { key: "Hump Buyers 7d", label: "Humpback Buyers", format: "int" },
+      { key: "Hump Sellers 7d", label: "Humpback Sellers", format: "int" },
     ],
   }
 ];
