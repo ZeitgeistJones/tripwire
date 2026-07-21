@@ -79,8 +79,11 @@ function savePins(pins) {
   catch {}
 }
 function loadCompact() {
-  try { return localStorage.getItem("zdash-compact") === "1"; }
-  catch { return false; }
+  try {
+    const v = localStorage.getItem("zdash-compact");
+    if (v === null) return true; // default on
+    return v === "1";
+  } catch { return true; }
 }
 function saveCompact(on) {
   try { localStorage.setItem("zdash-compact", on ? "1" : "0"); }
@@ -422,7 +425,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const [watchedAddresses, setWatchedAddresses] = useState([]);
   const [watchlistColumnConfig, setWatchlistColumnConfig] = useState(null);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
-  const [compact, setCompact] = useState(false);
+  const [compact, setCompact] = useState(true);
   const dragKeyRef = useRef(null);
   const rootRef = useRef(null);
   const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip } = useDelayedTooltip();
