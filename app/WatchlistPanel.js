@@ -44,6 +44,21 @@ const ALL_COLUMNS = [
 ];
 
 const DEFAULT_COLUMNS = ["Project", "Opp", "Mom", "Sus", "Prof", "priceUsd", "marketCapUsd", "signal"];
+const RANK_TOOLTIP_DELAY = 350;
+const LOWER_IS_BETTER_KEYS = new Set(["Risk %", "Top10 %"]);
+
+function peerRank(colKey, value, peers) {
+  if (value == null || value === "" || Number.isNaN(Number(value))) return null;
+  const val = Number(value);
+  const asc = LOWER_IS_BETTER_KEYS.has(colKey);
+  const values = peers
+    .map((d) => d[colKey])
+    .filter((v) => v != null && v !== "" && !Number.isNaN(Number(v)))
+    .map(Number);
+  if (values.length === 0) return null;
+  const better = values.filter((v) => (asc ? v < val : v > val)).length;
+  return { rank: better + 1, total: values.length };
+}
 
 const READ_TIERS = {
   Beacon: "teal", "Low Hum": "teal", Undercurrent: "teal", "Quiet Beacon": "teal",
@@ -197,7 +212,17 @@ function ColumnCustomizer({ activeKeys, order, onChange, onClose }) {
   );
 }
 
-export default function WatchlistPanel({ data, watchedAddresses, onUnwatch, address, columnConfig, onColumnConfigChange }) {
+export default function WatchlistPanel({
+  data,
+  watchedAddresses,
+  onUnwatch,
+  address,
+  columnConfig,
+  onColumnConfigChange,
+  showTooltip,
+  moveTooltip,
+  hideTooltip,
+}) {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [sortKey, setSortKey] = useState("Opp");
   const [sortDir, setSortDir] = useState("desc");
@@ -323,8 +348,34 @@ export default function WatchlistPanel({ data, watchedAddresses, onUnwatch, addr
                       ? <ReadBadge value={d[col.key]} />
                       : col.format ? formatValue(d[col.key], col.format)
                       : (d[col.key] ?? "—");
+                    const rankInfo = col.type === "number" ? peerRank(col.key, d[col.key], data || []) : null;
+                    const rankTooltipContent = rankInfo ? (
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
+                          #{rankInfo.rank}{" "}
+                          <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>of {rankInfo.total}</span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                          Rank for <strong>{col.label}</strong> among tracked peers
+                        </div>
+                        <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "4px" }}>
+                          1 = best · {rankInfo.total} = worst
+                        </div>
+                      </div>
+                    ) : null;
                     return (
-                      <td key={col.key} style={{ padding: "6px 12px", whiteSpace: "nowrap", color: "var(--text)" }}>
+                      <td
+                        key={col.key}
+                        style={{
+                          padding: "6px 12px",
+                          whiteSpace: "nowrap",
+                          color: "var(--text)",
+                          cursor: rankTooltipContent ? "help" : undefined,
+                        }}
+                        onMouseEnter={rankTooltipContent && showTooltip ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
+                        onMouseMove={rankTooltipContent && moveTooltip ? moveTooltip : undefined}
+                        onMouseLeave={rankTooltipContent && hideTooltip ? hideTooltip : undefined}
+                      >
                         {cellContent}
                       </td>
                     );

@@ -12,6 +12,22 @@ import StatusBanner from "./StatusBanner";
 
 // ── Custom delayed tooltip ────────────────────────────────────────────────────
 const HEADER_TOOLTIP_DELAY = 1200;
+const RANK_TOOLTIP_DELAY = 350;
+const LOWER_IS_BETTER_KEYS = new Set(["Risk %", "Top10 %"]);
+
+/** Competition rank among peers: 1 = best, total = worst. */
+function peerRank(colKey, value, peers) {
+  if (value == null || value === "" || Number.isNaN(Number(value))) return null;
+  const val = Number(value);
+  const asc = LOWER_IS_BETTER_KEYS.has(colKey);
+  const values = peers
+    .map((d) => d[colKey])
+    .filter((v) => v != null && v !== "" && !Number.isNaN(Number(v)))
+    .map(Number);
+  if (values.length === 0) return null;
+  const better = values.filter((v) => (asc ? v < val : v > val)).length;
+  return { rank: better + 1, total: values.length };
+}
 
 function useDelayedTooltip() {
   const [tooltip, setTooltip] = useState(null);
@@ -504,9 +520,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     "Whale Net 7d", "Accum %", "Whale Buyers 7d", "Whale Sellers 7d",
     "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
   ];
-  const LOWER_IS_BETTER = new Set(["Risk %", "Top10 %"]);
   const ranks = {};
-  RANK_FIELDS.forEach((f) => { ranks[f] = rankBy(f, LOWER_IS_BETTER.has(f)); });
+  RANK_FIELDS.forEach((f) => { ranks[f] = rankBy(f, LOWER_IS_BETTER_KEYS.has(f)); });
 
   function togglePin(key) {
     setPinnedKeys((prev) => {
@@ -549,15 +564,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
 
   function getCellRank(colKey, colType, rowData) {
     if (colType !== "number" || isDiscover) return null;
-    const val = rowData[colKey];
-    if (val == null || val === "" || Number.isNaN(Number(val))) return null;
-    const lowerBetter = new Set(["Risk %", "Top10 %"]);
-    const asc = lowerBetter.has(colKey);
-    const all = dataArr.map((d) => Number(d[colKey])).filter((v) => !Number.isNaN(v) && v != null);
-    if (all.length === 0) return null;
-    const sorted = [...all].sort((a, b) => asc ? a - b : b - a);
-    const rank = sorted.indexOf(Number(val)) + 1;
-    return { rank, total: sorted.length };
+    return peerRank(colKey, rowData[colKey], dataArr);
   }
 
   function handleTabChange(tab) {
@@ -711,9 +718,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           const rankTooltipContent = rankInfo ? (
             <div>
               <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
-                {rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>/ {rankInfo.total}</span>
+                #{rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>of {rankInfo.total}</span>
               </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Rank for <strong>{col.label}</strong></div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                Rank for <strong>{col.label}</strong> among tracked peers
+              </div>
               <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "4px" }}>
                 1 = best · {rankInfo.total} = worst
               </div>
@@ -722,8 +731,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           return (
             <td
               key={col.key}
-              style={{ padding: "6px 12px", whiteSpace: "nowrap" }}
-              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, 3000) : undefined}
+              style={{
+                padding: "6px 12px",
+                whiteSpace: "nowrap",
+                cursor: rankTooltipContent ? "help" : undefined,
+              }}
+              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
               onMouseMove={rankTooltipContent ? moveTooltip : undefined}
               onMouseLeave={rankTooltipContent ? hideTooltip : undefined}
             >
@@ -830,7 +843,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       </div>
 
       <p style={{ fontSize: "12px", color: "var(--text-xfaint)", marginBottom: "10px" }}>
-        Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Hover a column header 1–2s for its definition. Hover any number 3s to see its rank. Click ⭐ to watch, 📍 to pin to top.
+        Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
       </p>
 
       {!isSpecialTab && !isDiscover && (
@@ -876,6 +889,9 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               address={address}
               columnConfig={watchlistColumnConfig}
               onColumnConfigChange={handleColumnConfigChange}
+              showTooltip={showTooltip}
+              moveTooltip={moveTooltip}
+              hideTooltip={hideTooltip}
             />
           </GatedSection>
         )}
