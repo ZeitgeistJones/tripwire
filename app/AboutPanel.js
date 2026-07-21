@@ -26,6 +26,9 @@ const GLOSSARY_ROWS = [
   ["Whale Net (7d)", "Net USD from large trades in the last 7 days (buys minus sells). Positive = whales accumulating"],
   ["Accum %", "Whale buys as a share of all whale volume (7d). ~50% neutral; higher suggests accumulation"],
   ["Whale Buyers / Sellers (7d)", "Distinct wallets making top-decile-sized buys or sells in the last 7 days"],
+  ["Humpback Net / Buyers / Sellers (7d)", "Same idea as whales, but top 1% of trade sizes (min $1,000) — the mega-whale subset"],
+  ["Retail Net (7d)", "Net USD from all non-whale trades in the last 7 days. Read it against Whale Net"],
+  ["Whale Vol %", "Whale trades as a share of all 7d volume — how much whale flow actually matters. High % makes retail thin"],
   ["Non-Trade New (30d)", "New wallets with no first buy or sell — likely airdrop/transfer. New − 1st Buyers − 1st Sellers, floored at 0"],
   ["Top10 % (30d)", "Share of 30-day transactions from the top 10 most active wallets. Lower is healthier"],
   ["Age (days)", "Days since this token's contract was first deployed on Base"],
@@ -65,7 +68,8 @@ export default function AboutPanel() {
         </p>
         <p style={{ color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>Whale trade</strong> — a trade in the top 10% of that
-          token&apos;s own 30d trade sizes (minimum $100). Scales per token instead of one fixed dollar cutoff.
+          token&apos;s own 30d trade sizes (minimum $100). <strong style={{ color: "var(--text)" }}>Humpback</strong> =
+          top 1% (minimum $1,000), a subset of whale. Scales per token instead of one fixed dollar cutoff.
         </p>
 
         <h3 style={{ color: "var(--text)" }}>Whale &amp; Accumulation</h3>
@@ -73,8 +77,10 @@ export default function AboutPanel() {
           Shown on <strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong>. A trade counts as a
           whale trade if its USD size is in the <strong style={{ color: "var(--text)" }}>top 10%</strong> of
           that token&apos;s own DEX trades over the last 30 days, floored at <strong style={{ color: "var(--text)" }}>$100</strong>.
-          Metrics below then use only those whale-sized trades from the last <strong style={{ color: "var(--text)" }}>7 days</strong>.
-          Quality, concentration, Non-Trade New, and Age live on the same tab.
+          Metrics below then use only those whale-sized trades from the last <strong style={{ color: "var(--text)" }}>7 days</strong>.{" "}
+          <strong style={{ color: "var(--text)" }}>Retail Net</strong> is the complementary flow — all non-whale
+          trades. <strong style={{ color: "var(--text)" }}>Whale Vol %</strong> is how much of 7d volume those whale
+          trades represent. Quality, concentration, Non-Trade New, and Age live on the same tab.
         </p>
 
         <p style={{ color: "var(--text-muted)" }}>
@@ -121,6 +127,30 @@ export default function AboutPanel() {
           Flip the flows ($5,500 buys, $13,500 sells) → Whale Net ={" "}
           <code>−$8,000</code>, Accum % = <code>29.0%</code> (distribution).
         </p>
+
+        <h3 style={{ color: "var(--text)" }}>Whale vs Retail reads</h3>
+        <p style={{ color: "var(--text-muted)" }}>
+          These columns exist so you can see whether big size and everyone else are on the same side.
+          Always check <strong style={{ color: "var(--text)" }}>Whale Vol %</strong> before trusting a divergence:
+        </p>
+        <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Whale Net + / Retail Net −</strong> — whales accumulating
+            from weak hands (classically bullish when the split is real).
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Whale Net − / Retail Net +</strong> — distribution into
+            retail buying (exit-liquidity pattern).
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Whale Vol % ~80%+</strong> — “retail” is a handful of small
+            trades; the divergence read doesn&apos;t mean much.
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Whale Vol % ~30%</strong> — whale and retail are both
+            meaningful; a split can mean two different crowds disagreeing.
+          </li>
+        </ul>
 
         <h3 style={{ color: "var(--text)" }}>Movers</h3>
         <p style={{ color: "var(--text-muted)" }}>
@@ -225,7 +255,7 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction detail</li>
           <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts, growth, retention</li>
           <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — who&apos;s trading: traders, buyers/sellers, first buyers/sellers, buy/sell ratio</li>
-          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale net/accum/buyers/sellers, Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
+          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale/humpback/retail flow, Whale Vol %, Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
           <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>

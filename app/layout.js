@@ -126,6 +126,13 @@ export default function RootLayout({ children }) {
                 margin: 0;
                 font-family: sans-serif;
               }
+
+              /* Denser default view on desktop: scale the whole UI down
+                 so more rows/columns fit without changing any component.
+                 Mobile stays at 1.0 so touch targets keep their size. */
+              @media (min-width: 1024px) {
+                body { zoom: 0.85; }
+              }
             `,
           }}
         />

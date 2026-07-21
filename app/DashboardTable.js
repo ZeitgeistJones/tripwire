@@ -700,12 +700,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         }}
       >
         {!isDiscover && (
-          <td style={{ padding: "4px 4px", whiteSpace: "nowrap", width: "52px" }}>
+          <td style={{ padding: compact ? "2px 2px" : "4px 4px", whiteSpace: "nowrap", width: compact ? "40px" : "52px" }}>
             <button
               onClick={() => toggleWatch(d["Address"])}
               title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
               style={{
-                background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                background: "none", border: "none", cursor: "pointer", fontSize: compact ? "11px" : "14px",
                 lineHeight: 1, padding: "0 2px",
                 color: isWatched ? "#f5c518" : "var(--text-faint)",
                 opacity: isWatched ? 1 : 0.5,
@@ -720,7 +720,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               onClick={() => togglePin(d[rowKeyField])}
               title={isPinned ? "Unpin" : "Pin to top"}
               style={{
-                background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                background: "none", border: "none", cursor: "pointer", fontSize: compact ? "11px" : "14px",
                 lineHeight: 1, padding: "0 2px",
                 color: isPinned ? "var(--btn-active-bg)" : "var(--text-faint)",
                 opacity: isPinned ? 1 : 0.5,
@@ -756,9 +756,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           const rankTooltipContent = rankInfo ? (
             <div>
               <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
-                {rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>/ {rankInfo.total}</span>
+                #{rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>of {rankInfo.total}</span>
               </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Rank for <strong>{col.label}</strong></div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                Rank for <strong>{col.label}</strong> among tracked peers
+              </div>
               <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "4px" }}>
                 1 = best · {rankInfo.total} = worst
               </div>
@@ -767,8 +769,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           return (
             <td
               key={col.key}
-              style={{ padding: "6px 12px", whiteSpace: "nowrap" }}
-              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, 3000) : undefined}
+              style={{
+                padding: compact ? "3px 6px" : "6px 12px",
+                whiteSpace: "nowrap",
+                cursor: rankTooltipContent ? "help" : undefined,
+              }}
+              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
               onMouseMove={rankTooltipContent ? moveTooltip : undefined}
               onMouseLeave={rankTooltipContent ? hideTooltip : undefined}
             >
@@ -781,11 +787,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   }
 
   const tableBody = !isSpecialTab && (
-    <div style={{ overflowX: "auto" }}>
+    <div data-h-scroll style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
       <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
         <thead>
           <tr>
-            {!isDiscover && <th style={{ width: "52px", borderBottom: "1px solid var(--border-strong)", padding: "6px 8px" }} />}
+            {!isDiscover && <th style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
             {columns.map((col) => (
               <th
                 key={col.key}
@@ -795,7 +801,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                 onMouseLeave={col.tooltip ? hideTooltip : undefined}
                 style={{
                   textAlign: "left", borderBottom: "1px solid var(--border-strong)",
-                  padding: "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+                  padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
                 }}
               >
                 {col.label}
@@ -829,7 +835,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire", "About"];
 
   return (
-    <div>
+    <div ref={rootRef}>
       <StatusBanner lastUpdated={lastUpdated} />
 
       <div style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
@@ -874,9 +880,30 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         ))}
       </div>
 
-      <p style={{ fontSize: "12px", color: "var(--text-xfaint)", marginBottom: "10px" }}>
-        Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Hover a column header 1–2s for its definition. Hover any number 3s to see its rank. Click ⭐ to watch, 📍 to pin to top.
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
+        <p style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
+          Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Use <strong>←</strong> <strong>→</strong> to scroll wide tables. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
+        </p>
+        <button
+          type="button"
+          onClick={toggleCompact}
+          title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
+          style={{
+            padding: "5px 12px",
+            borderRadius: "6px",
+            border: compact ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+            background: compact ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+            color: compact ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: compact ? 600 : 400,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          {compact ? "Compact ✓" : "Compact"}
+        </button>
+      </div>
 
       {!isSpecialTab && !isDiscover && (
         <>
@@ -921,6 +948,10 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               address={address}
               columnConfig={watchlistColumnConfig}
               onColumnConfigChange={handleColumnConfigChange}
+              showTooltip={showTooltip}
+              moveTooltip={moveTooltip}
+              hideTooltip={hideTooltip}
+              compact={compact}
             />
           </GatedSection>
         )}
