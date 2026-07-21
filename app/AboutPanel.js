@@ -70,14 +70,56 @@ export default function AboutPanel() {
 
         <h3 style={{ color: "var(--text)" }}>Whale &amp; Accumulation</h3>
         <p style={{ color: "var(--text-muted)" }}>
-          Shown on <strong style={{ color: "var(--text)" }}>Buyers &amp; Risk</strong>. Large trades over
-          the last 7 days:
+          Shown on <strong style={{ color: "var(--text)" }}>Buyers &amp; Risk</strong>. A trade counts as a
+          whale trade if its USD size is in the <strong style={{ color: "var(--text)" }}>top 10%</strong> of
+          that token&apos;s own DEX trades over the last 30 days, floored at <strong style={{ color: "var(--text)" }}>$100</strong>.
+          Metrics below then use only those whale-sized trades from the last <strong style={{ color: "var(--text)" }}>7 days</strong>.
+        </p>
+
+        <p style={{ color: "var(--text-muted)" }}>
+          <strong style={{ color: "var(--text)" }}>Example — whale threshold (per token)</strong>
         </p>
         <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
-          <li><strong style={{ color: "var(--text)" }}>Whale Net (7d)</strong> — whale buy USD minus whale sell USD</li>
-          <li><strong style={{ color: "var(--text)" }}>Accum %</strong> — whale buys ÷ (whale buys + whale sells). ~50% is neutral</li>
-          <li><strong style={{ color: "var(--text)" }}>Whale Buyers / Sellers (7d)</strong> — distinct wallets making those large trades</li>
+          <li>
+            Microcap Token A: 30d trade sizes mostly $20–$80; 90th percentile = $95 → threshold ={" "}
+            <code>max($95, $100) = $100</code>. A $120 buy counts; a $60 buy does not.
+          </li>
+          <li>
+            Larger Token B: 90th percentile = $4,200 → threshold = $4,200. A $3,000 buy is{" "}
+            <em>not</em> a whale trade here, even though it would be on Token A.
+          </li>
         </ul>
+
+        <p style={{ color: "var(--text-muted)" }}>
+          <strong style={{ color: "var(--text)" }}>Example — Whale Net &amp; Accum %</strong>
+        </p>
+        <p style={{ color: "var(--text-muted)" }}>
+          Suppose Token A&apos;s whale-sized trades in the last 7 days are:
+        </p>
+        <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
+          <li>Buys: $8,000 + $3,500 + $2,000 = <strong style={{ color: "var(--text)" }}>$13,500</strong> whale buy USD</li>
+          <li>Sells: $4,000 + $1,500 = <strong style={{ color: "var(--text)" }}>$5,500</strong> whale sell USD</li>
+        </ul>
+        <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Whale Net (7d)</strong> = buys − sells ={" "}
+            <code>$13,500 − $5,500 = +$8,000</code> (net accumulation)
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Accum %</strong> = buys ÷ (buys + sells) ={" "}
+            <code>$13,500 ÷ ($13,500 + $5,500) = 71.1%</code> (above ~65% leans accumulation; ~50% is neutral;
+            below ~35% leans distribution)
+          </li>
+          <li>
+            If those buys came from 2 wallets and sells from 1 wallet →{" "}
+            <strong style={{ color: "var(--text)" }}>Whale Buyers (7d) = 2</strong>,{" "}
+            <strong style={{ color: "var(--text)" }}>Whale Sellers (7d) = 1</strong>
+          </li>
+        </ul>
+        <p style={{ color: "var(--text-muted)" }}>
+          Flip the flows ($5,500 buys, $13,500 sells) → Whale Net ={" "}
+          <code>−$8,000</code>, Accum % = <code>29.0%</code> (distribution).
+        </p>
 
         <h3 style={{ color: "var(--text)" }}>Movers</h3>
         <p style={{ color: "var(--text-muted)" }}>
