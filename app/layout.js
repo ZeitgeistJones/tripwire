@@ -12,7 +12,7 @@ export default function RootLayout({ children }) {
       <head>
         <script
   dangerouslySetInnerHTML={{
-    __html: `document.documentElement.setAttribute('data-theme', 'dark');`,
+    __html: `document.documentElement.setAttribute('data-theme', 'dark');try{if(localStorage.getItem('zdash-compact')==='0')document.documentElement.classList.add('comfort-view')}catch(e){}`,
   }}
 />
         <style
@@ -129,9 +129,10 @@ export default function RootLayout({ children }) {
 
               /* Denser default view on desktop: scale the whole UI down
                  so more rows/columns fit without changing any component.
-                 Mobile stays at 1.0 so touch targets keep their size. */
+                 Mobile stays at 1.0 so touch targets keep their size.
+                 Toggle via html.comfort-view (Compact button turns this off). */
               @media (min-width: 1024px) {
-                body { zoom: 0.85; }
+                html:not(.comfort-view) body { zoom: 0.85; }
               }
             `,
           }}
