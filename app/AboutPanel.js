@@ -132,18 +132,55 @@ export default function AboutPanel() {
         <h3 style={{ color: "var(--text)" }}>Forecast <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--read-amber-text)", background: "var(--read-amber-bg)", padding: "2px 7px", borderRadius: "999px", marginLeft: "6px" }}>v1 beta</span></h3>
         <p style={{ color: "var(--text-muted)" }}>
           Four ongoing <strong style={{ color: "var(--text)" }}>paper portfolios</strong> race each other.
-          No real money. Each starts at $100, holds 10 tokens equal-weight, marks to market continuously,
-          and rebalances about every 24 hours (sell dropouts, buy new picks, reinvest full value).
+          No real money. Each starts at $100 with up to 10 holdings. Prices mark to market on every visit;
+          the book only <em>trades</em> when Dune behavioral data refreshes (72h backstop if data is stale).
+          Formulas live in <code>lib/predictions.js</code> — swap a <code>scoreFn</code>, keep the same{" "}
+          <code>id</code>, bump <code>version</code> to mark an era without wiping history.
         </p>
         <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
-          <li><strong style={{ color: "var(--text)" }}>Momentum Hunt</strong> — signal + volume/user growth</li>
-          <li><strong style={{ color: "var(--text)" }}>Sticky Flow</strong> — retention, sustainability, quality, whales</li>
-          <li><strong style={{ color: "var(--text)" }}>Breakout Bias</strong> — Opp / Mom / Sus + Breakout / whale boost</li>
-          <li><strong style={{ color: "var(--text)" }}>Top 10 Mcap</strong> — baseline: largest market caps only</li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Momentum Hunt</strong> — signal + vol/user/tx growth.
+            Skips tokens with Qlty % below 60.
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Sticky Flow</strong> — retention, Sus, quality,
+            Accum %, repeat-wallet activity (slow book).
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Whale Shadow</strong> — whale net flow scaled by
+            market cap, Accum %, buy/sell breadth, Vol/Wlt.
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Top 10 Mcap</strong> — baseline: equal-weight the
+            10 largest market caps. The do-nothing strategy the formulas must beat.
+          </li>
         </ul>
         <p style={{ color: "var(--text-muted)" }}>
-          Formulas live in <code>lib/predictions.js</code> and are meant to be swappable. Track record
-          needs time — early days will show ~0% right after a rebalance. Experiment only.
+          <strong style={{ color: "var(--text)" }}>Rules (all strategies)</strong>
+        </p>
+        <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Liquidity gate</strong> — must have a live price and
+            Vol 30d ≥ $25k
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Sizing</strong> — formulas use score-proportional
+            weights (floor 5%, cap 20% per name). Baseline is pure equal weight (10% each)
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Hysteresis</strong> — sell only if a name falls
+            below rank 15 in that strategy (or fails a gate). Resize a kept name only if weight drifted
+            more than 3 points from target
+          </li>
+          <li>
+            <strong style={{ color: "var(--text)" }}>Friction</strong> — 1% fee on traded notional
+            (buys and sells), baseline included, so churn has a cost
+          </li>
+        </ul>
+        <p style={{ color: "var(--text-muted)" }}>
+          Example: if Momentum&apos;s book is worth $112 and it sells $20 notional / buys $20 notional
+          into new names, fees ≈ <code>0.01 × $40 = $0.40</code>, taken from cash before the new
+          weights are filled. Experiment only — not advice.
         </p>
 
         <h3 style={{ color: "var(--text)" }}>The Three Core Scores</h3>
@@ -182,7 +219,7 @@ export default function AboutPanel() {
         <h3 style={{ color: "var(--text)", marginTop: "28px" }}>Tabs</h3>
         <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
           <li><strong style={{ color: "var(--text)" }}>Movers</strong> — homepage: heating up / cooling off, plain English</li>
-          <li><strong style={{ color: "var(--text)" }}>Forecast</strong> — v1 beta paper-portfolio race (3 formulas + mcap baseline)</li>
+          <li><strong style={{ color: "var(--text)" }}>Forecast</strong> — v1 beta paper race: Momentum Hunt, Sticky Flow, Whale Shadow vs Top 10 Mcap</li>
           <li><strong style={{ color: "var(--text)" }}>Overview</strong> — scores, profile, price, signal</li>
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction detail</li>
           <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts, growth, retention</li>
