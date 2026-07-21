@@ -1,5 +1,6 @@
 import Providers from "./providers";
 import ExperimentDisclaimer from "./ExperimentDisclaimer";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "Tripwire",
@@ -137,6 +138,7 @@ export default function RootLayout({ children }) {
             <ExperimentDisclaimer style={{ marginTop: 0 }} />
           </div>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
