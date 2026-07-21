@@ -63,7 +63,7 @@ function savePins(pins) {
   catch {}
 }
 
-const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers & Risk", "Watchlist", "Discover", "CLAWD", "The Wire", "About"];
+const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "The Wire", "About"];
 
 const GATE_ADDRESS = "0xc22B7b983EC81523c969753c2385106835E8CfCE";
 const GATE_ABI = [
@@ -118,10 +118,9 @@ const TABS = {
     { key: "Retention %",        label: "Retention % (WoW)",       type: "number", format: "pct1", tooltip: "Wallets retained from last week ÷ this week's active wallets" },
     { key: "Avg Txs Ret",        label: "Avg Txs Ret (7d)",        type: "number", format: "dec1", tooltip: "Average transactions by wallets active both this week and last week" },
   ],
-  "Buyers & Risk": [
+  "Buyers": [
     { key: "Project",          label: "Project",              type: "string" },
-    { key: "marketCapUsd",     label: "Market Cap",           type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "Qlty %",           label: "Qlty %",               type: "number", format: "pct1", tooltip: "How clean the activity looks — penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
+    { key: "marketCapUsd",     label: "Market Cap",           type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn\u2019t track)" },
     { key: "Traders",          label: "Traders (30d)",        type: "number", format: "int",  tooltip: "Unique wallets that bought or sold on DEX in the last 30 days" },
     { key: "Buyers 30d",       label: "Buyers (30d)",         type: "number", format: "int",  tooltip: "Unique wallets that bought in the last 30 days" },
     { key: "Buyers 7d",        label: "Buyers (7d)",          type: "number", format: "int",  tooltip: "Unique wallets that bought in the last 7 days" },
@@ -129,15 +128,20 @@ const TABS = {
     { key: "1st Buyers 7d",    label: "1st Buyers (7d)",      type: "number", format: "int",  tooltip: "Wallets buying for the first time in the last 7 days" },
     { key: "1st Sellers 30d",  label: "1st Sellers (30d)",    type: "number", format: "int",  tooltip: "Wallets selling this token for the very first time in the last 30 days" },
     { key: "1st Sellers 7d",   label: "1st Sellers (7d)",     type: "number", format: "int",  tooltip: "Wallets selling for the first time in the last 7 days" },
-    { key: "Buy/Sell Ratio",   label: "Buy/Sell Ratio (7d)",  type: "number", format: "dec2", tooltip: "Buyers 7d ÷ all unique sellers this week — above 1.0 means more wallets buying than selling" },
-    { key: "Whale Net 7d",     label: "Whale Net (7d)",       type: "number", format: "usd",  tooltip: "Net USD flow from large trades in the last 7 days — positive means whales are accumulating, negative means distributing. A whale trade is one in the top 10% of trade sizes for that token (min $100)" },
-    { key: "Accum %",          label: "Accum %",              type: "number", format: "pct1", tooltip: "Whale buys as a share of all whale volume (7d) — 50% is neutral, above ~65% suggests accumulation, below ~35% suggests distribution" },
-    { key: "Whale Buyers 7d",  label: "Whale Buyers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized buys in the last 7 days — distinguishes one whale accumulating from many" },
+    { key: "Buy/Sell Ratio",   label: "Buy/Sell Ratio (7d)",  type: "number", format: "dec2", tooltip: "Buyers 7d \u00f7 all unique sellers this week \u2014 above 1.0 means more wallets buying than selling" },
+  ],
+  "Whales & Risk": [
+    { key: "Project",          label: "Project",              type: "string" },
+    { key: "marketCapUsd",     label: "Market Cap",           type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn\u2019t track)" },
+    { key: "Whale Net 7d",     label: "Whale Net (7d)",       type: "number", format: "usd",  tooltip: "Net USD flow from large trades in the last 7 days \u2014 positive means whales are accumulating, negative means distributing. A whale trade is one in the top 10% of trade sizes for that token (min $100)" },
+    { key: "Accum %",          label: "Accum %",              type: "number", format: "pct1", tooltip: "Whale buys as a share of all whale volume (7d) \u2014 50% is neutral, above ~65% suggests accumulation, below ~35% suggests distribution" },
+    { key: "Whale Buyers 7d",  label: "Whale Buyers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized buys in the last 7 days \u2014 distinguishes one whale accumulating from many" },
     { key: "Whale Sellers 7d", label: "Whale Sellers (7d)",   type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized sells in the last 7 days" },
-    { key: "Token Age Days",   label: "Age (days)",           type: "number", format: "int",  tooltip: "Days since this token's contract was first deployed on Base" },
+    { key: "Qlty %",           label: "Qlty %",               type: "number", format: "pct1", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
+    { key: "Risk %",           label: "Risk %",               type: "number", format: "pct1", tooltip: "How concentrated the volume is in a few wallets \u2014 higher means more concentrated" },
+    { key: "Top10 %",          label: "Top10 % (30d)",        type: "number", format: "pct1", tooltip: "Share of all 30-day transactions from the top 10 most active wallets \u2014 lower is healthier" },
     { key: "Non-Trade New 30d",label: "Non-Trade New (30d)",  type: "number", format: "int",  tooltip: "New wallets in the last 30 days that made no first buy or sell" },
-    { key: "Top10 %",          label: "Top10 % (30d)",        type: "number", format: "pct1", tooltip: "Share of all 30-day transactions from the top 10 most active wallets — lower is healthier" },
-    { key: "Risk %",           label: "Risk %",               type: "number", format: "pct1", tooltip: "How concentrated the volume is in a few wallets — higher means more concentrated" },
+    { key: "Token Age Days",   label: "Age (days)",           type: "number", format: "int",  tooltip: "Days since this token's contract was first deployed on Base" },
   ],
   Discover: [
     { key: "name",         label: "Project",    type: "string" },
@@ -496,8 +500,9 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     "Vol Grw %", "Tx Grw %", "User Grw %", "Txs 30d", "Vol 30d", "Txs/User", "Traders",
     "Retention %", "New %", "New Wallets", "Returning Wallets", "Non-Trade New 30d",
     "Buyers 30d", "Buyers 7d", "1st Buyers 30d", "1st Buyers 7d",
-    "1st Sellers 30d", "1st Sellers 7d", "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
+    "1st Sellers 30d", "1st Sellers 7d",
     "Whale Net 7d", "Accum %", "Whale Buyers 7d", "Whale Sellers 7d",
+    "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
   ];
   const LOWER_IS_BETTER = new Set(["Risk %", "Top10 %"]);
   const ranks = {};

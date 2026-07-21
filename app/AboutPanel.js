@@ -70,10 +70,11 @@ export default function AboutPanel() {
 
         <h3 style={{ color: "var(--text)" }}>Whale &amp; Accumulation</h3>
         <p style={{ color: "var(--text-muted)" }}>
-          Shown on <strong style={{ color: "var(--text)" }}>Buyers &amp; Risk</strong>. A trade counts as a
+          Shown on <strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong>. A trade counts as a
           whale trade if its USD size is in the <strong style={{ color: "var(--text)" }}>top 10%</strong> of
           that token&apos;s own DEX trades over the last 30 days, floored at <strong style={{ color: "var(--text)" }}>$100</strong>.
           Metrics below then use only those whale-sized trades from the last <strong style={{ color: "var(--text)" }}>7 days</strong>.
+          Quality, concentration, Non-Trade New, and Age live on the same tab.
         </p>
 
         <p style={{ color: "var(--text-muted)" }}>
@@ -223,7 +224,8 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Overview</strong> — scores, profile, price, signal</li>
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction detail</li>
           <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts, growth, retention</li>
-          <li><strong style={{ color: "var(--text)" }}>Buyers &amp; Risk</strong> — buyers/sellers, whales, concentration, quality</li>
+          <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — who&apos;s trading: traders, buyers/sellers, first buyers/sellers, buy/sell ratio</li>
+          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale net/accum/buyers/sellers, Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
           <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
