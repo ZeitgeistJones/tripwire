@@ -539,7 +539,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     "Vol Grw %", "Tx Grw %", "User Grw %", "Txs 30d", "Vol 30d", "Txs/User", "Traders",
     "Retention %", "New %", "New Wallets", "Returning Wallets", "Non-Trade New 30d",
     "Buyers 30d", "Buyers 7d", "1st Buyers 30d", "1st Buyers 7d",
-    "1st Sellers 30d", "1st Sellers 7d", "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
+    "1st Sellers 30d", "1st Sellers 7d",
+    "Whale Net 7d", "Accum %", "Whale Buyers 7d", "Whale Sellers 7d",
+    "Hump Net 7d", "Hump Buyers 7d", "Hump Sellers 7d",
+    "Retail Net 7d", "Whale Vol %",
+    "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
   ];
   const LOWER_IS_BETTER = new Set(["Risk %", "Top10 %"]);
   const ranks = {};
