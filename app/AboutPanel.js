@@ -29,6 +29,7 @@ const GLOSSARY_ROWS = [
   ["Humpback Net / Buyers / Sellers (7d)", "Same idea as whales, but top 1% of trade sizes (min $1,000) — the mega-whale subset"],
   ["Retail Net (7d)", "Net USD from all non-whale trades in the last 7 days. Read it against Whale Net"],
   ["Whale Vol %", "Whale trades as a share of all 7d volume — how much whale flow actually matters. High % makes retail thin"],
+  ["W/R Div (bps)", "(Whale Net − Retail Net) ÷ Market Cap × 10,000. Positive = whales lean harder than retail; negative = retail lean / exit-liquidity pattern"],
   ["Non-Trade New (30d)", "New wallets with no first buy or sell — likely airdrop/transfer. New − 1st Buyers − 1st Sellers, floored at 0"],
   ["Top10 % (30d)", "Share of 30-day transactions from the top 10 most active wallets. Lower is healthier"],
   ["Age (days)", "Days since this token's contract was first deployed on Base"],
@@ -153,6 +154,20 @@ export default function AboutPanel() {
           </li>
         </ul>
 
+        <h3 style={{ color: "var(--text)" }}>W/R Div (bps)</h3>
+        <p style={{ color: "var(--text-muted)" }}>
+          Computed on the site (no Dune change):{" "}
+          <code>(Whale Net − Retail Net) ÷ Market Cap × 10,000</code>. Scales the split by market cap so
+          microcaps and large caps are comparable. Shown on <strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> and CLAWD.
+        </p>
+        <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
+          <li><strong style={{ color: "var(--text)" }}>+500</strong> — whales net-bought ~0.05% of mcap more than retail — strong accumulation divergence</li>
+          <li><strong style={{ color: "var(--text)" }}>+50</strong> — slight whale lean — not actionable alone</li>
+          <li><strong style={{ color: "var(--text)" }}>~0</strong> — whales and retail agree — no divergence signal</li>
+          <li><strong style={{ color: "var(--text)" }}>−200</strong> — retail net-buying ~0.02% of mcap more than whales — whales stepping back while retail pushes in</li>
+          <li><strong style={{ color: "var(--text)" }}>−1000+</strong> — hard divergence — whales dumping while retail absorbs (classic exit-liquidity pattern)</li>
+        </ul>
+
         <h3 style={{ color: "var(--text)" }}>Movers</h3>
         <p style={{ color: "var(--text-muted)" }}>
           The homepage (<strong style={{ color: "var(--text)" }}>Movers</strong> tab). Surfaces tokens that
@@ -265,7 +280,7 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction detail</li>
           <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts, growth, retention</li>
           <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — who&apos;s trading: traders, buyers/sellers, first buyers/sellers, buy/sell ratio</li>
-          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale/humpback/retail flow, Whale Vol %, Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
+          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale/humpback/retail flow, Whale Vol %, W/R Div (bps), Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
           <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>

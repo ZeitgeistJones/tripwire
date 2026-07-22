@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Chart, registerables } from "chart.js";
 
@@ -234,6 +235,7 @@ const COMPACT_SECTIONS = [
       { key: "Hump Sellers 7d", label: "Humpback Sellers", format: "int" },
       { key: "Retail Net 7d", label: "Retail Net Flow", format: "usdNet" },
       { key: "Whale Vol %", label: "Whale Vol %", format: "pct1" },
+      { key: "Divergence Bps", label: "W/R Divergence (bps)", format: "dec1" },
     ],
   }
 ];
@@ -264,6 +266,123 @@ function ProfileSignalBanner({ profile, signal, read }) {
       <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0, maxWidth: "420px", textAlign: "right" }}>
         {explanation}
       </p>
+    </div>
+  );
+}
+
+function buildShareText(d) {
+  if (!d) return "";
+  const f = (v, fmt) => {
+    if (v == null || v === "") return "—";
+    const n = Number(v);
+    if (Number.isNaN(n)) return "—";
+    if (fmt === "usd") {
+      if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
+      if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
+      return "$" + Math.round(n).toLocaleString();
+    }
+    if (fmt === "usdSign") return (n < 0 ? "\u2212" : "+") + "$" + Math.abs(Math.round(n)).toLocaleString();
+    if (fmt === "price") return "$" + n.toPrecision(4);
+    if (fmt === "pct") return n.toFixed(1) + "%";
+    if (fmt === "dec") return n.toFixed(1);
+    if (fmt === "int") return Math.round(n).toLocaleString();
+    return String(n);
+  };
+
+  const signal = d.signal || "—";
+  const note = d.signalNote ? " \u00b7 " + d.signalNote : "";
+  const prof = d.Prof || "—";
+  const read = d.read || "—";
+
+  const lines = [
+    "\ud83d\udd17 $CLAWD \u2014 Under the Hood",
+    "",
+    "\ud83d\udcb0 " + f(d.priceUsd, "price") + " | MCap " + f(d.marketCapUsd, "usd"),
+    "\ud83d\udcca Opp " + f(d.Opp, "dec") + " | Mom " + f(d.Mom, "dec") + " | Sus " + f(d.Sus, "dec"),
+    "",
+    "\ud83d\udc33 Whale Flow (7d)",
+    "  Net: " + f(d["Whale Net 7d"], "usdSign") + " | Accum: " + f(d["Accum %"], "pct") + " | Buyers: " + f(d["Whale Buyers 7d"], "int") + " / Sellers: " + f(d["Whale Sellers 7d"], "int"),
+    "  Humpback Net: " + f(d["Hump Net 7d"], "usdSign") + " | Buyers: " + f(d["Hump Buyers 7d"], "int") + " / Sellers: " + f(d["Hump Sellers 7d"], "int"),
+    "  Retail Net: " + f(d["Retail Net 7d"], "usdSign") + " | Whale Vol: " + f(d["Whale Vol %"], "pct"),
+    "  W/R Divergence: " + f(d["Divergence Bps"], "dec") + " bps",
+    "",
+    "\ud83d\udcc8 Activity (7d)",
+    "  Txs: " + f(d["Txs 7d"], "int") + " | Wallets: " + f(d["Wallets 7d"], "int"),
+    "  Retention: " + f(d["Retention %"], "pct") + " | New: " + f(d["New %"], "pct"),
+    "  Vol: " + f(d["Vol 30d"], "usd") + " (30d) | Vol Grw: " + f(d["Vol Grw %"], "pct"),
+    "",
+    "Signal: " + signal + note,
+    "Profile: " + prof + " | Read: " + read,
+    "",
+    "tripwire.vercel.app",
+  ];
+  return lines.join("\n");
+}
+
+function buildCondensedText(d) {
+  if (!d) return "";
+  const f = (v, fmt) => {
+    if (v == null || v === "") return "—";
+    const n = Number(v);
+    if (Number.isNaN(n)) return "—";
+    if (fmt === "usd") {
+      if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
+      if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
+      return "$" + Math.round(n).toLocaleString();
+    }
+    if (fmt === "usdSign") return (n < 0 ? "\u2212" : "+") + "$" + Math.abs(Math.round(n)).toLocaleString();
+    if (fmt === "price") return "$" + n.toPrecision(4);
+    if (fmt === "pct") return n.toFixed(1) + "%";
+    if (fmt === "dec") return n.toFixed(1);
+    return String(n);
+  };
+
+  const signal = d.signal || "—";
+  const note = d.signalNote ? " \u00b7 " + d.signalNote : "";
+
+  return [
+    "$CLAWD " + f(d.priceUsd, "price") + " | " + (d.Prof || "") + " | " + signal + note,
+    "\ud83d\udc33 Whale net " + f(d["Whale Net 7d"], "usdSign") + " | Accum " + f(d["Accum %"], "pct") + " | Retail " + f(d["Retail Net 7d"], "usdSign"),
+    "\ud83d\udcc8 " + f(d["Wallets 7d"], "int") + " wallets | " + f(d["Retention %"], "pct") + " retention | Vol " + f(d["Vol Grw %"], "pct"),
+    "tripwire.vercel.app",
+  ].join("\n");
+}
+
+function ShareButtons({ clawdRow }) {
+  const [copied, setCopied] = React.useState(null);
+  const copy = (text, label) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(label);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+  const btnStyle = {
+    padding: "6px 12px",
+    borderRadius: "6px",
+    border: "1px solid var(--border)",
+    background: "var(--bg-subtle)",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    fontSize: "12px",
+    fontWeight: 600,
+  };
+  return (
+    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+      <button
+        style={btnStyle}
+        onClick={() => copy(buildShareText(clawdRow), "full")}
+      >
+        {copied === "full" ? "\u2713 Copied!" : "Copy full stats"}
+      </button>
+      <button
+        style={btnStyle}
+        onClick={() => copy(buildCondensedText(clawdRow), "short")}
+      >
+        {copied === "short" ? "\u2713 Copied!" : "Copy short version"}
+      </button>
+      <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
+        Paste into Discord / Twitter / Farcaster
+      </span>
     </div>
   );
 }
@@ -312,6 +431,7 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
       <h2 style={{ marginTop: 0, color: "var(--text)" }}>CLAWD — Health Check</h2>
 
       <ProfileSignalBanner profile={clawdRow?.["Prof"]} signal={clawdRow?.signal} read={clawdRow?.read} />
+      <ShareButtons clawdRow={clawdRow} />
 
       {status === "loading" && <p style={{ color: "var(--text-muted)" }}>Loading history…</p>}
       {status === "error"   && <p style={{ color: "#c0392b" }}>Couldn't load history: {errorMsg}</p>}

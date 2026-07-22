@@ -11,6 +11,22 @@ import StatusBanner from "./StatusBanner";
 
 // ── Custom delayed tooltip ────────────────────────────────────────────────────
 const HEADER_TOOLTIP_DELAY = 1200;
+const RANK_TOOLTIP_DELAY = 350;
+const LOWER_IS_BETTER_KEYS = new Set(["Risk %", "Top10 %"]);
+
+/** Competition rank among peers: 1 = best, total = worst. */
+function peerRank(colKey, value, peers) {
+  if (value == null || value === "" || Number.isNaN(Number(value))) return null;
+  const val = Number(value);
+  const asc = LOWER_IS_BETTER_KEYS.has(colKey);
+  const values = peers
+    .map((d) => d[colKey])
+    .filter((v) => v != null && v !== "" && !Number.isNaN(Number(v)))
+    .map(Number);
+  if (values.length === 0) return null;
+  const better = values.filter((v) => (asc ? v < val : v > val)).length;
+  return { rank: better + 1, total: values.length };
+}
 
 function useDelayedTooltip() {
   const [tooltip, setTooltip] = useState(null);
@@ -147,11 +163,12 @@ const TABS = {
     { key: "Accum %",          label: "Accum %",              type: "number", format: "pct1", tooltip: "Whale buys as a share of all whale volume (7d) \u2014 50% is neutral, above ~65% suggests accumulation, below ~35% suggests distribution" },
     { key: "Whale Buyers 7d",  label: "Whale Buyers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized buys in the last 7 days \u2014 distinguishes one whale accumulating from many" },
     { key: "Whale Sellers 7d", label: "Whale Sellers (7d)",   type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized sells in the last 7 days" },
-    { key: "Hump Net 7d",      label: "Hump Net (7d)",        type: "number", format: "usd",  tooltip: "Net USD flow from mega-whale (humpback) trades in the last 7 days \u2014 trades in the top 1% of sizes for that token (min $1,000). Humpback trades are a subset of whale trades" },
-    { key: "Hump Buyers 7d",   label: "Hump Buyers (7d)",     type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized buys in the last 7 days \u2014 usually a handful of very large players" },
-    { key: "Hump Sellers 7d",  label: "Hump Sellers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized sells in the last 7 days" },
+    { key: "Hump Net 7d",      label: "Humpback Net (7d)",    type: "number", format: "usd",  tooltip: "Net USD flow from mega-whale (humpback) trades in the last 7 days \u2014 trades in the top 1% of sizes for that token (min $1,000). Humpback trades are a subset of whale trades" },
+    { key: "Hump Buyers 7d",   label: "Humpback Buyers (7d)", type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized buys in the last 7 days \u2014 usually a handful of very large players" },
+    { key: "Hump Sellers 7d",  label: "Humpback Sellers (7d)",type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized sells in the last 7 days" },
     { key: "Retail Net 7d",    label: "Retail Net (7d)",      type: "number", format: "usd",  tooltip: "Net USD flow from all NON-whale trades in the last 7 days. Compare against Whale Net: whales buying while retail sells = accumulation from weak hands; whales selling into retail buying = distribution" },
     { key: "Whale Vol %",      label: "Whale Vol %",          type: "number", format: "pct1", tooltip: "Whale trades as a share of all 7-day volume \u2014 how much whale flow actually matters for this token. Low = whales are a sideshow; high = whale flow IS the market" },
+    { key: "Divergence Bps",   label: "W/R Div (bps)",        type: "number", format: "dec1", tooltip: "Whale-vs-retail divergence in basis points of market cap. Positive = whales net buying more aggressively than retail (bullish divergence). Negative = retail buying more than whales (bearish \u2014 potential exit liquidity pattern). Near zero = both sides agree. Scaled by market cap so a $50k microcap and $500M large-cap are directly comparable" },
     { key: "Qlty %",           label: "Qlty %",               type: "number", format: "pct1", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
     { key: "Risk %",           label: "Risk %",               type: "number", format: "pct1", tooltip: "How concentrated the volume is in a few wallets \u2014 higher means more concentrated" },
     { key: "Top10 %",          label: "Top10 % (30d)",        type: "number", format: "pct1", tooltip: "Share of all 30-day transactions from the top 10 most active wallets \u2014 lower is healthier" },
@@ -373,11 +390,6 @@ function ProfSignalKey() {
       </summary>
       <p style={{ marginTop: "8px", marginBottom: "12px", color: "var(--text-muted)", fontSize: "13px", lineHeight: "1.5" }}>
         <strong>Prof</strong> = behavioral profile (price-independent). <strong>Signal</strong> = does price agree with volume this week. <strong>Read</strong> = the named verdict for that combination.
-        When Signal is <strong>Absorbed</strong> and Whale Net is at least ±$250, a badge appears:{" "}
-        <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "999px", background: "var(--read-teal-bg)", color: "var(--read-teal-text)" }}>whales in</span>
-        {" "}(net whale buying — leans accumulation) or{" "}
-        <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "999px", background: "var(--read-coral-bg)", color: "var(--read-coral-text)" }}>whales out</span>
-        {" "}(net whale selling — possible distribution under the activity).
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
         {PROF_GRID_DATA.map((col) => (
@@ -541,12 +553,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     "1st Sellers 30d", "1st Sellers 7d",
     "Whale Net 7d", "Accum %", "Whale Buyers 7d", "Whale Sellers 7d",
     "Hump Net 7d", "Hump Buyers 7d", "Hump Sellers 7d",
-    "Retail Net 7d", "Whale Vol %",
+    "Retail Net 7d", "Whale Vol %", "Divergence Bps",
     "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
   ];
-  const LOWER_IS_BETTER = new Set(["Risk %", "Top10 %"]);
   const ranks = {};
-  RANK_FIELDS.forEach((f) => { ranks[f] = rankBy(f, LOWER_IS_BETTER.has(f)); });
+  RANK_FIELDS.forEach((f) => { ranks[f] = rankBy(f, LOWER_IS_BETTER_KEYS.has(f)); });
 
   function togglePin(key) {
     setPinnedKeys((prev) => {
@@ -589,15 +600,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
 
   function getCellRank(colKey, colType, rowData) {
     if (colType !== "number" || isDiscover) return null;
-    const val = rowData[colKey];
-    if (val == null || val === "" || Number.isNaN(Number(val))) return null;
-    const lowerBetter = new Set(["Risk %", "Top10 %"]);
-    const asc = lowerBetter.has(colKey);
-    const all = dataArr.map((d) => Number(d[colKey])).filter((v) => !Number.isNaN(v) && v != null);
-    if (all.length === 0) return null;
-    const sorted = [...all].sort((a, b) => asc ? a - b : b - a);
-    const rank = sorted.indexOf(Number(val)) + 1;
-    return { rank, total: sorted.length };
+    return peerRank(colKey, rowData[colKey], dataArr);
   }
 
   function handleTabChange(tab) {
@@ -783,9 +786,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           const rankTooltipContent = rankInfo ? (
             <div>
               <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
-                {rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>/ {rankInfo.total}</span>
+                #{rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>of {rankInfo.total}</span>
               </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Rank for <strong>{col.label}</strong></div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                Rank for <strong>{col.label}</strong> among tracked peers
+              </div>
               <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "4px" }}>
                 1 = best · {rankInfo.total} = worst
               </div>
@@ -799,7 +804,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                 whiteSpace: "nowrap",
                 cursor: rankTooltipContent ? "help" : undefined,
               }}
-              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, 350) : undefined}
+              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
               onMouseMove={rankTooltipContent ? moveTooltip : undefined}
               onMouseLeave={rankTooltipContent ? hideTooltip : undefined}
             >
@@ -812,13 +817,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   }
 
   const tableBody = !isSpecialTab && (
-    <div
-      data-h-scroll
-      style={{
-        overflowX: "auto",
-        fontSize: compact ? "11px" : undefined,
-      }}
-    >
+    <div data-h-scroll style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
       <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
         <thead>
           <tr>
