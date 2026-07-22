@@ -321,6 +321,60 @@ function buildShareText(d) {
   return lines.join("\n");
 }
 
+function buildObjectiveText(d) {
+  if (!d) return "";
+  const f = (v, fmt) => {
+    if (v == null || v === "") return "\u2014";
+    const n = Number(v);
+    if (Number.isNaN(n)) return "\u2014";
+    if (fmt === "usd") {
+      if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+      if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
+      return "$" + Math.round(n).toLocaleString();
+    }
+    if (fmt === "usdSign") return (n < 0 ? "\u2212" : "+") + "$" + Math.abs(Math.round(n)).toLocaleString();
+    if (fmt === "price") return "$" + n.toPrecision(4);
+    if (fmt === "pct") return n.toFixed(1) + "%";
+    if (fmt === "int") return Math.round(n).toLocaleString();
+    return String(n);
+  };
+
+  const asOf = new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+  const lines = [
+    "$CLAWD \u2014 On-Chain Data (Base)",
+    "As of " + asOf + " \u00b7 source: Dune + CoinGecko/DexScreener",
+    "",
+    "PRICE & SIZE",
+    "  Price: " + f(d.priceUsd, "price"),
+    "  Market cap: " + f(d.marketCapUsd, "usd"),
+    "  30d DEX volume: " + f(d["Vol 30d"], "usd"),
+    "  30d volume change (WoW): " + f(d["Vol Grw %"], "pct"),
+    "",
+    "ACTIVITY (7d)",
+    "  Transactions: " + f(d["Txs 7d"], "int"),
+    "  Active wallets: " + f(d["Wallets 7d"], "int"),
+    "  Unique DEX traders (30d): " + f(d["Traders"], "int"),
+    "  Buyers: " + f(d["Buyers 7d"], "int") + " | Buy/Sell ratio (wallets): " + f(d["Buy/Sell Ratio"], "int"),
+    "  Buyer $ share of volume: " + f(d["Buy Vol %"], "pct"),
+    "",
+    "WALLET RETENTION (7d vs prior week)",
+    "  Retention: " + f(d["Retention %"], "pct") + " of last week's wallets returned",
+    "  New wallet share (30d): " + f(d["New %"], "pct"),
+    "",
+    "LARGE-TRADE FLOW (7d, DEX only)",
+    "  Whale threshold for this token: " + f(d["Whale Min $"], "usd") + "+ per trade",
+    "  Whale net flow: " + f(d["Whale Net 7d"], "usdSign") + " (" + f(d["Whale Buyers 7d"], "int") + " buyers / " + f(d["Whale Sellers 7d"], "int") + " sellers)",
+    "  Mega-trade (top 1%) net flow: " + f(d["Hump Net 7d"], "usdSign") + " (" + f(d["Hump Buyers 7d"], "int") + " buyers / " + f(d["Hump Sellers 7d"], "int") + " sellers)",
+    "  Non-large-trade net flow: " + f(d["Retail Net 7d"], "usdSign"),
+    "  Large trades as % of 7d volume: " + f(d["Whale Vol %"], "pct"),
+    "",
+    "Contract: " + (d.Address || "\u2014"),
+    "Verify independently: basescan.org / dexscreener.com",
+  ];
+  return lines.join("\n");
+}
+
 function buildCondensedText(d) {
   if (!d) return "";
   const f = (v, fmt) => {
@@ -350,7 +404,150 @@ function buildCondensedText(d) {
   ].join("\n");
 }
 
-function ShareButtons({ clawdRow }) {
+function ReportSection() {
+  const [report, setReport] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [secret, setSecret] = useState("");
+  const [draft, setDraft] = useState("");
+  const [status, setStatus] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/clawd-report")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j?.report?.text) setReport(j.report); })
+      .catch(() => {});
+  }, []);
+
+  const post = async () => {
+    setStatus("posting");
+    try {
+      const res = await fetch("/api/clawd-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-secret": secret },
+        body: JSON.stringify({ text: draft }),
+      });
+      if (!res.ok) throw new Error(res.status === 401 ? "wrong secret" : "failed");
+      const j = await res.json();
+      setReport(j.report);
+      setDraft("");
+      setStatus("posted");
+      setTimeout(() => setStatus(null), 2000);
+    } catch (e) {
+      setStatus(String(e.message || "failed"));
+    }
+  };
+
+  return (
+    <div style={{ marginTop: "16px" }}>
+      {report && (
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "12px", padding: "16px 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)" }}>
+              Analyst Report
+            </div>
+            <div style={{ fontSize: "11px", color: "var(--text-faint)" }}>
+              Posted {report.postedAt ? new Date(report.postedAt).toLocaleDateString() : ""}
+            </div>
+          </div>
+          <div style={{ whiteSpace: "pre-wrap", fontSize: "13.5px", lineHeight: 1.65, color: "var(--text)" }}>
+            {report.text}
+          </div>
+        </div>
+      )}
+      <div style={{ marginTop: "8px" }}>
+        <button
+          onClick={() => setShowAdmin(!showAdmin)}
+          style={{ background: "none", border: "none", color: "var(--text-faint)", fontSize: "11px", cursor: "pointer", padding: 0 }}
+        >
+          {showAdmin ? "hide" : "post report (admin)"}
+        </button>
+        {showAdmin && (
+          <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <input
+              type="password"
+              placeholder="admin secret"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text)", fontSize: "12px", maxWidth: "240px" }}
+            />
+            <textarea
+              placeholder="paste the report text here"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={10}
+              style={{ padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text)", fontSize: "12.5px", fontFamily: "inherit", resize: "vertical" }}
+            />
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <button
+                onClick={post}
+                disabled={!secret || !draft || status === "posting"}
+                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--btn-active-bg)", color: "var(--btn-active-text)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+              >
+                {status === "posting" ? "Posting..." : "Publish report"}
+              </button>
+              {status && status !== "posting" && (
+                <span style={{ fontSize: "12px", color: status === "posted" ? "var(--gate-ok-text)" : "var(--gate-fail-text)" }}>
+                  {status === "posted" ? "\u2713 Live" : status}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function buildAnalysisPrompt(d, history) {
+  if (!d) return "";
+  const j = (v) => (v == null ? null : Number(v));
+  const payload = {
+    token: "CLAWD (Base chain)",
+    asOf: new Date().toISOString().slice(0, 10),
+    price: { usd: j(d.priceUsd), marketCapUsd: j(d.marketCapUsd), change24hPct: j(d.priceChange7d) },
+    tripwireScores: { opp: j(d.Opp), mom: j(d.Mom), sus: j(d.Sus), profile: d.Prof, signal: d.signal, signalNote: d.signalNote, read: d.read, qltyPct: j(d["Qlty %"]), riskPct: j(d["Risk %"]) },
+    activity7d: { txs: j(d["Txs 7d"]), wallets: j(d["Wallets 7d"]), retentionPct: j(d["Retention %"]), newWalletPct: j(d["New %"]), txGrwPct: j(d["Tx Grw %"]), userGrwPct: j(d["User Grw %"]) },
+    volume: { vol30dUsd: j(d["Vol 30d"]), volGrwWoWPct: j(d["Vol Grw %"]), volPerWallet: j(d["Vol/Wlt"]), buyVolPct: j(d["Buy Vol %"]) },
+    buyers: { buyers7d: j(d["Buyers 7d"]), buySellRatio: j(d["Buy/Sell Ratio"]), firstBuyers7d: j(d["1st Buyers 7d"]), firstSellers7d: j(d["1st Sellers 7d"]) },
+    whaleFlow7d: {
+      whaleMinTradeUsd: j(d["Whale Min $"]),
+      whaleNetUsd: j(d["Whale Net 7d"]), accumPct: j(d["Accum %"]), whaleBuyers: j(d["Whale Buyers 7d"]), whaleSellers: j(d["Whale Sellers 7d"]),
+      humpbackNetUsd: j(d["Hump Net 7d"]), humpbackBuyers: j(d["Hump Buyers 7d"]), humpbackSellers: j(d["Hump Sellers 7d"]),
+      retailNetUsd: j(d["Retail Net 7d"]), whaleVolSharePct: j(d["Whale Vol %"]), whaleRetailDivergenceBps: j(d["Divergence Bps"]),
+    },
+    concentration: { top10TxSharePct: j(d["Top10 %"]) },
+    behavioralHistory: (history || []).slice(-8).map((r) => ({
+      date: r["Snapshot Date"], opp: j(r["Opp"]), mom: j(r["Mom"]), sus: j(r["Sus"]),
+      retentionPct: j(r["Retention %"]), volGrwPct: j(r["Vol Grw %"]),
+    })),
+  };
+
+  return [
+    "You are writing an analyst report on the token CLAWD for its holder community.",
+    "",
+    "METRIC DEFINITIONS (all on-chain, Base network, DEX trades via Dune):",
+    "- Opp/Mom/Sus: composite 0-100ish behavioral scores (opportunity, momentum, sustainability). Profile buckets tokens by Mom/Sus vs cohort median; Signal compares volume growth vs 24h price direction; Read is the Profile\u00d7Signal label.",
+    "- Retention %: share of last week's active wallets that returned this week.",
+    "- Whale trade: a DEX trade in the top 10% of sizes for this token over 30d (threshold given as whaleMinTradeUsd). Humpback: top 1% (min $1k). Retail net = all non-whale flow.",
+    "- Accum %: whale buy volume / all whale volume. 50 = neutral.",
+    "- whaleRetailDivergenceBps: (whaleNet - retailNet) / marketCap in basis points. Negative = retail net-buying more than whales.",
+    "- whaleVolSharePct: whale trades as % of all 7d volume - how much whale flow dominates.",
+    "- Top10 %: share of 30d transactions from the 10 most active wallets.",
+    "",
+    "DATA:",
+    JSON.stringify(payload, null, 2),
+    "",
+    "TASK: Write a report in this structure:",
+    "1. HEADLINE - one sentence on the overall state.",
+    "2. THE NUMBERS - walk the key metrics, plain language, note what's strong/weak.",
+    "3. WHALE STORY - read the whale/humpback/retail flows together. Who is doing what?",
+    "4. BEST GUESS - your single most probable interpretation of what is happening with this token right now, stated plainly, with a confidence level (low/medium/high) and what evidence would change your mind.",
+    "5. WATCH NEXT - 2-3 specific metrics to watch and what movement in them would mean.",
+    "Keep it under 400 words. Be honest about ambiguity - do not spin negative data. This is community information, not financial advice, and should say so in one closing line.",
+  ].join("\n");
+}
+
+function ShareButtons({ clawdRow, history }) {
   const [copied, setCopied] = React.useState(null);
   const copy = (text, label) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -381,6 +578,18 @@ function ShareButtons({ clawdRow }) {
         onClick={() => copy(buildCondensedText(clawdRow), "short")}
       >
         {copied === "short" ? "\u2713 Copied!" : "Copy short version"}
+      </button>
+      <button
+        style={btnStyle}
+        onClick={() => copy(buildObjectiveText(clawdRow), "objective")}
+      >
+        {copied === "objective" ? "\u2713 Copied!" : "Copy objective data only"}
+      </button>
+      <button
+        style={btnStyle}
+        onClick={() => copy(buildAnalysisPrompt(clawdRow, history), "prompt")}
+      >
+        {copied === "prompt" ? "\u2713 Copied!" : "Copy analysis prompt"}
       </button>
       <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
         Paste into Discord / Twitter / Farcaster / Telegram
@@ -433,7 +642,8 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
       <h2 style={{ marginTop: 0, color: "var(--text)" }}>CLAWD — Health Check</h2>
 
       <ProfileSignalBanner profile={clawdRow?.["Prof"]} signal={clawdRow?.signal} read={clawdRow?.read} />
-      <ShareButtons clawdRow={clawdRow} />
+      <ShareButtons clawdRow={clawdRow} history={behavioralHistory} />
+      <ReportSection />
 
       {status === "loading" && <p style={{ color: "var(--text-muted)" }}>Loading history…</p>}
       {status === "error"   && <p style={{ color: "#c0392b" }}>Couldn't load history: {errorMsg}</p>}
