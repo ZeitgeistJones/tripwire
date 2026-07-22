@@ -23,12 +23,14 @@ const GLOSSARY_ROWS = [
   ["1st Buyers (30d) / (7d)", "Wallets whose first buy in a longer lookback landed in that window — not the same as all buyers"],
   ["1st Sellers (30d) / (7d)", "Wallets whose first sell in a longer lookback landed in that window"],
   ["Buy/Sell Ratio (7d)", "Buyers 7d ÷ unique sellers this week. Above 1.0 means more buying wallets than selling"],
+  ["Buy Vol % (7d)", "Buys as a share of 7d dollar volume — money-weighted complement to Buy/Sell Ratio. High ratio + low Buy Vol % = many small buyers while big wallets sell into them"],
   ["Whale Net (7d)", "Net USD from large trades in the last 7 days (buys minus sells). Positive = whales accumulating"],
   ["Accum %", "Whale buys as a share of all whale volume (7d). ~50% neutral; higher suggests accumulation"],
   ["Whale Buyers / Sellers (7d)", "Distinct wallets making top-decile-sized buys or sells in the last 7 days"],
   ["Humpback Net / Buyers / Sellers (7d)", "Same idea as whales, but top 1% of trade sizes (min $1,000) — the mega-whale subset"],
   ["Retail Net (7d)", "Net USD from all non-whale trades in the last 7 days. Read it against Whale Net"],
   ["Whale Vol %", "Whale trades as a share of all 7d volume — how much whale flow actually matters. High % makes retail thin"],
+  ["Whale Min $", "This token's whale threshold — top-10% trade size over 30d (min $100). Scales per token"],
   ["W/R Div (bps)", "(Whale Net − Retail Net) ÷ Market Cap × 10,000. Positive = whales lean harder than retail; negative = retail lean / exit-liquidity pattern"],
   ["Non-Trade New (30d)", "New wallets with no first buy or sell — likely airdrop/transfer. New − 1st Buyers − 1st Sellers, floored at 0"],
   ["Top10 % (30d)", "Share of 30-day transactions from the top 10 most active wallets. Lower is healthier"],
@@ -279,8 +281,8 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Overview</strong> — scores, profile, price, signal</li>
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction detail</li>
           <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts, growth, retention</li>
-          <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — who&apos;s trading: traders, buyers/sellers, first buyers/sellers, buy/sell ratio</li>
-          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale/humpback/retail flow, Whale Vol %, W/R Div (bps), Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
+          <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — who&apos;s trading: traders, buyers/sellers, first buyers/sellers, buy/sell ratio, Buy Vol %</li>
+          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale/humpback/retail flow, Whale Vol %, Whale Min $, W/R Div (bps), Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
           <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>

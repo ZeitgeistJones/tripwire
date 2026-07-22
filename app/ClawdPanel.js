@@ -236,6 +236,8 @@ const COMPACT_SECTIONS = [
       { key: "Retail Net 7d", label: "Retail Net Flow", format: "usdNet" },
       { key: "Whale Vol %", label: "Whale Vol %", format: "pct1" },
       { key: "Divergence Bps", label: "W/R Divergence (bps)", format: "dec1" },
+      { key: "Buy Vol %", label: "Buy Vol %", format: "pct1" },
+      { key: "Whale Min $", label: "Whale Threshold", format: "usd" },
     ],
   }
 ];

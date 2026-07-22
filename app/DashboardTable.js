@@ -155,6 +155,7 @@ const TABS = {
     { key: "1st Sellers 30d",  label: "1st Sellers (30d)",    type: "number", format: "int",  tooltip: "Wallets selling this token for the very first time in the last 30 days" },
     { key: "1st Sellers 7d",   label: "1st Sellers (7d)",     type: "number", format: "int",  tooltip: "Wallets selling for the first time in the last 7 days" },
     { key: "Buy/Sell Ratio",   label: "Buy/Sell Ratio (7d)",  type: "number", format: "dec2", tooltip: "Buyers 7d \u00f7 all unique sellers this week \u2014 above 1.0 means more wallets buying than selling" },
+    { key: "Buy Vol %",        label: "Buy Vol % (7d)",       type: "number", format: "pct1", tooltip: "Buys as a share of 7-day DOLLAR volume \u2014 the money-weighted complement to Buy/Sell Ratio (which counts wallets). High ratio + low Buy Vol % = many small wallets buying while a few big ones sell into them" },
   ],
   "Whales & Risk": [
     { key: "Project",          label: "Project",              type: "string" },
@@ -167,7 +168,8 @@ const TABS = {
     { key: "Hump Buyers 7d",   label: "Humpback Buyers (7d)", type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized buys in the last 7 days \u2014 usually a handful of very large players" },
     { key: "Hump Sellers 7d",  label: "Humpback Sellers (7d)",type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized sells in the last 7 days" },
     { key: "Retail Net 7d",    label: "Retail Net (7d)",      type: "number", format: "usd",  tooltip: "Net USD flow from all NON-whale trades in the last 7 days. Compare against Whale Net: whales buying while retail sells = accumulation from weak hands; whales selling into retail buying = distribution" },
-    { key: "Whale Vol %",      label: "Whale Vol %",          type: "number", format: "pct1", tooltip: "Whale trades as a share of all 7-day volume \u2014 how much whale flow actually matters for this token. Low = whales are a sideshow; high = whale flow IS the market" },
+    { key: "Whale Vol %",      label: "Whale Vol %",          type: "number", format: "pct1", tooltip: "Whale trades as a share of all 7-day volume \u2014 how much of the market whale flow represents. At 80%+ the retail column is thin and divergence reads are weak; around 30% a whale/retail split can mean two real crowds disagreeing" },
+    { key: "Whale Min $",      label: "Whale Min $",          type: "number", format: "usd",  tooltip: "The whale threshold for THIS token \u2014 the top-10% trade size over 30d (min $100). What counts as a whale trade scales with each token's own market: might be $800 on a microcap, $50k on a major" },
     { key: "Divergence Bps",   label: "W/R Div (bps)",        type: "number", format: "dec1", tooltip: "Whale-vs-retail divergence in basis points of market cap. Positive = whales net buying more aggressively than retail (bullish divergence). Negative = retail buying more than whales (bearish \u2014 potential exit liquidity pattern). Near zero = both sides agree. Scaled by market cap so a $50k microcap and $500M large-cap are directly comparable" },
     { key: "Qlty %",           label: "Qlty %",               type: "number", format: "pct1", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
     { key: "Risk %",           label: "Risk %",               type: "number", format: "pct1", tooltip: "How concentrated the volume is in a few wallets \u2014 higher means more concentrated" },
@@ -550,10 +552,10 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     "Vol Grw %", "Tx Grw %", "User Grw %", "Txs 30d", "Vol 30d", "Txs/User", "Traders",
     "Retention %", "New %", "New Wallets", "Returning Wallets", "Non-Trade New 30d",
     "Buyers 30d", "Buyers 7d", "1st Buyers 30d", "1st Buyers 7d",
-    "1st Sellers 30d", "1st Sellers 7d",
+    "1st Sellers 30d", "1st Sellers 7d", "Buy Vol %",
     "Whale Net 7d", "Accum %", "Whale Buyers 7d", "Whale Sellers 7d",
     "Hump Net 7d", "Hump Buyers 7d", "Hump Sellers 7d",
-    "Retail Net 7d", "Whale Vol %", "Divergence Bps",
+    "Retail Net 7d", "Whale Vol %", "Whale Min $", "Divergence Bps",
     "Qlty %", "Risk %", "Top10 %", "Vol/Tx",
   ];
   const ranks = {};
@@ -786,11 +788,9 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           const rankTooltipContent = rankInfo ? (
             <div>
               <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
-                #{rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>of {rankInfo.total}</span>
+                {rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>/ {rankInfo.total}</span>
               </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                Rank for <strong>{col.label}</strong> among tracked peers
-              </div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Rank for <strong>{col.label}</strong></div>
               <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "4px" }}>
                 1 = best · {rankInfo.total} = worst
               </div>
@@ -917,7 +917,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         <button
           type="button"
           onClick={toggleCompact}
-          title={compact ? "Zoom UI back to 100%" : "Zoom UI out (default) so more fits on screen"}
+          title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
           style={{
             padding: "5px 12px",
             borderRadius: "6px",
