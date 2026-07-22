@@ -369,7 +369,7 @@ function ShareButtons({ clawdRow }) {
     fontWeight: 600,
   };
   return (
-    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", margin: "0 0 20px" }}>
       <button
         style={btnStyle}
         onClick={() => copy(buildShareText(clawdRow), "full")}
@@ -383,7 +383,7 @@ function ShareButtons({ clawdRow }) {
         {copied === "short" ? "\u2713 Copied!" : "Copy short version"}
       </button>
       <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
-        Paste into Discord / Twitter / Farcaster
+        Paste into Discord / Twitter / Farcaster / Telegram
       </span>
     </div>
   );
