@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
       <head>
         <script
   dangerouslySetInnerHTML={{
-    __html: `document.documentElement.setAttribute('data-theme', 'dark');try{if(localStorage.getItem('zdash-compact')==='0')document.documentElement.classList.add('comfort-view')}catch(e){}`,
+    __html: `document.documentElement.setAttribute('data-theme','dark');try{var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else if(localStorage.getItem('zdash-compact')==='0')document.documentElement.classList.add('comfort-view')}catch(e){}`,
   }}
 />
         <style

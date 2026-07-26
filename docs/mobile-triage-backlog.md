@@ -21,6 +21,8 @@
 Suggested ship order: **MT-2 → MT-3 → MT-1 → MT-4 → MT-6 → MT-5 → MT-7**  
 (Nav + hybrid table unlock the triage viewport; comfort/status/discovery polish after.)
 
+**Shipped:** MT-2, MT-3, Project sticky ellipsis fix, MT-4 (mobile comfort default).
+
 ---
 
 ## MT-1 — Phone-first first viewport (P1)

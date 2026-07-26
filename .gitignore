@@ -2,3 +2,6 @@
 .env*
 node_modules/
 .next/
+debug-*.log
+.cursor/debug-*.log
+scripts/mobile-probe.png

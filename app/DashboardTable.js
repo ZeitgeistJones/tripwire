@@ -134,16 +134,34 @@ function savePins(pins) {
   try { localStorage.setItem("zdash-pins", JSON.stringify(pins)); }
   catch {}
 }
+function isNarrowViewport() {
+  try {
+    return typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
+  } catch {
+    return false;
+  }
+}
 function loadCompact() {
   try {
+    // Mobile: comfort/readable by default; Compact is opt-in (separate key).
+    // Desktop: Compact ON by default (drives 0.85 zoom via comfort-view).
+    if (isNarrowViewport()) {
+      const v = localStorage.getItem("zdash-compact-mobile");
+      if (v === null) return false;
+      return v === "1";
+    }
     const v = localStorage.getItem("zdash-compact");
-    if (v === null) return true; // default on
+    if (v === null) return true;
     return v === "1";
-  } catch { return true; }
+  } catch {
+    return !isNarrowViewport();
+  }
 }
 function saveCompact(on) {
-  try { localStorage.setItem("zdash-compact", on ? "1" : "0"); }
-  catch {}
+  try {
+    if (isNarrowViewport()) localStorage.setItem("zdash-compact-mobile", on ? "1" : "0");
+    else localStorage.setItem("zdash-compact", on ? "1" : "0");
+  } catch {}
 }
 
 const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "The Wire", "About"];
@@ -590,7 +608,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const [watchedAddresses, setWatchedAddresses] = useState([]);
   const [watchlistColumnConfig, setWatchlistColumnConfig] = useState(null);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
-  const [compact, setCompact] = useState(true);
+  const [compact, setCompact] = useState(() => loadCompact());
   const [tableMode, setTableMode] = useState("summary"); // mobile hybrid: summary | full
   const dragKeyRef = useRef(null);
   const rootRef = useRef(null);
@@ -859,65 +877,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     ? sorted.filter((d) => !pinnedKeys.includes(d[rowKeyField]))
     : sorted;
   const displayRows = [...pinnedRows, ...unpinnedRows];
-
-  // #region agent log
-  useEffect(() => {
-    try {
-      const vp = window.innerWidth;
-      const scroller = rootRef.current?.querySelector("[data-h-scroll]");
-      const projectTd = rootRef.current?.querySelector("td.tw-sticky-project");
-      const actionsTd = rootRef.current?.querySelector("td.tw-sticky-actions");
-      const nextTd = projectTd?.nextElementSibling;
-      const summaryCard = rootRef.current?.querySelector(".tw-summary-only > div");
-      const cs = projectTd ? getComputedStyle(projectTd) : null;
-      const names = (displayRows || []).map((d) => String(d?.Project || d?.name || "")).filter(Boolean);
-      const longest = names.reduce((a, b) => (b.length > a.length ? b : a), "");
-      const projectRect = projectTd?.getBoundingClientRect();
-      const nextRect = nextTd?.getBoundingClientRect();
-      const overlapPx = projectRect && nextRect ? Math.round(projectRect.right - nextRect.left) : null;
-      fetch("http://127.0.0.1:7267/ingest/fcedb7d7-4701-4f48-8ac8-84fbb0361359", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a643bc" },
-        body: JSON.stringify({
-          sessionId: "a643bc",
-          runId: "post-fix",
-          location: "DashboardTable.js:projectColMeasure",
-          message: "Project column layout metrics",
-          hypothesisId: "A-E",
-          data: {
-            viewport: vp,
-            isNarrow: vp <= 1023,
-            isPhone: vp <= 767,
-            activeTab,
-            tableMode,
-            hasScroller: !!scroller,
-            scrollerScrollWidth: scroller?.scrollWidth ?? null,
-            scrollerClientWidth: scroller?.clientWidth ?? null,
-            actionsW: actionsTd ? Math.round(actionsTd.getBoundingClientRect().width) : null,
-            projectW: projectRect ? Math.round(projectRect.width) : null,
-            projectScrollW: projectTd?.scrollWidth ?? null,
-            projectMaxWidth: cs?.maxWidth ?? null,
-            projectOverflow: cs?.overflow ?? null,
-            projectWhiteSpace: cs?.whiteSpace ?? null,
-            projectPosition: cs?.position ?? null,
-            projectBg: cs?.backgroundColor ?? null,
-            nextColLeft: nextRect ? Math.round(nextRect.left) : null,
-            projectRight: projectRect ? Math.round(projectRect.right) : null,
-            overlapPx,
-            stickySharePct: projectRect && actionsTd
-              ? Math.round(((projectRect.width + actionsTd.getBoundingClientRect().width) / vp) * 100)
-              : null,
-            longestName: longest,
-            longestLen: longest.length,
-            summaryVisible: summaryCard ? getComputedStyle(summaryCard.parentElement).display : null,
-            hasProjectTd: !!projectTd,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    } catch {}
-  }, [activeTab, tableMode, displayRows, compact]);
-  // #endregion
 
   function renderRow(d, idx) {
     const isPinned     = !isDiscover && pinnedKeys.includes(d[rowKeyField]);
