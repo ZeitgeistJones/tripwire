@@ -138,9 +138,28 @@ export default function RootLayout({ children }) {
 
               /* ── Mobile UX (desktop-safe: only applies below 1024px) ─── */
               .tw-tip-mobile { display: none; }
+              .tw-nav-mobile { display: none !important; }
+              .tw-summary-only { display: none !important; }
+              .tw-table-mode-toggle { display: none !important; }
 
               @media (max-width: 1023px) {
                 body { overflow-x: clip; }
+
+                .tw-nav-desktop { display: none !important; }
+                .tw-nav-mobile {
+                  display: flex !important;
+                  flex-wrap: nowrap !important;
+                  overflow-x: auto !important;
+                  -webkit-overflow-scrolling: touch;
+                  scrollbar-width: none;
+                }
+                .tw-nav-mobile::-webkit-scrollbar { display: none; }
+
+                .tw-table-mode-toggle { display: inline-flex !important; }
+                .tw-hybrid-summary .tw-full-table { display: none !important; }
+                .tw-hybrid-summary .tw-summary-only { display: block !important; }
+                .tw-hybrid-full .tw-summary-only { display: none !important; }
+                .tw-hybrid-full .tw-full-table { display: block !important; }
 
                 .page-shell {
                   padding-left: 14px !important;

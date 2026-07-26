@@ -1,5 +1,6 @@
 import Link from "next/link";
 import StatusBanner from "./StatusBanner";
+import { LinkMobileNav, desktopNavClass } from "./MobileTabNav";
 
 // ── formatting ────────────────────────────────────────────────
 function fmtPrice(n) {
@@ -115,15 +116,18 @@ function TabBar() {
   });
 
   return (
-    <div className="tw-tab-strip" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
-      <span style={tabStyle(true)}>Movers</span>
-      <Link href="/forecast" style={tabStyle(false)}>Forecast</Link>
-      {DASH_TABS.map((tab) => (
-        <Link key={tab} href="/dashboard" style={tabStyle(false)}>
-          {tab}
-        </Link>
-      ))}
-    </div>
+    <>
+      <div className={desktopNavClass()} style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+        <span style={tabStyle(true)}>Movers</span>
+        <Link href="/forecast" style={tabStyle(false)}>Forecast</Link>
+        {DASH_TABS.map((tab) => (
+          <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
+            {tab}
+          </Link>
+        ))}
+      </div>
+      <LinkMobileNav currentPage="movers" />
+    </>
   );
 }
 

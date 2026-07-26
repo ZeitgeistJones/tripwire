@@ -7,6 +7,7 @@ import AboutPanel from "./AboutPanel";
 import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
 import StatusBanner from "./StatusBanner";
+import { DashboardMobileNav, desktopNavClass } from "./MobileTabNav";
 
 
 // ── Custom delayed tooltip ────────────────────────────────────────────────────
@@ -314,11 +315,117 @@ function formatValue(val, format) {
   if (Number.isNaN(n)) return "—";
   if (format === "price") return `$${n.toPrecision(4)}`;
   if (format === "usd") return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  if (format === "usdSign") {
+    const abs = Math.abs(Math.round(n)).toLocaleString();
+    return `${n < 0 ? "\u2212" : "+"}$${abs}`;
+  }
   if (format === "pct1") return `${n.toFixed(1)}%`;
   if (format === "int") return Math.round(n).toLocaleString();
   if (format === "dec1") return n.toFixed(1);
   if (format === "dec2") return n.toFixed(2);
   return val;
+}
+
+const HYBRID_TABS = new Set(["Overview", "Whales & Risk"]);
+
+function MobileSummaryList({
+  rows,
+  pinnedRows,
+  tab,
+  hasAccess,
+  watchedAddresses,
+  pinnedKeys,
+  rowKeyField,
+  onToggleWatch,
+  onTogglePin,
+}) {
+  const isWhales = tab === "Whales & Risk";
+
+  return (
+    <div className="tw-summary-only" style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+      {rows.length === 0 && (
+        <p style={{ color: "var(--text-muted)", padding: "16px 0" }}>No data.</p>
+      )}
+      {rows.map((d, idx) => {
+        const isPinned = pinnedKeys.includes(d[rowKeyField]);
+        const unpinnedIdx = idx - pinnedRows.length;
+        const isRowGated = !isPinned && unpinnedIdx >= FREE_ROW_COUNT && !hasAccess;
+        const isClawd = d["Project"] === "CLAWD";
+        const isWatched = watchedAddresses.includes((d["Address"] || "").toLowerCase());
+
+        return (
+          <div
+            key={d[rowKeyField]}
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "12px 14px",
+              background: isClawd ? "var(--clawd-row-bg)" : "var(--card-bg)",
+              borderLeft: isClawd ? "3px solid var(--clawd-row-border)" : undefined,
+              opacity: isRowGated ? 0.85 : 1,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+              <button
+                type="button"
+                className="tw-icon-btn"
+                onClick={() => onToggleWatch(d["Address"])}
+                title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+                style={{
+                  background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                  lineHeight: 1, padding: "0 2px",
+                  color: isWatched ? "#f5c518" : "var(--text-faint)",
+                }}
+              >
+                ⭐
+              </button>
+              <button
+                type="button"
+                className="tw-icon-btn"
+                onClick={() => onTogglePin(d[rowKeyField])}
+                title={isPinned ? "Unpin" : "Pin to top"}
+                style={{
+                  background: "none", border: "none", cursor: "pointer", fontSize: "14px",
+                  lineHeight: 1, padding: "0 2px",
+                  color: isPinned ? "var(--btn-active-bg)" : "var(--text-faint)",
+                }}
+              >
+                📍
+              </button>
+              <span style={{ fontWeight: 700, fontSize: "15px", color: "var(--text)", flex: 1 }}>
+                <GatedCell blurred={isRowGated}>{d["Project"] ?? "—"}</GatedCell>
+              </span>
+              {d.read ? <GatedCell blurred={isRowGated}><ReadBadge value={d.read} /></GatedCell> : null}
+            </div>
+            <GatedCell blurred={isRowGated}>
+              {isWhales ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", fontSize: "12px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Whale Net <strong style={{ color: "var(--text)" }}>{formatValue(d["Whale Net 7d"], "usdSign")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Accum <strong style={{ color: "var(--text)" }}>{formatValue(d["Accum %"], "pct1")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Retail <strong style={{ color: "var(--text)" }}>{formatValue(d["Retail Net 7d"], "usdSign")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Whale Vol <strong style={{ color: "var(--text)" }}>{formatValue(d["Whale Vol %"], "pct1")}</strong></span>
+                  <span style={{ color: "var(--text-muted)", gridColumn: "1 / -1" }}>
+                    Signal <strong style={{ color: "var(--text)" }}>{d.signal ?? "—"}</strong>
+                    {d.signalNote ? ` · ${d.signalNote}` : ""}
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px 12px", fontSize: "12px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Opp <strong style={{ color: "var(--text)" }}>{formatValue(d["Opp"], "dec1")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Mom <strong style={{ color: "var(--text)" }}>{formatValue(d["Mom"], "dec1")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Sus <strong style={{ color: "var(--text)" }}>{formatValue(d["Sus"], "dec1")}</strong></span>
+                  <span style={{ color: "var(--text-muted)", gridColumn: "1 / -1" }}>
+                    {d.Prof ?? "—"} · {d.signal ?? "—"}
+                    {d.signalNote ? ` · ${d.signalNote}` : ""}
+                  </span>
+                </div>
+              )}
+            </GatedCell>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function SummaryBar({ data }) {
@@ -484,6 +591,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const [watchlistColumnConfig, setWatchlistColumnConfig] = useState(null);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
   const [compact, setCompact] = useState(true);
+  const [tableMode, setTableMode] = useState("summary"); // mobile hybrid: summary | full
   const dragKeyRef = useRef(null);
   const rootRef = useRef(null);
   const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip, toggle: toggleTooltip } = useDelayedTooltip();
@@ -491,6 +599,16 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   useEffect(() => {
     setPinnedKeys(loadPins());
     setCompact(loadCompact());
+    try {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      if (tab && TAB_ORDER.includes(tab)) {
+        setActiveTab(tab);
+        const firstNumeric = TABS[tab]?.find((c) => c.type === "number");
+        if (firstNumeric) setSortKey(firstNumeric.key);
+        else if (TABS[tab]?.[0]) setSortKey(TABS[tab][0].key);
+        else if (tab === "Watchlist") setSortKey("Opp");
+      }
+    } catch {}
   }, []);
 
   // Layout body zoom (0.85 on desktop) is the main "compact" — toggle comfort-view to go full size.
@@ -877,10 +995,13 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     );
   }
 
+  const isHybridTab = HYBRID_TABS.has(activeTab);
+  const showHybrid = isHybridTab && !isSpecialTab;
+
   const tableBody = !isSpecialTab && (
     <div
       data-h-scroll
-      className={`tw-hscroll${!isDiscover ? " has-actions" : ""}`}
+      className={`tw-full-table tw-hscroll${!isDiscover ? " has-actions" : ""}`}
       style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}
     >
       <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
@@ -939,12 +1060,15 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   );
 
   const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire", "About"];
+  const hybridClass = showHybrid
+    ? (tableMode === "full" ? "tw-hybrid-full" : "tw-hybrid-summary")
+    : "";
 
   return (
     <div ref={rootRef}>
       <StatusBanner lastUpdated={lastUpdated} />
 
-      <div className="tw-tab-strip" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+      <div className={desktopNavClass()} style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
         <Link
           href="/"
           style={{
@@ -986,33 +1110,62 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         ))}
       </div>
 
+      <DashboardMobileNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        tabLabel={(tab) => (tab === "Whales & Risk" ? "Whales" : tabLabel(tab))}
+      />
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
         <p className="tw-tip-desktop" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
           Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Use <strong>←</strong> <strong>→</strong> to scroll wide tables. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
         </p>
         <p className="tw-tip-mobile" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
-          Tip: swipe tabs · swipe the table for more columns · tap a number for peer rank · tap a header for its definition. ⭐ watch · 📍 pin.
+          Tip: primary tabs + More · summary cards by default on Overview/Whales · Full table for every column. ⭐ watch · 📍 pin.
         </p>
-        <button
-          type="button"
-          className="tw-compact-btn"
-          onClick={toggleCompact}
-          title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
-          style={{
-            padding: "5px 12px",
-            borderRadius: "6px",
-            border: compact ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
-            background: compact ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
-            color: compact ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: compact ? 600 : 400,
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
-        >
-          {compact ? "Compact ✓" : "Compact"}
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+          {showHybrid && (
+            <button
+              type="button"
+              className="tw-table-mode-toggle"
+              onClick={() => setTableMode((m) => (m === "summary" ? "full" : "summary"))}
+              style={{
+                padding: "5px 12px",
+                borderRadius: "6px",
+                border: "1px solid var(--btn-inactive-border)",
+                background: tableMode === "full" ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+                color: tableMode === "full" ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: tableMode === "full" ? 600 : 400,
+                whiteSpace: "nowrap",
+                alignItems: "center",
+              }}
+            >
+              {tableMode === "summary" ? "Full table" : "Summary"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="tw-compact-btn"
+            onClick={toggleCompact}
+            title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
+            style={{
+              padding: "5px 12px",
+              borderRadius: "6px",
+              border: compact ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+              background: compact ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+              color: compact ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: compact ? 600 : 400,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            {compact ? "Compact ✓" : "Compact"}
+          </button>
+        </div>
       </div>
 
       {!isSpecialTab && !isDiscover && (
@@ -1096,7 +1249,26 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
             />
           </GatedSection>
         )}
-        {isDiscover ? <GatedSection blurred={!hasAccess}>{tableBody}</GatedSection> : tableBody}
+        {isDiscover ? (
+          <GatedSection blurred={!hasAccess}>{tableBody}</GatedSection>
+        ) : showHybrid ? (
+          <div className={hybridClass}>
+            <MobileSummaryList
+              rows={displayRows}
+              pinnedRows={pinnedRows}
+              tab={activeTab}
+              hasAccess={hasAccess}
+              watchedAddresses={watchedAddresses}
+              pinnedKeys={pinnedKeys}
+              rowKeyField={rowKeyField}
+              onToggleWatch={toggleWatch}
+              onTogglePin={togglePin}
+            />
+            {tableBody}
+          </div>
+        ) : (
+          tableBody
+        )}
       </div>
 
       <TooltipBox tooltip={tooltip} />
