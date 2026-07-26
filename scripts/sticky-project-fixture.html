@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sticky Project fixture</title>
+  <style>
+    :root { --bg: #1c1b22; --border: #383644; --text: #e8e6f0; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; }
+    .tw-hscroll { overflow-x: auto; font-size: 13px; }
+    table { border-collapse: collapse; width: max-content; min-width: 100%; margin-top: 8px; }
+    th, td { padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+    @media (max-width: 767px) {
+      .tw-hscroll table th.tw-sticky-actions,
+      .tw-hscroll table td.tw-sticky-actions {
+        position: sticky; left: 0; z-index: 3; background: var(--bg);
+        width: 76px; min-width: 76px; max-width: 76px;
+      }
+      .tw-hscroll table th.tw-sticky-project,
+      .tw-hscroll table td.tw-sticky-project {
+        position: sticky; left: 76px; z-index: 2; background: var(--bg);
+        box-shadow: 2px 0 6px rgba(0,0,0,0.12);
+        width: 96px; min-width: 96px; max-width: 96px;
+        overflow: hidden;
+      }
+      .tw-hscroll table td.tw-sticky-project .tw-name-clip,
+      .tw-hscroll table th.tw-sticky-project .tw-name-clip {
+        display: block;
+        max-width: 76px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+    body.nofix .tw-hscroll table th.tw-sticky-project,
+    body.nofix .tw-hscroll table td.tw-sticky-project {
+      width: auto !important; min-width: 0 !important; max-width: none !important; overflow: visible !important;
+    }
+    body.nofix .tw-name-clip {
+      max-width: none !important; overflow: visible !important; text-overflow: clip !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="tw-hscroll has-actions" data-h-scroll>
+    <table>
+      <thead>
+        <tr>
+          <th class="tw-sticky-actions"></th>
+          <th class="tw-sticky-project"><span class="tw-name-clip">Project</span></th>
+          <th>Read</th>
+          <th>Opp</th>
+          <th>Mom</th>
+          <th>Sus</th>
+          <th>Signal</th>
+          <th>Market Cap</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tw-sticky-actions">⭐📍</td>
+          <td class="tw-sticky-project"><span class="tw-name-clip">VeryLongAgentTokenNameXYZ</span></td>
+          <td>Beacon</td>
+          <td>82.4</td>
+          <td>71.2</td>
+          <td>64.0</td>
+          <td>Absorbed</td>
+          <td>$1,200,000</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <script>
+    if (new URLSearchParams(location.search).get("nofix") === "1") {
+      document.body.classList.add("nofix");
+    }
+  </script>
+</body>
+</html>

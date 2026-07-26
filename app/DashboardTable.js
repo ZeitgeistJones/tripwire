@@ -7,7 +7,7 @@ import AboutPanel from "./AboutPanel";
 import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
 import StatusBanner from "./StatusBanner";
-import { DashboardMobileNav, desktopNavClass } from "./MobileTabNav";
+import { DashboardMobileNav } from "./MobileTabNav";
 
 
 // ── Custom delayed tooltip ────────────────────────────────────────────────────
@@ -860,6 +860,65 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     : sorted;
   const displayRows = [...pinnedRows, ...unpinnedRows];
 
+  // #region agent log
+  useEffect(() => {
+    try {
+      const vp = window.innerWidth;
+      const scroller = rootRef.current?.querySelector("[data-h-scroll]");
+      const projectTd = rootRef.current?.querySelector("td.tw-sticky-project");
+      const actionsTd = rootRef.current?.querySelector("td.tw-sticky-actions");
+      const nextTd = projectTd?.nextElementSibling;
+      const summaryCard = rootRef.current?.querySelector(".tw-summary-only > div");
+      const cs = projectTd ? getComputedStyle(projectTd) : null;
+      const names = (displayRows || []).map((d) => String(d?.Project || d?.name || "")).filter(Boolean);
+      const longest = names.reduce((a, b) => (b.length > a.length ? b : a), "");
+      const projectRect = projectTd?.getBoundingClientRect();
+      const nextRect = nextTd?.getBoundingClientRect();
+      const overlapPx = projectRect && nextRect ? Math.round(projectRect.right - nextRect.left) : null;
+      fetch("http://127.0.0.1:7267/ingest/fcedb7d7-4701-4f48-8ac8-84fbb0361359", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a643bc" },
+        body: JSON.stringify({
+          sessionId: "a643bc",
+          runId: "post-fix",
+          location: "DashboardTable.js:projectColMeasure",
+          message: "Project column layout metrics",
+          hypothesisId: "A-E",
+          data: {
+            viewport: vp,
+            isNarrow: vp <= 1023,
+            isPhone: vp <= 767,
+            activeTab,
+            tableMode,
+            hasScroller: !!scroller,
+            scrollerScrollWidth: scroller?.scrollWidth ?? null,
+            scrollerClientWidth: scroller?.clientWidth ?? null,
+            actionsW: actionsTd ? Math.round(actionsTd.getBoundingClientRect().width) : null,
+            projectW: projectRect ? Math.round(projectRect.width) : null,
+            projectScrollW: projectTd?.scrollWidth ?? null,
+            projectMaxWidth: cs?.maxWidth ?? null,
+            projectOverflow: cs?.overflow ?? null,
+            projectWhiteSpace: cs?.whiteSpace ?? null,
+            projectPosition: cs?.position ?? null,
+            projectBg: cs?.backgroundColor ?? null,
+            nextColLeft: nextRect ? Math.round(nextRect.left) : null,
+            projectRight: projectRect ? Math.round(projectRect.right) : null,
+            overlapPx,
+            stickySharePct: projectRect && actionsTd
+              ? Math.round(((projectRect.width + actionsTd.getBoundingClientRect().width) / vp) * 100)
+              : null,
+            longestName: longest,
+            longestLen: longest.length,
+            summaryVisible: summaryCard ? getComputedStyle(summaryCard.parentElement).display : null,
+            hasProjectTd: !!projectTd,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    } catch {}
+  }, [activeTab, tableMode, displayRows, compact]);
+  // #endregion
+
   function renderRow(d, idx) {
     const isPinned     = !isDiscover && pinnedKeys.includes(d[rowKeyField]);
     const unpinnedIdx  = idx - pinnedRows.length;
@@ -987,7 +1046,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               }}
               {...tipHandlers}
             >
-              <GatedCell blurred={isRowGated}>{cellContent}</GatedCell>
+              <GatedCell blurred={isRowGated}>
+                {isProjectCol ? (
+                  <span className="tw-name-clip" title={String(d[col.key] ?? "")}>{cellContent}</span>
+                ) : cellContent}
+              </GatedCell>
             </td>
           );
         })}
@@ -1030,8 +1093,14 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                   padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
                 }}
               >
-                {col.label}
-                {sortKey === col.key ? (sortDir === "desc" ? " ▼" : " ▲") : ""}
+                {isProjectCol ? (
+                  <span className="tw-name-clip">{col.label}{sortKey === col.key ? (sortDir === "desc" ? " ▼" : " ▲") : ""}</span>
+                ) : (
+                  <>
+                    {col.label}
+                    {sortKey === col.key ? (sortDir === "desc" ? " ▼" : " ▲") : ""}
+                  </>
+                )}
               </th>
               );
             })}
@@ -1068,7 +1137,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     <div ref={rootRef}>
       <StatusBanner lastUpdated={lastUpdated} />
 
-      <div className={desktopNavClass()} style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+      <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
         <Link
           href="/"
           style={{

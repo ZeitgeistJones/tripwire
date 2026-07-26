@@ -392,7 +392,9 @@ export default function WatchlistPanel({
                           toggleTooltip(rankTooltipContent, e);
                         } : undefined}
                       >
-                        {cellContent}
+                        {col.key === "Project" ? (
+                          <span className="tw-name-clip" title={String(d[col.key] ?? "")}>{cellContent}</span>
+                        ) : cellContent}
                       </td>
                     );
                   })}

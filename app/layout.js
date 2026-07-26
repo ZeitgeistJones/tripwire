@@ -277,10 +277,12 @@ export default function RootLayout({ children }) {
                   z-index: 3;
                   background: var(--bg);
                   box-shadow: 1px 0 0 var(--border);
-                  width: 76px !important;
-                  min-width: 76px;
+                  width: 56px !important;
+                  min-width: 56px !important;
+                  max-width: 56px !important;
                   padding-left: 2px !important;
                   padding-right: 2px !important;
+                  overflow: hidden;
                 }
                 .tw-hscroll table th.tw-sticky-project,
                 .tw-hscroll table td.tw-sticky-project {
@@ -289,15 +291,32 @@ export default function RootLayout({ children }) {
                   z-index: 2;
                   background: var(--bg);
                   box-shadow: 2px 0 6px rgba(0,0,0,0.12);
+                  width: 88px !important;
+                  min-width: 88px !important;
+                  max-width: 88px !important;
+                  overflow: hidden;
                 }
                 .tw-hscroll.has-actions table th.tw-sticky-project,
                 .tw-hscroll.has-actions table td.tw-sticky-project {
-                  left: 76px;
+                  left: 56px;
+                }
+                .tw-hscroll table th.tw-sticky-project .tw-name-clip,
+                .tw-hscroll table td.tw-sticky-project .tw-name-clip {
+                  display: block;
+                  max-width: 68px;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  white-space: nowrap;
                 }
                 .tw-hscroll thead th.tw-sticky-actions,
                 .tw-hscroll thead th.tw-sticky-project {
                   z-index: 5;
                   background: var(--bg);
+                }
+                .tw-hscroll .tw-icon-btn {
+                  min-width: 26px !important;
+                  min-height: 36px !important;
+                  padding: 6px 1px !important;
                 }
               }
             `,

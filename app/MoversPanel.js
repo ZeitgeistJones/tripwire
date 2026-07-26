@@ -1,6 +1,6 @@
 import Link from "next/link";
 import StatusBanner from "./StatusBanner";
-import { LinkMobileNav, desktopNavClass } from "./MobileTabNav";
+import { LinkMobileNav } from "./MobileTabNav";
 
 // ── formatting ────────────────────────────────────────────────
 function fmtPrice(n) {
@@ -117,7 +117,7 @@ function TabBar() {
 
   return (
     <>
-      <div className={desktopNavClass()} style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+      <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
         <span style={tabStyle(true)}>Movers</span>
         <Link href="/forecast" style={tabStyle(false)}>Forecast</Link>
         {DASH_TABS.map((tab) => (

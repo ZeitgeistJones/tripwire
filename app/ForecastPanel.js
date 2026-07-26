@@ -1,6 +1,6 @@
 import Link from "next/link";
 import ExperimentDisclaimer from "./ExperimentDisclaimer";
-import { LinkMobileNav, desktopNavClass } from "./MobileTabNav";
+import { LinkMobileNav } from "./MobileTabNav";
 
 const DASH_TABS = [
   "Overview",
@@ -29,7 +29,7 @@ function TabBar() {
 
   return (
     <>
-      <div className={desktopNavClass()} style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+      <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
         <Link href="/" style={tabStyle(false)}>Movers</Link>
         <span style={tabStyle(true)}>Forecast</span>
         {DASH_TABS.map((tab) => (

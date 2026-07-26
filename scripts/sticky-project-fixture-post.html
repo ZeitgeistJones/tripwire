@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sticky Project fixture post-fix</title>
+  <style>
+    :root { --bg: #1c1b22; --border: #383644; --text: #e8e6f0; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; }
+    .tw-hscroll { overflow-x: auto; font-size: 13px; }
+    table { border-collapse: collapse; width: max-content; min-width: 100%; margin-top: 8px; }
+    th, td { padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+    @media (max-width: 767px) {
+      .tw-hscroll table th.tw-sticky-actions,
+      .tw-hscroll table td.tw-sticky-actions {
+        position: sticky; left: 0; z-index: 3; background: var(--bg);
+        width: 56px !important; min-width: 56px !important; max-width: 56px !important;
+        overflow: hidden; padding-left: 2px !important; padding-right: 2px !important;
+      }
+      .tw-hscroll table th.tw-sticky-project,
+      .tw-hscroll table td.tw-sticky-project {
+        position: sticky; left: 56px; z-index: 2; background: var(--bg);
+        box-shadow: 2px 0 6px rgba(0,0,0,0.12);
+        width: 88px !important; min-width: 88px !important; max-width: 88px !important;
+        overflow: hidden;
+      }
+      .tw-hscroll table td.tw-sticky-project .tw-name-clip,
+      .tw-hscroll table th.tw-sticky-project .tw-name-clip {
+        display: block; max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .tw-hscroll .tw-icon-btn {
+        min-width: 26px !important; min-height: 36px !important; padding: 6px 1px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="tw-hscroll has-actions" data-h-scroll>
+    <table>
+      <thead><tr>
+        <th class="tw-sticky-actions"></th>
+        <th class="tw-sticky-project"><span class="tw-name-clip">Project</span></th>
+        <th>Read</th><th>Opp</th><th>Mom</th><th>Sus</th><th>Signal</th><th>Market Cap</th>
+      </tr></thead>
+      <tbody><tr>
+        <td class="tw-sticky-actions"><button class="tw-icon-btn">⭐</button><button class="tw-icon-btn">📍</button></td>
+        <td class="tw-sticky-project"><span class="tw-name-clip">VeryLongAgentTokenNameXYZ</span></td>
+        <td>Beacon</td><td>82.4</td><td>71.2</td><td>64.0</td><td>Absorbed</td><td>$1,200,000</td>
+      </tr></tbody>
+    </table>
+  </div>
+</body>
+</html>
