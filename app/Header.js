@@ -121,7 +121,7 @@ function HolderHeader({ address, disconnect }) {
         <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.01em" }}>
           Tripwire
         </h1>
-        <span style={{ fontSize: "13px", color: "var(--text-faint)" }}>
+        <span className="tw-holder-subtitle" style={{ fontSize: "13px", color: "var(--text-faint)" }}>
           Community dashboard for CLAWD holders · Dune + CoinGecko · DYOR
         </span>
       </div>
@@ -135,6 +135,7 @@ function HolderHeader({ address, disconnect }) {
         </span>
         <span style={{ fontSize: "12px", color: "var(--text-faint)" }}>{shortAddress(address)}</span>
         <button
+          className="tw-disconnect-btn"
           onClick={disconnect}
           style={{
             padding: "4px 10px", borderRadius: "6px",
@@ -177,6 +178,7 @@ function ConnectedNotHolder({ address, disconnect }) {
         </span>
         <span style={{ fontSize: "12px", color: "var(--text-faint)" }}>{shortAddress(address)}</span>
         <button
+          className="tw-disconnect-btn"
           onClick={disconnect}
           style={{
             padding: "4px 10px", borderRadius: "6px",

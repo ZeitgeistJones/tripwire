@@ -115,7 +115,7 @@ function TabBar() {
   });
 
   return (
-    <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+    <div className="tw-tab-strip" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
       <span style={tabStyle(true)}>Movers</span>
       <Link href="/forecast" style={tabStyle(false)}>Forecast</Link>
       {DASH_TABS.map((tab) => (

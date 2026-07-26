@@ -28,13 +28,20 @@ function peerRank(colKey, value, peers) {
   return { rank: better + 1, total: values.length };
 }
 
+function prefersTouchUi() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(hover: none), (max-width: 1023px)").matches;
+}
+
 function useDelayedTooltip() {
   const [tooltip, setTooltip] = useState(null);
   const timerRef = useRef(null);
+  const pinnedRef = useRef(false);
 
   const show = useCallback((content, e, delay = HEADER_TOOLTIP_DELAY) => {
     clearTimeout(timerRef.current);
     if (!content) return;
+    if (pinnedRef.current) return;
     const { clientX, clientY } = e;
     timerRef.current = setTimeout(() => {
       setTooltip({ content, x: clientX, y: clientY });
@@ -42,15 +49,64 @@ function useDelayedTooltip() {
   }, []);
 
   const move = useCallback((e) => {
+    if (pinnedRef.current) return;
     setTooltip((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : prev);
   }, []);
 
   const hide = useCallback(() => {
+    if (pinnedRef.current) return;
     clearTimeout(timerRef.current);
     setTooltip(null);
   }, []);
 
-  return { tooltip, show, move, hide };
+  const toggle = useCallback((content, e) => {
+    clearTimeout(timerRef.current);
+    if (!content) return;
+    const { clientX, clientY } = e;
+    setTooltip((prev) => {
+      if (prev && pinnedRef.current) {
+        pinnedRef.current = false;
+        return null;
+      }
+      pinnedRef.current = true;
+      return { content, x: clientX, y: clientY };
+    });
+  }, []);
+
+  const dismiss = useCallback(() => {
+    clearTimeout(timerRef.current);
+    pinnedRef.current = false;
+    setTooltip(null);
+  }, []);
+
+  useEffect(() => {
+    const onDocPointer = () => {
+      if (!pinnedRef.current) return;
+      dismiss();
+    };
+    // Bubble phase: cells that toggle call stopPropagation on pointerdown.
+    document.addEventListener("pointerdown", onDocPointer);
+    return () => document.removeEventListener("pointerdown", onDocPointer);
+  }, [dismiss]);
+
+  return { tooltip, show, move, hide, toggle, dismiss };
+}
+
+function touchTooltipHandlers(content, { showTooltip, moveTooltip, hideTooltip, toggleTooltip, delay }) {
+  if (!content) return {};
+  return {
+    onMouseEnter: (e) => showTooltip(content, e, delay),
+    onMouseMove: moveTooltip,
+    onMouseLeave: hideTooltip,
+    onPointerDown: (e) => {
+      if (prefersTouchUi()) e.stopPropagation();
+    },
+    onClick: (e) => {
+      if (!prefersTouchUi()) return;
+      e.stopPropagation();
+      toggleTooltip(content, e);
+    },
+  };
 }
 
 function TooltipBox({ tooltip }) {
@@ -325,7 +381,7 @@ function FilterBar({ activeFilters, onToggle, onClear }) {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+    <div className="tw-filter-bar" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
       {TYPE_FILTERS.map(pill)}
       <span style={{ width: "1px", height: "16px", background: "var(--border-strong)", flexShrink: 0, alignSelf: "center" }} />
       {PLATFORM_FILTERS.map(pill)}
@@ -393,7 +449,7 @@ function ProfSignalKey() {
       <p style={{ marginTop: "8px", marginBottom: "12px", color: "var(--text-muted)", fontSize: "13px", lineHeight: "1.5" }}>
         <strong>Prof</strong> = behavioral profile (price-independent). <strong>Signal</strong> = does price agree with volume this week. <strong>Read</strong> = the named verdict for that combination.
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
+      <div className="tw-prof-key-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
         {PROF_GRID_DATA.map((col) => (
           <div key={col.prof} style={{ border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden", background: "var(--bg)" }}>
             <div style={{ background: "var(--bg-muted)", padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
@@ -430,7 +486,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const [compact, setCompact] = useState(true);
   const dragKeyRef = useRef(null);
   const rootRef = useRef(null);
-  const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip } = useDelayedTooltip();
+  const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip, toggle: toggleTooltip } = useDelayedTooltip();
 
   useEffect(() => {
     setPinnedKeys(loadPins());
@@ -710,8 +766,9 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         }}
       >
         {!isDiscover && (
-          <td style={{ padding: compact ? "2px 2px" : "4px 4px", whiteSpace: "nowrap", width: compact ? "40px" : "52px" }}>
+          <td className="tw-sticky-actions" style={{ padding: compact ? "2px 2px" : "4px 4px", whiteSpace: "nowrap", width: compact ? "40px" : "52px" }}>
             <button
+              className="tw-icon-btn"
               onClick={() => toggleWatch(d["Address"])}
               title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
               style={{
@@ -727,6 +784,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               ⭐
             </button>
             <button
+              className="tw-icon-btn"
               onClick={() => togglePin(d[rowKeyField])}
               title={isPinned ? "Unpin" : "Pin to top"}
               style={{
@@ -749,6 +807,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
             (col.key === "priceUsd" || col.key === "marketCapUsd") &&
             d.priceSource === "dexscreener" &&
             d[col.key] != null;
+          const isProjectCol = col.key === "Project" || col.key === "name";
           const cellContent = col.key === "read"
             ? <ReadBadge value={d[col.key]} />
             : col.key === "signal" && d.signalNote ? (
@@ -796,17 +855,19 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               </div>
             </div>
           ) : null;
+          const tipHandlers = touchTooltipHandlers(rankTooltipContent, {
+            showTooltip, moveTooltip, hideTooltip, toggleTooltip, delay: RANK_TOOLTIP_DELAY,
+          });
           return (
             <td
               key={col.key}
+              className={isProjectCol ? "tw-sticky-project" : undefined}
               style={{
                 padding: compact ? "3px 6px" : "6px 12px",
                 whiteSpace: "nowrap",
                 cursor: rankTooltipContent ? "help" : undefined,
               }}
-              onMouseEnter={rankTooltipContent ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
-              onMouseMove={rankTooltipContent ? moveTooltip : undefined}
-              onMouseLeave={rankTooltipContent ? hideTooltip : undefined}
+              {...tipHandlers}
             >
               <GatedCell blurred={isRowGated}>{cellContent}</GatedCell>
             </td>
@@ -817,18 +878,32 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   }
 
   const tableBody = !isSpecialTab && (
-    <div data-h-scroll style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
+    <div
+      data-h-scroll
+      className={`tw-hscroll${!isDiscover ? " has-actions" : ""}`}
+      style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}
+    >
       <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
         <thead>
           <tr>
-            {!isDiscover && <th style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
-            {columns.map((col) => (
+            {!isDiscover && <th className="tw-sticky-actions" style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
+            {columns.map((col) => {
+              const isProjectCol = col.key === "Project" || col.key === "name";
+              return (
               <th
                 key={col.key}
-                onClick={() => handleSort(col.key)}
-                onMouseEnter={col.tooltip ? (e) => showTooltip(col.tooltip, e, 1200) : undefined}
+                className={isProjectCol ? "tw-sticky-project" : undefined}
+                onMouseEnter={col.tooltip ? (e) => showTooltip(col.tooltip, e, HEADER_TOOLTIP_DELAY) : undefined}
                 onMouseMove={col.tooltip ? moveTooltip : undefined}
                 onMouseLeave={col.tooltip ? hideTooltip : undefined}
+                onPointerDown={col.tooltip ? (e) => { if (prefersTouchUi()) e.stopPropagation(); } : undefined}
+                onClick={(e) => {
+                  handleSort(col.key);
+                  if (col.tooltip && prefersTouchUi()) {
+                    e.stopPropagation();
+                    toggleTooltip(col.tooltip, e);
+                  }
+                }}
                 style={{
                   textAlign: "left", borderBottom: "1px solid var(--border-strong)",
                   padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
@@ -837,7 +912,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                 {col.label}
                 {sortKey === col.key ? (sortDir === "desc" ? " ▼" : " ▲") : ""}
               </th>
-            ))}
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -868,7 +944,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     <div ref={rootRef}>
       <StatusBanner lastUpdated={lastUpdated} />
 
-      <div style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+      <div className="tw-tab-strip" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
         <Link
           href="/"
           style={{
@@ -911,11 +987,15 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
-        <p style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
+        <p className="tw-tip-desktop" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
           Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Use <strong>←</strong> <strong>→</strong> to scroll wide tables. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
+        </p>
+        <p className="tw-tip-mobile" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
+          Tip: swipe tabs · swipe the table for more columns · tap a number for peer rank · tap a header for its definition. ⭐ watch · 📍 pin.
         </p>
         <button
           type="button"
+          className="tw-compact-btn"
           onClick={toggleCompact}
           title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
           style={{
@@ -1011,6 +1091,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               showTooltip={showTooltip}
               moveTooltip={moveTooltip}
               hideTooltip={hideTooltip}
+              toggleTooltip={toggleTooltip}
               compact={compact}
             />
           </GatedSection>

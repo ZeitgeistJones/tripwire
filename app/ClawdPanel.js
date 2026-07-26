@@ -163,7 +163,7 @@ function SectionLabel({ children }) {
 
 function CompactRow({ label, value, rank, totalProjects, lowerBetter, data, color }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "7px 0", borderTop: "1px solid var(--border)" }}>
+    <div className="tw-compact-row" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "7px 0", borderTop: "1px solid var(--border)" }}>
       <span style={{ width: 124, fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>{label}</span>
       <span style={{ width: 64, fontSize: 13, fontWeight: 600, flexShrink: 0, color: "var(--text)" }}>{value}</span>
       <span style={{ width: 110, fontSize: 11, color: "var(--text-faint)", flexShrink: 0 }}>
@@ -652,21 +652,21 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
       {status === "done" && (
         <>
           <SectionLabel>Behavioral</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+          <div className="tw-clawd-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
             <MetricCard label="Opportunity" sublabel="Score & trend (8w)" value={clawdRow?.["Opp"]} valueColor="#3B6D11" rank={opportunityRank} totalProjects={totalProjects} data={oppData} labels={weekLabels} color="#3B6D11" />
             <MetricCard label="Momentum" sublabel="Score & trend (8w)" value={clawdRow?.["Mom"]} valueColor="#185FA5" rank={momentumRank} totalProjects={totalProjects} data={momData} labels={weekLabels} color="#185FA5" />
             <MetricCard label="Sustainability" sublabel="Score & trend (8w)" value={clawdRow?.["Sus"]} valueColor="#854F0B" rank={sustainabilityRank} totalProjects={totalProjects} data={susData} labels={weekLabels} color="#854F0B" />
           </div>
 
           <SectionLabel>Market</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+          <div className="tw-clawd-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
             <MetricCard label="Wallets" sublabel="30d active, trend (8w)" value={clawdRow?.["Wallets 30d"]} valueColor="#3a6ea5" rank={walletsRank} totalProjects={totalProjects} data={walletsData} labels={weekLabels} color="#3a6ea5" formatY={(v) => Math.round(v)} />
             <MetricCard label="Market Cap" sublabel="USD, trend (60d)" value={clawdRow?.marketCapUsd != null ? formatUsd(clawdRow.marketCapUsd) : "—"} valueColor="#534AB7" rank={marketCapRank} totalProjects={totalProjects} data={mcapThinned.map((p) => p.y)} labels={mcapThinned.map((p) => p.x)} color="#534AB7" formatY={formatUsd} />
             <MetricCard label="Price" sublabel="USD, trend (60d)" value={clawdRow?.priceUsd != null ? formatPrice(clawdRow.priceUsd) : "—"} valueColor="#0F6E56" rank={null} totalProjects={totalProjects} data={priceThinned.map((p) => p.y)} labels={priceThinned.map((p) => p.x)} color="#0F6E56" formatY={formatPrice} />
           </div>
 
           <SectionLabel>Full breakdown</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
+          <div className="tw-clawd-grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
             {COMPACT_SECTIONS.map((section, idx) => (
               <div key={section.title} style={{
                 border: "1px solid var(--border)", borderRadius: "8px",

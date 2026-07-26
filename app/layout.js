@@ -135,6 +135,152 @@ export default function RootLayout({ children }) {
               @media (min-width: 1024px) {
                 html:not(.comfort-view) body { zoom: 0.85; }
               }
+
+              /* ── Mobile UX (desktop-safe: only applies below 1024px) ─── */
+              .tw-tip-mobile { display: none; }
+
+              @media (max-width: 1023px) {
+                body { overflow-x: clip; }
+
+                .page-shell {
+                  padding-left: 14px !important;
+                  padding-right: 14px !important;
+                }
+                .page-shell-disclaimer {
+                  padding-left: 14px !important;
+                  padding-right: 14px !important;
+                }
+
+                .tw-tab-strip {
+                  flex-wrap: nowrap !important;
+                  overflow-x: auto !important;
+                  -webkit-overflow-scrolling: touch;
+                  scrollbar-width: none;
+                  gap: 6px !important;
+                  margin-bottom: 10px !important;
+                  padding-bottom: 2px;
+                }
+                .tw-tab-strip::-webkit-scrollbar { display: none; }
+                .tw-tab-strip > a,
+                .tw-tab-strip > button,
+                .tw-tab-strip > span {
+                  flex-shrink: 0;
+                  min-height: 40px;
+                  display: inline-flex;
+                  align-items: center;
+                  padding-top: 10px !important;
+                  padding-bottom: 10px !important;
+                }
+
+                .tw-tip-desktop { display: none !important; }
+                .tw-tip-mobile { display: block !important; }
+
+                .tw-filter-bar button {
+                  padding: 8px 12px !important;
+                  font-size: 12px !important;
+                  min-height: 36px;
+                }
+                .tw-compact-btn {
+                  padding: 8px 14px !important;
+                  font-size: 13px !important;
+                  min-height: 40px;
+                }
+
+                .tw-icon-btn {
+                  min-width: 34px !important;
+                  min-height: 40px !important;
+                  padding: 8px 4px !important;
+                  display: inline-flex !important;
+                  align-items: center;
+                  justify-content: center;
+                }
+
+                .tw-prof-key-grid {
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+
+                .tw-clawd-grid-3,
+                .tw-clawd-grid-2 {
+                  grid-template-columns: 1fr !important;
+                }
+                .tw-clawd-grid-2 > * {
+                  grid-column: auto !important;
+                }
+                .tw-compact-row {
+                  flex-wrap: wrap;
+                  gap: 6px 10px !important;
+                }
+                .tw-compact-row > span:nth-child(1) { width: auto !important; min-width: 40%; }
+                .tw-compact-row > span:nth-child(2) { width: auto !important; }
+                .tw-compact-row > span:nth-child(3) { width: auto !important; }
+
+                .tw-forecast-cards {
+                  grid-template-columns: 1fr !important;
+                }
+
+                .tw-holder-subtitle { display: none !important; }
+                .tw-disconnect-btn {
+                  padding: 10px 14px !important;
+                  font-size: 13px !important;
+                  min-height: 40px;
+                }
+
+                .tw-watchlist-modal {
+                  left: 8px !important;
+                  right: 8px !important;
+                  max-height: calc(100vh - 24px);
+                  overflow-y: auto;
+                }
+              }
+
+              @media (max-width: 767px) {
+                .page-shell {
+                  padding-left: 12px !important;
+                  padding-right: 12px !important;
+                  padding-top: 16px !important;
+                }
+
+                .tw-prof-key-grid {
+                  grid-template-columns: 1fr !important;
+                }
+
+                .tw-hscroll {
+                  font-size: 13px !important;
+                }
+                .tw-hscroll table th,
+                .tw-hscroll table td {
+                  padding: 8px 10px !important;
+                }
+                .tw-hscroll table th.tw-sticky-actions,
+                .tw-hscroll table td.tw-sticky-actions {
+                  position: sticky;
+                  left: 0;
+                  z-index: 3;
+                  background: var(--bg);
+                  box-shadow: 1px 0 0 var(--border);
+                  width: 76px !important;
+                  min-width: 76px;
+                  padding-left: 2px !important;
+                  padding-right: 2px !important;
+                }
+                .tw-hscroll table th.tw-sticky-project,
+                .tw-hscroll table td.tw-sticky-project {
+                  position: sticky;
+                  left: 0;
+                  z-index: 2;
+                  background: var(--bg);
+                  box-shadow: 2px 0 6px rgba(0,0,0,0.12);
+                }
+                .tw-hscroll.has-actions table th.tw-sticky-project,
+                .tw-hscroll.has-actions table td.tw-sticky-project {
+                  left: 76px;
+                }
+                .tw-hscroll thead th.tw-sticky-actions,
+                .tw-hscroll thead th.tw-sticky-project {
+                  z-index: 5;
+                  background: var(--bg);
+                }
+              }
             `,
           }}
         />
@@ -142,7 +288,7 @@ export default function RootLayout({ children }) {
       <body>
         <Providers>
           {children}
-          <div style={{ padding: "0 24px 28px", width: "100%", boxSizing: "border-box" }}>
+          <div className="page-shell-disclaimer" style={{ padding: "0 24px 28px", width: "100%", boxSizing: "border-box" }}>
             <ExperimentDisclaimer style={{ marginTop: 0 }} />
           </div>
           <Analytics />

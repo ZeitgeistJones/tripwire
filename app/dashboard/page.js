@@ -11,7 +11,7 @@ export default async function Dashboard() {
   const discoveryData = await getDiscoveryData(trackedAddresses).catch(() => []);
 
   return (
-    <main style={{ padding: "24px 32px", fontFamily: "sans-serif", maxWidth: "1480px", margin: "0 auto" }}>
+    <main className="page-shell" style={{ padding: "24px 32px", fontFamily: "sans-serif", maxWidth: "1480px", margin: "0 auto" }}>
       <Header />
       <DashboardTable data={data} discoveryData={discoveryData} lastUpdated={lastUpdated} />
     </main>

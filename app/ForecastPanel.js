@@ -27,7 +27,7 @@ function TabBar() {
   });
 
   return (
-    <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+    <div className="tw-tab-strip" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
       <Link href="/" style={tabStyle(false)}>Movers</Link>
       <span style={tabStyle(true)}>Forecast</span>
       {DASH_TABS.map((tab) => (
@@ -234,7 +234,7 @@ export default function ForecastPanel({ state }) {
         <span>Prices mark to market hourly</span>
       </div>
 
-      <div style={{ marginTop: "20px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "14px" }}>
+      <div className="tw-forecast-cards" style={{ marginTop: "20px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(340px, 100%), 1fr))", gap: "14px" }}>
         {leaderboard.map((p, i) => (
           <StrategyCard key={p.id} p={p} rank={i + 1} />
         ))}

@@ -146,7 +146,9 @@ function ColumnCustomizer({ activeKeys, order, onChange, onClose }) {
   ];
 
   return (
-    <div style={{
+    <div
+      className="tw-watchlist-modal"
+      style={{
       position: "absolute", top: 0, left: 0, right: 0, zIndex: 100,
       background: "var(--bg)", border: "1px solid var(--border-strong)",
       borderRadius: "8px", padding: "16px", boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
@@ -222,8 +224,12 @@ export default function WatchlistPanel({
   showTooltip,
   moveTooltip,
   hideTooltip,
+  toggleTooltip,
   compact = false,
 }) {
+  const prefersTouchUi = () =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(hover: none), (max-width: 1023px)").matches;
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [sortKey, setSortKey] = useState("Opp");
   const [sortDir, setSortDir] = useState("desc");
@@ -307,14 +313,15 @@ export default function WatchlistPanel({
           Star tokens from any tab to build your watchlist.
         </div>
       ) : (
-        <div data-h-scroll style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
+        <div data-h-scroll className="tw-hscroll has-actions" style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}>
           <table style={{ borderCollapse: "collapse", width: "100%" }}>
             <thead>
               <tr>
-                <th style={{ width: compact ? "22px" : "28px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />
+                <th className="tw-sticky-actions" style={{ width: compact ? "22px" : "28px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />
                 {orderedActiveColumns.map((col) => (
                   <th
                     key={col.key}
+                    className={col.key === "Project" ? "tw-sticky-project" : undefined}
                     onClick={() => handleSort(col.key)}
                     style={{
                       textAlign: "left", borderBottom: "1px solid var(--border-strong)",
@@ -331,8 +338,9 @@ export default function WatchlistPanel({
             <tbody>
               {sorted.map((d) => (
                 <tr key={d["Address"]}>
-                  <td style={{ padding: compact ? "2px 4px" : "4px 8px", whiteSpace: "nowrap", width: compact ? "22px" : "28px" }}>
+                  <td className="tw-sticky-actions" style={{ padding: compact ? "2px 4px" : "4px 8px", whiteSpace: "nowrap", width: compact ? "22px" : "28px" }}>
                     <button
+                      className="tw-icon-btn"
                       onClick={() => onUnwatch(d["Address"])}
                       title="Remove from watchlist"
                       style={{
@@ -367,6 +375,7 @@ export default function WatchlistPanel({
                     return (
                       <td
                         key={col.key}
+                        className={col.key === "Project" ? "tw-sticky-project" : undefined}
                         style={{
                           padding: compact ? "3px 6px" : "6px 12px",
                           whiteSpace: "nowrap",
@@ -376,6 +385,12 @@ export default function WatchlistPanel({
                         onMouseEnter={rankTooltipContent && showTooltip ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
                         onMouseMove={rankTooltipContent && moveTooltip ? moveTooltip : undefined}
                         onMouseLeave={rankTooltipContent && hideTooltip ? hideTooltip : undefined}
+                        onPointerDown={rankTooltipContent && toggleTooltip ? (e) => { if (prefersTouchUi()) e.stopPropagation(); } : undefined}
+                        onClick={rankTooltipContent && toggleTooltip ? (e) => {
+                          if (!prefersTouchUi()) return;
+                          e.stopPropagation();
+                          toggleTooltip(rankTooltipContent, e);
+                        } : undefined}
                       >
                         {cellContent}
                       </td>
