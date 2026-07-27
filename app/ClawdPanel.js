@@ -2,6 +2,7 @@
 import React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Chart, registerables } from "chart.js";
+import { buildAnalysisPrompt } from "../lib/clawdAnalysisPrompt";
 
 Chart.register(...registerables);
 
@@ -406,6 +407,7 @@ function buildCondensedText(d) {
 
 function ReportSection() {
   const [report, setReport] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [secret, setSecret] = useState("");
   const [draft, setDraft] = useState("");
@@ -415,6 +417,10 @@ function ReportSection() {
     fetch("/api/clawd-report")
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (j?.report?.text) setReport(j.report); })
+      .catch(() => {});
+    fetch("/api/clawd-analysis")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j?.analysis?.text) setAnalysis(j.analysis); })
       .catch(() => {});
   }, []);
 
@@ -437,20 +443,58 @@ function ReportSection() {
     }
   };
 
+  const generate = async (force = false) => {
+    setStatus(force ? "forcing" : "generating");
+    try {
+      const res = await fetch("/api/clawd-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-secret": secret },
+        body: JSON.stringify({ force }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        if (j.analysis?.text) setAnalysis(j.analysis);
+        throw new Error(
+          j.error === "cooldown"
+            ? `cooldown — try again in ~${j.retryAfterHours || "?"}h (or use force after 15m)`
+            : j.error === "force_cooldown"
+              ? "wait 15 minutes between force regenerations"
+              : j.error === "generation_in_progress"
+                ? "already generating"
+                : "rate limited"
+        );
+      }
+      if (!res.ok) throw new Error(j.error || (res.status === 401 ? "wrong secret" : "failed"));
+      if (j.analysis?.text) setAnalysis(j.analysis);
+      setStatus(j.cached ? "cached" : "generated");
+      setTimeout(() => setStatus(null), 2500);
+    } catch (e) {
+      setStatus(String(e.message || "failed"));
+    }
+  };
+
+  const displayed = analysis?.text
+    ? { kind: "ai", text: analysis.text, at: analysis.generatedAt, model: analysis.model }
+    : report?.text
+      ? { kind: "manual", text: report.text, at: report.postedAt }
+      : null;
+
   return (
     <div style={{ marginTop: "16px" }}>
-      {report && (
+      {displayed && (
         <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "12px", padding: "16px 20px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px", gap: "12px", flexWrap: "wrap" }}>
             <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)" }}>
-              Analyst Report
+              {displayed.kind === "ai" ? "AI Analyst Report" : "Analyst Report"}
             </div>
             <div style={{ fontSize: "11px", color: "var(--text-faint)" }}>
-              Posted {report.postedAt ? new Date(report.postedAt).toLocaleDateString() : ""}
+              {displayed.kind === "ai" ? "Generated" : "Posted"}{" "}
+              {displayed.at ? new Date(displayed.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : ""}
+              {displayed.model ? ` · ${displayed.model}` : ""}
             </div>
           </div>
           <div style={{ whiteSpace: "pre-wrap", fontSize: "13.5px", lineHeight: 1.65, color: "var(--text)" }}>
-            {report.text}
+            {displayed.text}
           </div>
         </div>
       )}
@@ -459,7 +503,7 @@ function ReportSection() {
           onClick={() => setShowAdmin(!showAdmin)}
           style={{ background: "none", border: "none", color: "var(--text-faint)", fontSize: "11px", cursor: "pointer", padding: 0 }}
         >
-          {showAdmin ? "hide" : "post report (admin)"}
+          {showAdmin ? "hide" : "admin: generate / post report"}
         </button>
         {showAdmin && (
           <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -470,24 +514,47 @@ function ReportSection() {
               onChange={(e) => setSecret(e.target.value)}
               style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text)", fontSize: "12px", maxWidth: "240px" }}
             />
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                onClick={() => generate(false)}
+                disabled={!secret || status === "generating" || status === "forcing"}
+                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--btn-active-bg)", background: "var(--btn-active-bg)", color: "var(--btn-active-text)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+              >
+                {status === "generating" ? "Generating…" : "Generate with Gemini"}
+              </button>
+              <button
+                onClick={() => generate(true)}
+                disabled={!secret || status === "generating" || status === "forcing"}
+                title="Bypass fingerprint/12h cooldown (still 15m floor)"
+                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text-muted)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+              >
+                {status === "forcing" ? "Forcing…" : "Force regenerate"}
+              </button>
+              <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
+                Cached until scores change · max ~1 Gemini call / 12h
+              </span>
+            </div>
             <textarea
-              placeholder="paste the report text here"
+              placeholder="or paste a manual report…"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              rows={10}
+              rows={8}
               style={{ padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text)", fontSize: "12.5px", fontFamily: "inherit", resize: "vertical" }}
             />
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
               <button
                 onClick={post}
                 disabled={!secret || !draft || status === "posting"}
-                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--btn-active-bg)", color: "var(--btn-active-text)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text-muted)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
               >
-                {status === "posting" ? "Posting..." : "Publish report"}
+                {status === "posting" ? "Posting..." : "Publish manual report"}
               </button>
-              {status && status !== "posting" && (
-                <span style={{ fontSize: "12px", color: status === "posted" ? "var(--gate-ok-text)" : "var(--gate-fail-text)" }}>
-                  {status === "posted" ? "\u2713 Live" : status}
+              {status && !["posting", "generating", "forcing"].includes(status) && (
+                <span style={{ fontSize: "12px", color: ["posted", "generated", "cached"].includes(status) ? "var(--gate-ok-text)" : "var(--gate-fail-text)" }}>
+                  {status === "posted" ? "\u2713 Manual live"
+                    : status === "generated" ? "\u2713 Gemini live"
+                    : status === "cached" ? "\u2713 Already up to date (no API call)"
+                    : status}
                 </span>
               )}
             </div>
@@ -496,55 +563,6 @@ function ReportSection() {
       </div>
     </div>
   );
-}
-
-function buildAnalysisPrompt(d, history) {
-  if (!d) return "";
-  const j = (v) => (v == null ? null : Number(v));
-  const payload = {
-    token: "CLAWD (Base chain)",
-    asOf: new Date().toISOString().slice(0, 10),
-    price: { usd: j(d.priceUsd), marketCapUsd: j(d.marketCapUsd), change24hPct: j(d.priceChange7d) },
-    tripwireScores: { opp: j(d.Opp), mom: j(d.Mom), sus: j(d.Sus), profile: d.Prof, signal: d.signal, signalNote: d.signalNote, read: d.read, qltyPct: j(d["Qlty %"]), riskPct: j(d["Risk %"]) },
-    activity7d: { txs: j(d["Txs 7d"]), wallets: j(d["Wallets 7d"]), retentionPct: j(d["Retention %"]), newWalletPct: j(d["New %"]), txGrwPct: j(d["Tx Grw %"]), userGrwPct: j(d["User Grw %"]) },
-    volume: { vol30dUsd: j(d["Vol 30d"]), volGrwWoWPct: j(d["Vol Grw %"]), volPerWallet: j(d["Vol/Wlt"]), buyVolPct: j(d["Buy Vol %"]) },
-    buyers: { buyers7d: j(d["Buyers 7d"]), buySellRatio: j(d["Buy/Sell Ratio"]), firstBuyers7d: j(d["1st Buyers 7d"]), firstSellers7d: j(d["1st Sellers 7d"]) },
-    whaleFlow7d: {
-      whaleMinTradeUsd: j(d["Whale Min $"]),
-      whaleNetUsd: j(d["Whale Net 7d"]), accumPct: j(d["Accum %"]), whaleBuyers: j(d["Whale Buyers 7d"]), whaleSellers: j(d["Whale Sellers 7d"]),
-      humpbackNetUsd: j(d["Hump Net 7d"]), humpbackBuyers: j(d["Hump Buyers 7d"]), humpbackSellers: j(d["Hump Sellers 7d"]),
-      retailNetUsd: j(d["Retail Net 7d"]), whaleVolSharePct: j(d["Whale Vol %"]), whaleRetailDivergenceBps: j(d["Divergence Bps"]),
-    },
-    concentration: { top10TxSharePct: j(d["Top10 %"]) },
-    behavioralHistory: (history || []).slice(-8).map((r) => ({
-      date: r["Snapshot Date"], opp: j(r["Opp"]), mom: j(r["Mom"]), sus: j(r["Sus"]),
-      retentionPct: j(r["Retention %"]), volGrwPct: j(r["Vol Grw %"]),
-    })),
-  };
-
-  return [
-    "You are writing an analyst report on the token CLAWD for its holder community.",
-    "",
-    "METRIC DEFINITIONS (all on-chain, Base network, DEX trades via Dune):",
-    "- Opp/Mom/Sus: composite 0-100ish behavioral scores (opportunity, momentum, sustainability). Profile buckets tokens by Mom/Sus vs cohort median; Signal compares volume growth vs 24h price direction; Read is the Profile\u00d7Signal label.",
-    "- Retention %: share of last week's active wallets that returned this week.",
-    "- Whale trade: a DEX trade in the top 10% of sizes for this token over 30d (threshold given as whaleMinTradeUsd). Humpback: top 1% (min $1k). Retail net = all non-whale flow.",
-    "- Accum %: whale buy volume / all whale volume. 50 = neutral.",
-    "- whaleRetailDivergenceBps: (whaleNet - retailNet) / marketCap in basis points. Negative = retail net-buying more than whales.",
-    "- whaleVolSharePct: whale trades as % of all 7d volume - how much whale flow dominates.",
-    "- Top10 %: share of 30d transactions from the 10 most active wallets.",
-    "",
-    "DATA:",
-    JSON.stringify(payload, null, 2),
-    "",
-    "TASK: Write a report in this structure:",
-    "1. HEADLINE - one sentence on the overall state.",
-    "2. THE NUMBERS - walk the key metrics, plain language, note what's strong/weak.",
-    "3. WHALE STORY - read the whale/humpback/retail flows together. Who is doing what?",
-    "4. BEST GUESS - your single most probable interpretation of what is happening with this token right now, stated plainly, with a confidence level (low/medium/high) and what evidence would change your mind.",
-    "5. WATCH NEXT - 2-3 specific metrics to watch and what movement in them would mean.",
-    "Keep it under 400 words. Be honest about ambiguity - do not spin negative data. This is community information, not financial advice, and should say so in one closing line.",
-  ].join("\n");
 }
 
 function ShareButtons({ clawdRow, history }) {
