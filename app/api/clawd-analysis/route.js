@@ -8,7 +8,7 @@ const LOCK_KEY = "tripwire:clawd:analysis:lock";
 /** Hard floor between Gemini calls — protects free/paid quota. */
 const MIN_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const HISTORY_QUERY_ID = "7767406";
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3.6-flash";
 
 export async function GET() {
   try {
