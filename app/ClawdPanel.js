@@ -405,14 +405,18 @@ function buildCondensedText(d) {
   ].join("\n");
 }
 
+function formatReportTs(value) {
+  if (!value) return null;
+  try {
+    return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return null;
+  }
+}
+
 function ReportSection() {
   const [report, setReport] = useState(null);
   const [analysis, setAnalysis] = useState(null);
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [showManual, setShowManual] = useState(false);
-  const [secret, setSecret] = useState("");
-  const [draft, setDraft] = useState("");
-  const [status, setStatus] = useState(null);
 
   useEffect(() => {
     fetch("/api/clawd-report")
@@ -425,189 +429,58 @@ function ReportSection() {
       .catch(() => {});
   }, []);
 
-  const post = async () => {
-    setStatus("posting");
-    try {
-      const res = await fetch("/api/clawd-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-secret": secret },
-        body: JSON.stringify({ text: draft }),
-      });
-      if (!res.ok) {
-        throw new Error(
-          res.status === 401
-            ? "Wrong ADMIN_SECRET (this is not your Gemini API key)"
-            : "failed"
-        );
-      }
-      const j = await res.json();
-      setReport(j.report);
-      setDraft("");
-      setStatus("posted");
-      setTimeout(() => setStatus(null), 2000);
-    } catch (e) {
-      setStatus(String(e.message || "failed"));
-    }
-  };
-
-  const generate = async (force = false) => {
-    setStatus(force ? "forcing" : "generating");
-    try {
-      const res = await fetch("/api/clawd-analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-secret": secret },
-        body: JSON.stringify({ force }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        throw new Error("Wrong ADMIN_SECRET — put GEMINI_API_KEY in Vercel env, not in this box");
-      }
-      if (res.status === 503) {
-        throw new Error("Add GEMINI_API_KEY in Vercel → Environment Variables, then redeploy");
-      }
-      if (res.status === 429) {
-        if (j.analysis?.text) setAnalysis(j.analysis);
-        throw new Error(
-          j.error === "cooldown"
-            ? `cooldown — try again in ~${j.retryAfterHours || "?"}h (or use force after 15m)`
-            : j.error === "force_cooldown"
-              ? "wait 15 minutes between force regenerations"
-              : j.error === "generation_in_progress"
-                ? "already generating"
-                : "rate limited"
-        );
-      }
-      if (!res.ok) throw new Error(j.error || "failed");
-      if (j.analysis?.text) setAnalysis(j.analysis);
-      setStatus(j.cached ? "cached" : "generated");
-      setTimeout(() => setStatus(null), 2500);
-    } catch (e) {
-      setStatus(String(e.message || "failed"));
-    }
-  };
-
   const displayed = analysis?.text
-    ? { kind: "ai", text: analysis.text, at: analysis.generatedAt, model: analysis.model }
+    ? {
+        kind: "ai",
+        text: analysis.text,
+        writtenAt: analysis.generatedAt,
+        dataAsOf: analysis.scoresLastUpdated,
+        model: analysis.model,
+      }
     : report?.text
-      ? { kind: "manual", text: report.text, at: report.postedAt }
+      ? {
+          kind: "manual",
+          text: report.text,
+          writtenAt: report.postedAt,
+          dataAsOf: report.scoresLastUpdated,
+        }
       : null;
 
-  const busy = status === "generating" || status === "forcing" || status === "posting";
+  if (!displayed) return null;
+
+  const dataAsOf = formatReportTs(displayed.dataAsOf);
+  const writtenAt = formatReportTs(displayed.writtenAt);
 
   return (
-    <div style={{ marginTop: "16px" }}>
-      {displayed ? (
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "12px", padding: "16px 20px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px", gap: "12px", flexWrap: "wrap" }}>
+    <div style={{ margin: "0 0 20px" }}>
+      <div style={{
+        background: "var(--card-bg)",
+        border: "1px solid var(--border)",
+        borderRadius: "12px",
+        padding: "16px 20px",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", gap: "12px", flexWrap: "wrap" }}>
+          <div>
             <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)" }}>
-              {displayed.kind === "ai" ? "AI Analyst Report" : "Analyst Report"}
+              Analyst report
             </div>
-            <div style={{ fontSize: "11px", color: "var(--text-faint)" }}>
-              {displayed.kind === "ai" ? "Generated" : "Posted"}{" "}
-              {displayed.at ? new Date(displayed.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : ""}
-              {displayed.model ? ` · ${displayed.model}` : ""}
-            </div>
+            {dataAsOf ? (
+              <div style={{ marginTop: "4px", fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
+                Reflects scores as of {dataAsOf}
+              </div>
+            ) : null}
           </div>
-          <div style={{ whiteSpace: "pre-wrap", fontSize: "13.5px", lineHeight: 1.65, color: "var(--text)" }}>
-            {displayed.text}
+          <div style={{ fontSize: "11px", color: "var(--text-faint)", textAlign: "right", lineHeight: 1.45 }}>
+            {writtenAt ? `${displayed.kind === "ai" ? "Written" : "Posted"} ${writtenAt}` : null}
+            {displayed.model ? <div>{displayed.model}</div> : null}
           </div>
         </div>
-      ) : (
-        <div style={{
-          background: "var(--bg-subtle)", border: "1px dashed var(--border)", borderRadius: "12px",
-          padding: "16px 20px", fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.5,
-        }}>
-          No report on the site yet. Use <strong style={{ color: "var(--text)" }}>Generate report</strong> below —
-          Gemini writes it here automatically (no Discord copy/paste).
+        <div style={{ whiteSpace: "pre-wrap", fontSize: "13.5px", lineHeight: 1.65, color: "var(--text)" }}>
+          {displayed.text}
         </div>
-      )}
-
-      <div style={{ marginTop: "10px" }}>
-        <button
-          type="button"
-          onClick={() => setShowAdmin(!showAdmin)}
-          style={{ background: "none", border: "none", color: "var(--text-faint)", fontSize: "11px", cursor: "pointer", padding: 0 }}
-        >
-          {showAdmin ? "hide controls" : "generate / refresh report (admin)"}
-        </button>
-        {showAdmin && (
-          <div style={{
-            marginTop: "10px", padding: "14px 16px", borderRadius: "10px",
-            border: "1px solid var(--border)", background: "var(--card-bg)",
-            display: "flex", flexDirection: "column", gap: "10px",
-          }}>
-            <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
-              One click builds the report on this page from live CLAWD stats.
-              Gemini key stays in Vercel (<code style={{ fontSize: "11px" }}>GEMINI_API_KEY</code>) —
-              this box is only your Tripwire <code style={{ fontSize: "11px" }}>ADMIN_SECRET</code>.
-            </p>
-            <input
-              type="password"
-              placeholder="ADMIN_SECRET (not Gemini key)"
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              autoComplete="off"
-              style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text)", fontSize: "12px", maxWidth: "320px" }}
-            />
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={() => generate(false)}
-                disabled={!secret || busy}
-                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--btn-active-bg)", background: "var(--btn-active-bg)", color: "var(--btn-active-text)", fontSize: "12px", fontWeight: 600, cursor: busy ? "wait" : "pointer" }}
-              >
-                {status === "generating" ? "Generating…" : "Generate report"}
-              </button>
-              <button
-                type="button"
-                onClick={() => generate(true)}
-                disabled={!secret || busy}
-                title="Bypass fingerprint/12h cooldown (still 15m floor)"
-                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text-muted)", fontSize: "12px", fontWeight: 600, cursor: busy ? "wait" : "pointer" }}
-              >
-                {status === "forcing" ? "Forcing…" : "Force regenerate"}
-              </button>
-              <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
-                Cached until scores change · max ~1 Gemini call / 12h
-              </span>
-            </div>
-            {status && !busy && (
-              <span style={{ fontSize: "12px", color: ["posted", "generated", "cached"].includes(status) ? "var(--gate-ok-text)" : "var(--gate-fail-text)" }}>
-                {status === "posted" ? "\u2713 Manual report live"
-                  : status === "generated" ? "\u2713 Report generated on this page"
-                  : status === "cached" ? "\u2713 Already up to date (no API call)"
-                  : status}
-              </span>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setShowManual(!showManual)}
-              style={{ background: "none", border: "none", color: "var(--text-faint)", fontSize: "11px", cursor: "pointer", padding: 0, textAlign: "left" }}
-            >
-              {showManual ? "hide manual paste" : "optional: paste a manual report instead"}
-            </button>
-            {showManual && (
-              <>
-                <textarea
-                  placeholder="paste a manual report…"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  rows={8}
-                  style={{ padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text)", fontSize: "12.5px", fontFamily: "inherit", resize: "vertical" }}
-                />
-                <button
-                  type="button"
-                  onClick={post}
-                  disabled={!secret || !draft || busy}
-                  style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text-muted)", fontSize: "12px", fontWeight: 600, cursor: "pointer", alignSelf: "flex-start" }}
-                >
-                  {status === "posting" ? "Posting..." : "Publish manual report"}
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        <div style={{ marginTop: "14px", fontSize: "11px", color: "var(--text-faint)", lineHeight: 1.4 }}>
+          Community interpretation of Tripwire scores — not financial advice.
+        </div>
       </div>
     </div>
   );
@@ -708,8 +581,8 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
       <h2 style={{ marginTop: 0, color: "var(--text)" }}>CLAWD — Health Check</h2>
 
       <ProfileSignalBanner profile={clawdRow?.["Prof"]} signal={clawdRow?.signal} read={clawdRow?.read} />
-      <ShareButtons clawdRow={clawdRow} history={behavioralHistory} />
       <ReportSection />
+      <ShareButtons clawdRow={clawdRow} history={behavioralHistory} />
 
       {status === "loading" && <p style={{ color: "var(--text-muted)" }}>Loading history…</p>}
       {status === "error"   && <p style={{ color: "#c0392b" }}>Couldn't load history: {errorMsg}</p>}

@@ -1,4 +1,5 @@
 import { kv } from "@vercel/kv";
+import { getScoresLastUpdated } from "@/lib/getData";
 
 const KEY = "tripwire:clawd:report";
 
@@ -30,7 +31,16 @@ export async function POST(request) {
     return Response.json({ error: "text required (max 20k chars)" }, { status: 400 });
   }
 
-  const report = { text, postedAt: new Date().toISOString() };
+  let scoresLastUpdated = null;
+  try {
+    scoresLastUpdated = await getScoresLastUpdated();
+  } catch {}
+
+  const report = {
+    text,
+    postedAt: new Date().toISOString(),
+    scoresLastUpdated: scoresLastUpdated || null,
+  };
   try {
     await kv.set(KEY, report);
     return Response.json({ report });
