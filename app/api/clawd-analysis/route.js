@@ -133,6 +133,15 @@ async function fetchBehavioralHistory() {
 
 async function callGemini(prompt, model) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  // Thinking models (2.5 / 3.x) count reasoning tokens against maxOutputTokens —
+  // keep headroom so the visible report is not cut mid-sentence.
+  const wantsThinkingOff = /gemini-(2\.5|3)/i.test(model);
+  const generationConfig = {
+    temperature: 0.4,
+    maxOutputTokens: 4096,
+    ...(wantsThinkingOff ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+  };
+
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -141,25 +150,56 @@ async function callGemini(prompt, model) {
     },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 900,
-      },
+      generationConfig,
     }),
   });
 
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // Retry once without thinkingConfig if the model rejects it.
+    if (wantsThinkingOff && /thinking/i.test(json?.error?.message || "")) {
+      return callGeminiPlain(prompt, model);
+    }
     const msg = json?.error?.message || `Gemini HTTP ${res.status}`;
     throw new Error(msg);
   }
 
-  const text = json?.candidates?.[0]?.content?.parts
+  return extractGeminiText(json);
+}
+
+async function callGeminiPlain(prompt, model) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": process.env.GEMINI_API_KEY,
+    },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json?.error?.message || `Gemini HTTP ${res.status}`);
+  }
+  return extractGeminiText(json);
+}
+
+function extractGeminiText(json) {
+  const candidate = json?.candidates?.[0];
+  const finishReason = candidate?.finishReason;
+  const text = candidate?.content?.parts
     ?.map((p) => p.text)
     .filter(Boolean)
     .join("\n")
     .trim();
 
   if (!text) throw new Error("Gemini returned empty text");
+  // Never cache a mid-sentence cut — force regenerate instead.
+  if (finishReason === "MAX_TOKENS") {
+    throw new Error("Report hit token limit mid-write — click Force regenerate");
+  }
   return text.slice(0, 12000);
 }
