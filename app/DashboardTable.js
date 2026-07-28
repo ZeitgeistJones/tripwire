@@ -182,81 +182,110 @@ const GATE_ABI = [
 
 const FREE_ROW_COUNT = 5;
 
+/** Shared window tokens — never tooltip-only; rendered under every column header. */
+const WINDOW_ORDER = ["7d", "30d", "30d thr", "WoW", "live", "score"];
+
+function tabWindowLegend(columns) {
+  if (!columns?.length) return null;
+  const present = new Set(columns.map((c) => c.window).filter(Boolean));
+  const parts = WINDOW_ORDER.filter((w) => present.has(w));
+  if (!parts.length) return null;
+  return `Windows on this tab: ${parts.join(" · ")}`;
+}
+
+function ColumnHeaderLabel({ col, sortKey, sortDir }) {
+  const arrow = sortKey === col.key ? (sortDir === "desc" ? " \u25BC" : " \u25B2") : "";
+  return (
+    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "1px", lineHeight: 1.15 }}>
+      <span>{col.label}{arrow}</span>
+      {col.window ? (
+        <span style={{ fontSize: "10px", fontWeight: 500, color: "var(--text-faint)", letterSpacing: "0.02em" }}>
+          {col.window}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 const TABS = {
   Overview: [
-    { key: "Project",      label: "Project",       type: "string" },
-    { key: "read",         label: "Read",          type: "string",  tooltip: "The named verdict for this token's Profile + Signal combination" },
-    { key: "Opp",          label: "Opp",           type: "number",  format: "dec1", tooltip: "How attractive this token looks overall — a blend of momentum, retention, quality, and risk" },
-    { key: "Mom",          label: "Mom",           type: "number",  format: "dec1", tooltip: "How fast this token is growing right now across wallets, transactions, and volume" },
-    { key: "Sus",          label: "Sus",           type: "number",  format: "dec1", tooltip: "How sticky the growth is — whether users keep coming back, not just showing up once" },
-    { key: "Prof",         label: "Prof",          type: "string",  tooltip: "Whether this token scores above or below average on both momentum and sustainability" },
-    { key: "priceUsd",     label: "Price",         type: "number",  format: "price", tooltip: "Live token price in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "marketCapUsd", label: "Market Cap",    type: "number",  format: "usd",   tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "signal",       label: "Signal",        type: "string",  tooltip: "Whether price and volume are moving in the same direction this week" },
-    { key: "signalScore",  label: "Signal Score",  type: "number",  format: "dec1",  tooltip: "A single number combining price change and volume growth — positive means both are moving up" },
+    { key: "Project",      label: "Project",      type: "string" },
+    { key: "read",         label: "Read",         type: "string", window: "score", tooltip: "The named verdict for this token's Profile + Signal combination" },
+    { key: "Opp",          label: "Opp",          type: "number", format: "dec1", window: "score", tooltip: "How attractive this token looks overall — a blend of momentum, retention, quality, and risk" },
+    { key: "Mom",          label: "Mom",          type: "number", format: "dec1", window: "score", tooltip: "How fast this token is growing right now across wallets, transactions, and volume" },
+    { key: "Sus",          label: "Sus",          type: "number", format: "dec1", window: "score", tooltip: "How sticky the growth is — whether users keep coming back, not just showing up once" },
+    { key: "Prof",         label: "Prof",         type: "string", window: "score", tooltip: "Whether this token scores above or below average on both momentum and sustainability" },
+    { key: "priceUsd",     label: "Price",        type: "number", format: "price", window: "live", tooltip: "Live token price in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "marketCapUsd", label: "Market Cap",   type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "signal",       label: "Signal",       type: "string", window: "WoW", tooltip: "Whether price and volume are moving in the same direction (this week vs prior)" },
+    { key: "signalScore",  label: "Signal Score", type: "number", format: "dec1", window: "WoW", tooltip: "A single number combining price change and volume growth — positive means both are moving up" },
   ],
+  // 30d depth → 7d pulse → WoW change
   Activity: [
-    { key: "Project",      label: "Project",            type: "string" },
-    { key: "marketCapUsd", label: "Market Cap",         type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "Vol 30d",      label: "Vol (30d)",          type: "number", format: "usd",  tooltip: "Total dollar value traded on DEX in the last 30 days" },
-    { key: "Vol/Tx",       label: "Vol/Tx (30d)",       type: "number", format: "dec2", tooltip: "Average dollar value per transaction over the last 30 days" },
-    { key: "Vol/Wlt",      label: "Vol/Wlt (30d)",      type: "number", format: "dec2", tooltip: "Average dollar volume per unique wallet over the last 30 days" },
-    { key: "Vol Grw %",    label: "Vol Grw % (WoW)",    type: "number", format: "pct1", tooltip: "DEX volume change: most recent 7 days vs the 7 days before that" },
-    { key: "Txs 30d",      label: "Txs (30d)",          type: "number", format: "int",  tooltip: "Total number of on-chain transactions in the last 30 days" },
-    { key: "Txs 7d",       label: "Txs (7d)",           type: "number", format: "int",  tooltip: "Total number of on-chain transactions in the last 7 days" },
-    { key: "Tx Grw %",     label: "Tx Grw % (WoW)",     type: "number", format: "pct1", tooltip: "Transaction count change: most recent 7 days vs the 7 days before that" },
-    { key: "Txs/User",     label: "Txs/User (30d)",     type: "number", format: "dec1", tooltip: "Average number of transactions per wallet in the last 30 days" },
+    { key: "Project",      label: "Project",    type: "string" },
+    { key: "marketCapUsd", label: "Market Cap", type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "Vol 30d",      label: "Vol",        type: "number", format: "usd", window: "30d", tooltip: "Total dollar value traded on DEX in the last 30 days" },
+    { key: "Vol/Tx",       label: "Vol/Tx",     type: "number", format: "dec2", window: "30d", tooltip: "Average dollar value per transaction over the last 30 days" },
+    { key: "Vol/Wlt",      label: "Vol/Wlt",    type: "number", format: "dec2", window: "30d", tooltip: "Average dollar volume per unique wallet over the last 30 days" },
+    { key: "Txs 30d",      label: "Txs",        type: "number", format: "int", window: "30d", tooltip: "Total number of on-chain transactions in the last 30 days" },
+    { key: "Txs/User",     label: "Txs/User",   type: "number", format: "dec1", window: "30d", tooltip: "Average number of transactions per wallet in the last 30 days" },
+    { key: "Txs 7d",       label: "Txs",        type: "number", format: "int", window: "7d", tooltip: "Total number of on-chain transactions in the last 7 days" },
+    { key: "Vol Grw %",    label: "Vol Grw %",  type: "number", format: "pct1", window: "WoW", tooltip: "DEX volume change: most recent 7 days vs the 7 days before that" },
+    { key: "Tx Grw %",     label: "Tx Grw %",   type: "number", format: "pct1", window: "WoW", tooltip: "Transaction count change: most recent 7 days vs the 7 days before that" },
   ],
+  // 30d depth → 7d pulse → WoW
   Wallets: [
-    { key: "Project",            label: "Project",                 type: "string" },
-    { key: "marketCapUsd",       label: "Market Cap",              type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "Wallets 30d",        label: "Wallets (30d)",           type: "number", format: "int",  tooltip: "Unique wallets that interacted with this token in the last 30 days" },
-    { key: "Wallets 7d",         label: "Wallets (7d)",            type: "number", format: "int",  tooltip: "Unique wallets that interacted in the last 7 days" },
-    { key: "User Grw %",         label: "User Grw % (WoW)",        type: "number", format: "pct1", tooltip: "Unique wallet count change: most recent 7 days vs the 7 days before that" },
-    { key: "New Wallets",        label: "New Wallets (30d)",       type: "number", format: "int",  tooltip: "Wallets active in the last 30 days with no activity in the prior 31–90 day window" },
-    { key: "Returning Wallets",  label: "Returning Wallets (30d)", type: "number", format: "int",  tooltip: "Wallets active in both the last 30 days and the prior 31–90 day window" },
-    { key: "New %",              label: "New Wallet % (30d)",      type: "number", format: "pct1", tooltip: "New Wallets ÷ total Wallets 30d" },
-    { key: "Retention %",        label: "Retention % (WoW)",       type: "number", format: "pct1", tooltip: "Wallets retained from last week ÷ this week's active wallets" },
-    { key: "Avg Txs Ret",        label: "Avg Txs Ret (7d)",        type: "number", format: "dec1", tooltip: "Average transactions by wallets active both this week and last week" },
+    { key: "Project",           label: "Project",        type: "string" },
+    { key: "marketCapUsd",      label: "Market Cap",     type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "Wallets 30d",       label: "Wallets",        type: "number", format: "int", window: "30d", tooltip: "Unique wallets that interacted with this token in the last 30 days" },
+    { key: "New Wallets",       label: "New Wallets",    type: "number", format: "int", window: "30d", tooltip: "Wallets active in the last 30 days with no activity in the prior 31–90 day window" },
+    { key: "Returning Wallets", label: "Returning",      type: "number", format: "int", window: "30d", tooltip: "Wallets active in both the last 30 days and the prior 31–90 day window" },
+    { key: "New %",             label: "New Wallet %",   type: "number", format: "pct1", window: "30d", tooltip: "New Wallets ÷ total Wallets 30d" },
+    { key: "Wallets 7d",        label: "Wallets",        type: "number", format: "int", window: "7d", tooltip: "Unique wallets that interacted in the last 7 days" },
+    { key: "Avg Txs Ret",       label: "Avg Txs Ret",    type: "number", format: "dec1", window: "7d", tooltip: "Average transactions by wallets active both this week and last week" },
+    { key: "User Grw %",        label: "User Grw %",     type: "number", format: "pct1", window: "WoW", tooltip: "Unique wallet count change: most recent 7 days vs the 7 days before that" },
+    { key: "Retention %",       label: "Retention %",    type: "number", format: "pct1", window: "WoW", tooltip: "Wallets retained from last week ÷ this week's active wallets" },
   ],
-  "Buyers": [
-    { key: "Project",          label: "Project",              type: "string" },
-    { key: "marketCapUsd",     label: "Market Cap",           type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn\u2019t track)" },
-    { key: "Traders",          label: "Traders (30d)",        type: "number", format: "int",  tooltip: "Unique wallets that bought or sold on DEX in the last 30 days" },
-    { key: "Buyers 30d",       label: "Buyers (30d)",         type: "number", format: "int",  tooltip: "Unique wallets that bought in the last 30 days" },
-    { key: "Buyers 7d",        label: "Buyers (7d)",          type: "number", format: "int",  tooltip: "Unique wallets that bought in the last 7 days" },
-    { key: "1st Buyers 30d",   label: "1st Buyers (30d)",     type: "number", format: "int",  tooltip: "Wallets buying this token for the very first time in the last 30 days" },
-    { key: "1st Buyers 7d",    label: "1st Buyers (7d)",      type: "number", format: "int",  tooltip: "Wallets buying for the first time in the last 7 days" },
-    { key: "1st Sellers 30d",  label: "1st Sellers (30d)",    type: "number", format: "int",  tooltip: "Wallets selling this token for the very first time in the last 30 days" },
-    { key: "1st Sellers 7d",   label: "1st Sellers (7d)",     type: "number", format: "int",  tooltip: "Wallets selling for the first time in the last 7 days" },
-    { key: "Buy/Sell Ratio",   label: "Buy/Sell Ratio (7d)",  type: "number", format: "dec2", tooltip: "Buyers 7d \u00f7 all unique sellers this week \u2014 above 1.0 means more wallets buying than selling" },
-    { key: "Buy Vol %",        label: "Buy Vol % (7d)",       type: "number", format: "pct1", tooltip: "Buys as a share of 7-day DOLLAR volume \u2014 the money-weighted complement to Buy/Sell Ratio (which counts wallets). High ratio + low Buy Vol % = many small wallets buying while a few big ones sell into them" },
+  // 30d depth → 7d pulse
+  Buyers: [
+    { key: "Project",         label: "Project",         type: "string" },
+    { key: "marketCapUsd",    label: "Market Cap",      type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn\u2019t track)" },
+    { key: "Traders",         label: "Traders",         type: "number", format: "int", window: "30d", tooltip: "Unique wallets that bought or sold on DEX in the last 30 days" },
+    { key: "Buyers 30d",      label: "Buyers",          type: "number", format: "int", window: "30d", tooltip: "Unique wallets that bought in the last 30 days" },
+    { key: "1st Buyers 30d",  label: "1st Buyers",      type: "number", format: "int", window: "30d", tooltip: "Wallets buying this token for the very first time in the last 30 days" },
+    { key: "1st Sellers 30d", label: "1st Sellers",     type: "number", format: "int", window: "30d", tooltip: "Wallets selling this token for the very first time in the last 30 days" },
+    { key: "Buyers 7d",       label: "Buyers",          type: "number", format: "int", window: "7d", tooltip: "Unique wallets that bought in the last 7 days" },
+    { key: "1st Buyers 7d",   label: "1st Buyers",      type: "number", format: "int", window: "7d", tooltip: "Wallets buying for the first time in the last 7 days" },
+    { key: "1st Sellers 7d",  label: "1st Sellers",     type: "number", format: "int", window: "7d", tooltip: "Wallets selling for the first time in the last 7 days" },
+    { key: "Buy/Sell Ratio",  label: "Buy/Sell Ratio",  type: "number", format: "dec2", window: "7d", tooltip: "Buyers 7d \u00f7 all unique sellers this week \u2014 above 1.0 means more wallets buying than selling" },
+    { key: "Buy Vol %",       label: "Buy Vol %",       type: "number", format: "pct1", window: "7d", tooltip: "Buys as a share of 7-day DOLLAR volume \u2014 the money-weighted complement to Buy/Sell Ratio (which counts wallets). High ratio + low Buy Vol % = many small wallets buying while a few big ones sell into them" },
   ],
+  // 7d flow → 30d thr / 30d concentration → score → age
   "Whales & Risk": [
-    { key: "Project",          label: "Project",              type: "string" },
-    { key: "marketCapUsd",     label: "Market Cap",           type: "number", format: "usd",  tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn\u2019t track)" },
-    { key: "Whale Net 7d",     label: "Whale Net (7d)",       type: "number", format: "usd",  tooltip: "Net USD flow from large trades in the last 7 days \u2014 positive means whales are accumulating, negative means distributing. A whale trade is one in the top 10% of trade sizes for that token (min $100)" },
-    { key: "Accum %",          label: "Accum %",              type: "number", format: "pct1", tooltip: "Whale buys as a share of all whale volume (7d) \u2014 50% is neutral, above ~65% suggests accumulation, below ~35% suggests distribution" },
-    { key: "Whale Buyers 7d",  label: "Whale Buyers (7d)",    type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized buys in the last 7 days \u2014 distinguishes one whale accumulating from many" },
-    { key: "Whale Sellers 7d", label: "Whale Sellers (7d)",   type: "number", format: "int",  tooltip: "Distinct wallets making top-decile-sized sells in the last 7 days" },
-    { key: "Hump Net 7d",      label: "Humpback Net (7d)",    type: "number", format: "usd",  tooltip: "Net USD flow from mega-whale (humpback) trades in the last 7 days \u2014 trades in the top 1% of sizes for that token (min $1,000). Humpback trades are a subset of whale trades" },
-    { key: "Hump Buyers 7d",   label: "Humpback Buyers (7d)", type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized buys in the last 7 days \u2014 usually a handful of very large players" },
-    { key: "Hump Sellers 7d",  label: "Humpback Sellers (7d)",type: "number", format: "int",  tooltip: "Distinct wallets making top-1%-sized sells in the last 7 days" },
-    { key: "Retail Net 7d",    label: "Retail Net (7d)",      type: "number", format: "usd",  tooltip: "Net USD flow from all NON-whale trades in the last 7 days. Compare against Whale Net: whales buying while retail sells = accumulation from weak hands; whales selling into retail buying = distribution" },
-    { key: "Whale Vol %",      label: "Whale Vol %",          type: "number", format: "pct1", tooltip: "Whale trades as a share of all 7-day volume \u2014 how much of the market whale flow represents. At 80%+ the retail column is thin and divergence reads are weak; around 30% a whale/retail split can mean two real crowds disagreeing" },
-    { key: "Whale Min $",      label: "Whale Min $",          type: "number", format: "usd",  tooltip: "The whale threshold for THIS token \u2014 the top-10% trade size over 30d (min $100). What counts as a whale trade scales with each token's own market: might be $800 on a microcap, $50k on a major" },
-    { key: "Divergence Bps",   label: "W/R Div (bps)",        type: "number", format: "dec1", tooltip: "Whale-vs-retail divergence in basis points of market cap. Positive = whales net buying more aggressively than retail (bullish divergence). Negative = retail buying more than whales (bearish \u2014 potential exit liquidity pattern). Near zero = both sides agree. Scaled by market cap so a $50k microcap and $500M large-cap are directly comparable" },
-    { key: "Qlty %",           label: "Qlty %",               type: "number", format: "pct1", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
-    { key: "Risk %",           label: "Risk %",               type: "number", format: "pct1", tooltip: "How concentrated the volume is in a few wallets \u2014 higher means more concentrated" },
-    { key: "Top10 %",          label: "Top10 % (30d)",        type: "number", format: "pct1", tooltip: "Share of all 30-day transactions from the top 10 most active wallets \u2014 lower is healthier" },
-    { key: "Non-Trade New 30d",label: "Non-Trade New (30d)",  type: "number", format: "int",  tooltip: "New wallets in the last 30 days that made no first buy or sell" },
-    { key: "Token Age Days",   label: "Age (days)",           type: "number", format: "int",  tooltip: "Days since this token's contract was first deployed on Base" },
+    { key: "Project",           label: "Project",         type: "string" },
+    { key: "marketCapUsd",      label: "Market Cap",      type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn\u2019t track)" },
+    { key: "Whale Net 7d",      label: "Whale Net",       type: "number", format: "usd", window: "7d", tooltip: "Net USD flow from large trades in the last 7 days \u2014 positive means whales are accumulating, negative means distributing. A whale trade is one in the top 10% of trade sizes for that token (min $100)" },
+    { key: "Accum %",           label: "Accum %",         type: "number", format: "pct1", window: "7d", tooltip: "Whale buys as a share of all whale volume (7d) \u2014 50% is neutral, above ~65% suggests accumulation, below ~35% suggests distribution" },
+    { key: "Whale Buyers 7d",   label: "Whale Buyers",    type: "number", format: "int", window: "7d", tooltip: "Distinct wallets making top-decile-sized buys in the last 7 days \u2014 distinguishes one whale accumulating from many" },
+    { key: "Whale Sellers 7d",  label: "Whale Sellers",   type: "number", format: "int", window: "7d", tooltip: "Distinct wallets making top-decile-sized sells in the last 7 days" },
+    { key: "Hump Net 7d",       label: "Humpback Net",    type: "number", format: "usd", window: "7d", tooltip: "Net USD flow from mega-whale (humpback) trades in the last 7 days \u2014 trades in the top 1% of sizes for that token (min $1,000). Humpback trades are a subset of whale trades" },
+    { key: "Hump Buyers 7d",    label: "Humpback Buyers", type: "number", format: "int", window: "7d", tooltip: "Distinct wallets making top-1%-sized buys in the last 7 days \u2014 usually a handful of very large players" },
+    { key: "Hump Sellers 7d",   label: "Humpback Sellers",type: "number", format: "int", window: "7d", tooltip: "Distinct wallets making top-1%-sized sells in the last 7 days" },
+    { key: "Retail Net 7d",     label: "Retail Net",      type: "number", format: "usd", window: "7d", tooltip: "Net USD flow from all NON-whale trades in the last 7 days. Compare against Whale Net: whales buying while retail sells = accumulation from weak hands; whales selling into retail buying = distribution" },
+    { key: "Whale Vol %",       label: "Whale Vol %",     type: "number", format: "pct1", window: "7d", tooltip: "Whale trades as a share of all 7-day volume \u2014 how much of the market whale flow represents. At 80%+ the retail column is thin and divergence reads are weak; around 30% a whale/retail split can mean two real crowds disagreeing" },
+    { key: "Divergence Bps",    label: "W/R Div (bps)",   type: "number", format: "dec1", window: "7d", tooltip: "Whale-vs-retail divergence in basis points of market cap. Positive = whales net buying more aggressively than retail (bullish divergence). Negative = retail buying more than whales (bearish \u2014 potential exit liquidity pattern). Near zero = both sides agree. Scaled by market cap so a $50k microcap and $500M large-cap are directly comparable" },
+    { key: "Whale Min $",       label: "Whale Min $",     type: "number", format: "usd", window: "30d thr", tooltip: "The whale threshold for THIS token \u2014 the top-10% trade size over 30d (min $100). What counts as a whale trade scales with each token's own market: might be $800 on a microcap, $50k on a major" },
+    { key: "Top10 %",           label: "Top10 %",         type: "number", format: "pct1", window: "30d", tooltip: "Share of all 30-day transactions from the top 10 most active wallets \u2014 lower is healthier" },
+    { key: "Non-Trade New 30d", label: "Non-Trade New",   type: "number", format: "int", window: "30d", tooltip: "New wallets in the last 30 days that made no first buy or sell" },
+    { key: "Qlty %",            label: "Qlty %",          type: "number", format: "pct1", window: "score", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
+    { key: "Risk %",            label: "Risk %",          type: "number", format: "pct1", window: "score", tooltip: "How concentrated the volume is in a few wallets \u2014 higher means more concentrated" },
+    { key: "Token Age Days",    label: "Age (days)",      type: "number", format: "int", tooltip: "Days since this token's contract was first deployed on Base" },
   ],
   Discover: [
     { key: "name",         label: "Project",    type: "string" },
     { key: "symbol",       label: "Symbol",     type: "string" },
-    { key: "marketCapUsd", label: "Market Cap", type: "number", format: "usd",   tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "priceUsd",     label: "Price",      type: "number", format: "price", tooltip: "Live token price in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "marketCapUsd", label: "Market Cap", type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
+    { key: "priceUsd",     label: "Price",      type: "number", format: "price", window: "live", tooltip: "Live token price in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
     { key: "address",      label: "Address",    type: "string" },
   ],
 };
@@ -418,10 +447,10 @@ function MobileSummaryList({
             <GatedCell blurred={isRowGated}>
               {isWhales ? (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", fontSize: "12px" }}>
-                  <span style={{ color: "var(--text-muted)" }}>Whale Net <strong style={{ color: "var(--text)" }}>{formatValue(d["Whale Net 7d"], "usdSign")}</strong></span>
-                  <span style={{ color: "var(--text-muted)" }}>Accum <strong style={{ color: "var(--text)" }}>{formatValue(d["Accum %"], "pct1")}</strong></span>
-                  <span style={{ color: "var(--text-muted)" }}>Retail <strong style={{ color: "var(--text)" }}>{formatValue(d["Retail Net 7d"], "usdSign")}</strong></span>
-                  <span style={{ color: "var(--text-muted)" }}>Whale Vol <strong style={{ color: "var(--text)" }}>{formatValue(d["Whale Vol %"], "pct1")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Whale Net <span style={{ color: "var(--text-faint)" }}>7d</span> <strong style={{ color: "var(--text)" }}>{formatValue(d["Whale Net 7d"], "usdSign")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Accum <span style={{ color: "var(--text-faint)" }}>7d</span> <strong style={{ color: "var(--text)" }}>{formatValue(d["Accum %"], "pct1")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Retail <span style={{ color: "var(--text-faint)" }}>7d</span> <strong style={{ color: "var(--text)" }}>{formatValue(d["Retail Net 7d"], "usdSign")}</strong></span>
+                  <span style={{ color: "var(--text-muted)" }}>Whale Vol <span style={{ color: "var(--text-faint)" }}>7d</span> <strong style={{ color: "var(--text)" }}>{formatValue(d["Whale Vol %"], "pct1")}</strong></span>
                   <span style={{ color: "var(--text-muted)", gridColumn: "1 / -1" }}>
                     Signal <strong style={{ color: "var(--text)" }}>{d.signal ?? "—"}</strong>
                     {d.signalNote ? ` · ${d.signalNote}` : ""}
@@ -718,6 +747,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const isWatchlist = activeTab === "Watchlist";
   const isSpecialTab = isTripwire || isAbout || isClawd || isWatchlist;
   const columns = isSpecialTab ? [] : TABS[activeTab];
+  const windowLegend = tabWindowLegend(columns);
   const rawSource = isDiscover ? discoveryData : data;
   const sourceData = isSpecialTab ? [] : Array.isArray(rawSource) ? rawSource : [];
   const rowKeyField = isDiscover ? "address" : "Address";
@@ -985,7 +1015,10 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
                 {rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>/ {rankInfo.total}</span>
               </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Rank for <strong>{col.label}</strong></div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                Rank for <strong>{col.label}</strong>
+                {col.window ? <span style={{ color: "var(--text-faint)" }}> · {col.window}</span> : null}
+              </div>
               <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "4px" }}>
                 1 = best · {rankInfo.total} = worst
               </div>
@@ -1049,16 +1082,14 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                 }}
                 style={{
                   textAlign: "left", borderBottom: "1px solid var(--border-strong)",
-                  padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+                  padding: compact ? "4px 6px" : "6px 12px", cursor: "pointer", userSelect: "none",
+                  whiteSpace: isProjectCol ? "nowrap" : "normal", verticalAlign: "bottom",
                 }}
               >
                 {isProjectCol ? (
-                  <span className="tw-name-clip">{col.label}{sortKey === col.key ? (sortDir === "desc" ? " ▼" : " ▲") : ""}</span>
+                  <span className="tw-name-clip">{col.label}{sortKey === col.key ? (sortDir === "desc" ? " \u25BC" : " \u25B2") : ""}</span>
                 ) : (
-                  <>
-                    {col.label}
-                    {sortKey === col.key ? (sortDir === "desc" ? " ▼" : " ▲") : ""}
-                  </>
+                  <ColumnHeaderLabel col={col} sortKey={sortKey} sortDir={sortDir} />
                 )}
               </th>
               );
@@ -1143,6 +1174,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         onTabChange={handleTabChange}
         tabLabel={(tab) => (tab === "Whales & Risk" ? "Whales" : tabLabel(tab))}
       />
+
+      {!isSpecialTab && windowLegend && (
+        <p style={{ fontSize: "11px", color: "var(--text-faint)", margin: "0 0 8px", letterSpacing: "0.01em" }}>
+          {windowLegend}
+        </p>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
         <p className="tw-tip-desktop" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>

@@ -162,10 +162,13 @@ function SectionLabel({ children }) {
   );
 }
 
-function CompactRow({ label, value, rank, totalProjects, lowerBetter, data, color }) {
+function CompactRow({ label, window: win, value, rank, totalProjects, lowerBetter, data, color }) {
   return (
     <div className="tw-compact-row" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "7px 0", borderTop: "1px solid var(--border)" }}>
-      <span style={{ width: 124, fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>{label}</span>
+      <span style={{ width: 148, fontSize: 12, color: "var(--text-muted)", flexShrink: 0, lineHeight: 1.25 }}>
+        {label}
+        {win ? <span style={{ color: "var(--text-faint)", marginLeft: 4 }}>{win}</span> : null}
+      </span>
       <span style={{ width: 64, fontSize: 13, fontWeight: 600, flexShrink: 0, color: "var(--text)" }}>{value}</span>
       <span style={{ width: 110, fontSize: 11, color: "var(--text-faint)", flexShrink: 0 }}>
         {rank != null && totalProjects != null ? `#${rank} of ${totalProjects}` : "—"}
@@ -178,67 +181,67 @@ function CompactRow({ label, value, rank, totalProjects, lowerBetter, data, colo
 
 const COMPACT_SECTIONS = [
   {
-    title: "Growth rates", color: "#185FA5",
+    title: "Growth rates (WoW)", color: "#185FA5",
     rows: [
-      { key: "Vol Grw %", label: "Vol Grw %", format: "pct1" },
-      { key: "Tx Grw %", label: "Tx Grw %", format: "pct1" },
-      { key: "User Grw %", label: "User Grw %", format: "pct1" },
+      { key: "Vol Grw %", label: "Vol Grw %", format: "pct1", window: "WoW" },
+      { key: "Tx Grw %", label: "Tx Grw %", format: "pct1", window: "WoW" },
+      { key: "User Grw %", label: "User Grw %", format: "pct1", window: "WoW" },
     ],
   },
   {
-    title: "Raw activity", color: "#D85A30",
+    title: "Raw activity (30d)", color: "#D85A30",
     rows: [
-      { key: "Txs 30d", label: "Txs 30d", format: "int" },
-      { key: "Vol 30d", label: "Vol 30d", format: "usd" },
-      { key: "Txs/User", label: "Txs/User", format: "dec1" },
-      { key: "Traders", label: "Traders", format: "int" },
+      { key: "Txs 30d", label: "Txs", format: "int", window: "30d" },
+      { key: "Vol 30d", label: "Vol", format: "usd", window: "30d" },
+      { key: "Txs/User", label: "Txs/User", format: "dec1", window: "30d" },
+      { key: "Traders", label: "Traders", format: "int", window: "30d" },
     ],
   },
   {
-    title: "New, returning & retention", color: "#3B6D11",
+    title: "New / returning (30d) & retention (WoW)", color: "#3B6D11",
     rows: [
-      { key: "Retention %", label: "Retention %", format: "pct1" },
-      { key: "New %", label: "New %", format: "pct1" },
-      { key: "New Wallets", label: "New Wallets", format: "int" },
-      { key: "Returning Wallets", label: "Returning Wallets", format: "int" },
-      { key: "Non-Trade New 30d", label: "Non-Trade New", format: "int" },
+      { key: "Retention %", label: "Retention %", format: "pct1", window: "WoW" },
+      { key: "New %", label: "New %", format: "pct1", window: "30d" },
+      { key: "New Wallets", label: "New Wallets", format: "int", window: "30d" },
+      { key: "Returning Wallets", label: "Returning Wallets", format: "int", window: "30d" },
+      { key: "Non-Trade New 30d", label: "Non-Trade New", format: "int", window: "30d" },
     ],
   },
   {
     title: "Buyers & sellers", color: "#534AB7",
     rows: [
-      { key: "Buyers 30d", label: "Buyers 30d", format: "int" },
-      { key: "Buyers 7d", label: "Buyers 7d", format: "int" },
-      { key: "1st Buyers 30d", label: "1st Buyers 30d", format: "int" },
-      { key: "1st Buyers 7d", label: "1st Buyers 7d", format: "int" },
-      { key: "1st Sellers 30d", label: "1st Sellers 30d", format: "int" },
-      { key: "1st Sellers 7d", label: "1st Sellers 7d", format: "int" },
+      { key: "Buyers 30d", label: "Buyers", format: "int", window: "30d" },
+      { key: "Buyers 7d", label: "Buyers", format: "int", window: "7d" },
+      { key: "1st Buyers 30d", label: "1st Buyers", format: "int", window: "30d" },
+      { key: "1st Buyers 7d", label: "1st Buyers", format: "int", window: "7d" },
+      { key: "1st Sellers 30d", label: "1st Sellers", format: "int", window: "30d" },
+      { key: "1st Sellers 7d", label: "1st Sellers", format: "int", window: "7d" },
     ],
   },
   {
     title: "Quality & risk", color: "#993556",
     rows: [
-      { key: "Qlty %", label: "Qlty %", format: "pct1" },
-      { key: "Risk %", label: "Risk %", format: "pct1", lowerBetter: true },
-      { key: "Top10 %", label: "Top10 %", format: "pct1", lowerBetter: true },
-      { key: "Vol/Tx", label: "Vol/Tx", format: "usd2" },
+      { key: "Qlty %", label: "Qlty %", format: "pct1", window: "score" },
+      { key: "Risk %", label: "Risk %", format: "pct1", window: "score", lowerBetter: true },
+      { key: "Top10 %", label: "Top10 %", format: "pct1", window: "30d", lowerBetter: true },
+      { key: "Vol/Tx", label: "Vol/Tx", format: "usd2", window: "30d" },
     ],
   },
   {
     title: "Whales (7d)", color: "#0F6E56",
     rows: [
-      { key: "Whale Net 7d", label: "Whale Net Flow", format: "usdNet" },
-      { key: "Accum %", label: "Accum %", format: "pct1" },
-      { key: "Whale Buyers 7d", label: "Whale Buyers", format: "int" },
-      { key: "Whale Sellers 7d", label: "Whale Sellers", format: "int" },
-      { key: "Hump Net 7d", label: "Humpback Net Flow", format: "usdNet" },
-      { key: "Hump Buyers 7d", label: "Humpback Buyers", format: "int" },
-      { key: "Hump Sellers 7d", label: "Humpback Sellers", format: "int" },
-      { key: "Retail Net 7d", label: "Retail Net Flow", format: "usdNet" },
-      { key: "Whale Vol %", label: "Whale Vol %", format: "pct1" },
-      { key: "Divergence Bps", label: "W/R Divergence (bps)", format: "dec1" },
-      { key: "Buy Vol %", label: "Buy Vol %", format: "pct1" },
-      { key: "Whale Min $", label: "Whale Threshold", format: "usd" },
+      { key: "Whale Net 7d", label: "Whale Net Flow", format: "usdNet", window: "7d" },
+      { key: "Accum %", label: "Accum %", format: "pct1", window: "7d" },
+      { key: "Whale Buyers 7d", label: "Whale Buyers", format: "int", window: "7d" },
+      { key: "Whale Sellers 7d", label: "Whale Sellers", format: "int", window: "7d" },
+      { key: "Hump Net 7d", label: "Humpback Net Flow", format: "usdNet", window: "7d" },
+      { key: "Hump Buyers 7d", label: "Humpback Buyers", format: "int", window: "7d" },
+      { key: "Hump Sellers 7d", label: "Humpback Sellers", format: "int", window: "7d" },
+      { key: "Retail Net 7d", label: "Retail Net Flow", format: "usdNet", window: "7d" },
+      { key: "Whale Vol %", label: "Whale Vol %", format: "pct1", window: "7d" },
+      { key: "Divergence Bps", label: "W/R Divergence (bps)", format: "dec1", window: "7d" },
+      { key: "Buy Vol %", label: "Buy Vol %", format: "pct1", window: "7d" },
+      { key: "Whale Min $", label: "Whale Threshold", format: "usd", window: "30d thr" },
     ],
   }
 ];
@@ -617,6 +620,7 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
                   <CompactRow
                     key={row.key}
                     label={row.label}
+                    window={row.window}
                     value={formatRowValue(clawdRow?.[row.key], row.format)}
                     rank={ranks[row.key] ?? null}
                     totalProjects={totalProjects}
