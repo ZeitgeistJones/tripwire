@@ -10,9 +10,16 @@ const MIN_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const HISTORY_QUERY_ID = "7767406";
 const DEFAULT_MODEL = "gemini-3.6-flash";
 
-export async function GET() {
+export async function GET(request) {
+  const secret = request.headers.get("x-admin-secret");
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+    return Response.json({ analysis: null }, { status: 401 });
+  }
   try {
     const analysis = (await kv.get(ANALYSIS_KEY)) || null;
+    if (analysis?.text && !looksCompleteReport(analysis.text)) {
+      return Response.json({ analysis: null, incomplete: true });
+    }
     return Response.json({ analysis });
   } catch (err) {
     console.error("[clawd-analysis GET]", String(err));
@@ -51,23 +58,25 @@ export async function POST(request) {
     const scoresLastUpdated = await getScoresLastUpdated();
     const fingerprint = analysisFingerprint(clawdRow, scoresLastUpdated);
 
+    const existingOk = existing?.text && looksCompleteReport(existing.text) ? existing : null;
+
     // Serve cache when data unchanged — never burns Gemini quota.
-    if (existing?.text && existing.dataFingerprint === fingerprint && !force) {
+    if (existingOk && existingOk.dataFingerprint === fingerprint && !force) {
       return Response.json({
-        analysis: existing,
+        analysis: existingOk,
         cached: true,
         reason: "fingerprint_unchanged",
       });
     }
 
     const now = Date.now();
-    const lastAt = existing?.generatedAt ? Date.parse(existing.generatedAt) : 0;
+    const lastAt = existingOk?.generatedAt ? Date.parse(existingOk.generatedAt) : 0;
     if (lastAt && now - lastAt < MIN_INTERVAL_MS && !force) {
       return Response.json(
         {
           error: "cooldown",
           retryAfterHours: Math.ceil((MIN_INTERVAL_MS - (now - lastAt)) / 3600000),
-          analysis: existing,
+          analysis: existingOk,
         },
         { status: 429 }
       );
@@ -75,7 +84,7 @@ export async function POST(request) {
     // Even with force, enforce a short floor (15m) against double-clicks.
     if (force && lastAt && now - lastAt < 15 * 60 * 1000) {
       return Response.json(
-        { error: "force_cooldown", retryAfterMinutes: 15, analysis: existing },
+        { error: "force_cooldown", retryAfterMinutes: 15, analysis: existingOk },
         { status: 429 }
       );
     }
@@ -84,7 +93,7 @@ export async function POST(request) {
     const lock = await kv.set(LOCK_KEY, String(now), { nx: true, ex: 120 });
     if (lock === null || lock === false) {
       return Response.json(
-        { error: "generation_in_progress", analysis: existing },
+        { error: "generation_in_progress", analysis: existingOk },
         { status: 429 }
       );
     }
@@ -133,12 +142,12 @@ async function fetchBehavioralHistory() {
 
 async function callGemini(prompt, model) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-  // Thinking models (2.5 / 3.x) count reasoning tokens against maxOutputTokens —
-  // keep headroom so the visible report is not cut mid-sentence.
+  // Thinking models (2.5 / 3.x) count reasoning tokens against maxOutputTokens.
+  // Disable thinking so the full report fits; raise the ceiling as a backstop.
   const wantsThinkingOff = /gemini-(2\.5|3)/i.test(model);
   const generationConfig = {
     temperature: 0.4,
-    maxOutputTokens: 4096,
+    maxOutputTokens: 8192,
     ...(wantsThinkingOff ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
   };
 
@@ -177,7 +186,7 @@ async function callGeminiPlain(prompt, model) {
     },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
+      generationConfig: { temperature: 0.4, maxOutputTokens: 8192 },
     }),
   });
   const json = await res.json().catch(() => ({}));
@@ -190,8 +199,12 @@ async function callGeminiPlain(prompt, model) {
 function extractGeminiText(json) {
   const candidate = json?.candidates?.[0];
   const finishReason = candidate?.finishReason;
-  const text = candidate?.content?.parts
-    ?.map((p) => p.text)
+  // Prefer non-thought parts when the API returns both.
+  const parts = candidate?.content?.parts || [];
+  const visible = parts.filter((p) => p?.text && !p.thought);
+  const textParts = visible.length ? visible : parts.filter((p) => p?.text);
+  const text = textParts
+    .map((p) => p.text)
     .filter(Boolean)
     .join("\n")
     .trim();
@@ -201,5 +214,14 @@ function extractGeminiText(json) {
   if (finishReason === "MAX_TOKENS") {
     throw new Error("Report hit token limit mid-write — click Force regenerate");
   }
-  return text.slice(0, 12000);
+  if (!looksCompleteReport(text)) {
+    throw new Error("Report incomplete (missing sections) — click Force regenerate");
+  }
+  return text.slice(0, 16000);
+}
+
+function looksCompleteReport(text) {
+  const upper = text.toUpperCase();
+  const needed = ["HEADLINE", "THE NUMBERS", "WHALE", "BEST GUESS", "WATCH"];
+  return needed.every((s) => upper.includes(s)) && text.length >= 400;
 }

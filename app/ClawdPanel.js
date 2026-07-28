@@ -436,87 +436,6 @@ function buildCondensedText(d) {
   ].join("\n");
 }
 
-function formatReportTs(value) {
-  if (!value) return null;
-  try {
-    return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-  } catch {
-    return null;
-  }
-}
-
-function ReportSection() {
-  const [report, setReport] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
-
-  useEffect(() => {
-    fetch("/api/clawd-report")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (j?.report?.text) setReport(j.report); })
-      .catch(() => {});
-    fetch("/api/clawd-analysis")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (j?.analysis?.text) setAnalysis(j.analysis); })
-      .catch(() => {});
-  }, []);
-
-  const displayed = analysis?.text
-    ? {
-        kind: "ai",
-        text: analysis.text,
-        writtenAt: analysis.generatedAt,
-        dataAsOf: analysis.scoresLastUpdated,
-        model: analysis.model,
-      }
-    : report?.text
-      ? {
-          kind: "manual",
-          text: report.text,
-          writtenAt: report.postedAt,
-          dataAsOf: report.scoresLastUpdated,
-        }
-      : null;
-
-  if (!displayed) return null;
-
-  const dataAsOf = formatReportTs(displayed.dataAsOf);
-  const writtenAt = formatReportTs(displayed.writtenAt);
-
-  return (
-    <div style={{ margin: "0 0 20px" }}>
-      <div style={{
-        background: "var(--card-bg)",
-        border: "1px solid var(--border)",
-        borderRadius: "12px",
-        padding: "16px 20px",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", gap: "12px", flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)" }}>
-              Analyst report
-            </div>
-            {dataAsOf ? (
-              <div style={{ marginTop: "4px", fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
-                Reflects scores as of {dataAsOf}
-              </div>
-            ) : null}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--text-faint)", textAlign: "right", lineHeight: 1.45 }}>
-            {writtenAt ? `${displayed.kind === "ai" ? "Written" : "Posted"} ${writtenAt}` : null}
-            {displayed.model ? <div>{displayed.model}</div> : null}
-          </div>
-        </div>
-        <div style={{ whiteSpace: "pre-wrap", fontSize: "13.5px", lineHeight: 1.65, color: "var(--text)" }}>
-          {displayed.text}
-        </div>
-        <div style={{ marginTop: "14px", fontSize: "11px", color: "var(--text-faint)", lineHeight: 1.4 }}>
-          Community interpretation of Tripwire scores — not financial advice.
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ShareButtons({ clawdRow, history }) {
   const [copied, setCopied] = React.useState(null);
   const copy = (text, label) => {
@@ -612,7 +531,6 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
       <h2 style={{ marginTop: 0, color: "var(--text)" }}>CLAWD — Health Check</h2>
 
       <ProfileSignalBanner profile={clawdRow?.["Prof"]} signal={clawdRow?.signal} read={clawdRow?.read} />
-      <ReportSection />
       <ShareButtons clawdRow={clawdRow} history={behavioralHistory} />
 
       {status === "loading" && <p style={{ color: "var(--text-muted)" }}>Loading history…</p>}

@@ -75,10 +75,15 @@ export default function AdminPanel() {
 
   const refresh = async () => {
     try {
+      const headers = { "x-admin-secret": secret };
       const [rRes, aRes] = await Promise.all([
-        fetch("/api/clawd-report"),
-        fetch("/api/clawd-analysis"),
+        fetch("/api/clawd-report", { headers }),
+        fetch("/api/clawd-analysis", { headers }),
       ]);
+      if (rRes.status === 401 || aRes.status === 401) {
+        lock();
+        return;
+      }
       const rJ = rRes.ok ? await rRes.json() : null;
       const aJ = aRes.ok ? await aRes.json() : null;
       setReport(rJ?.report || null);

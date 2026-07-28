@@ -3,7 +3,11 @@ import { getScoresLastUpdated } from "@/lib/getData";
 
 const KEY = "tripwire:clawd:report";
 
-export async function GET() {
+export async function GET(request) {
+  const secret = request.headers.get("x-admin-secret");
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+    return Response.json({ report: null }, { status: 401 });
+  }
   try {
     const report = (await kv.get(KEY)) || null;
     return Response.json({ report });
