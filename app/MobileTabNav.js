@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 export const MOBILE_PRIMARY_TABS = ["Overview", "Whales & Risk", "Watchlist", "Activity"];
-export const MOBILE_MORE_TABS = ["Buyers", "Wallets", "Discover", "CLAWD", "The Wire", "About"];
+export const MOBILE_MORE_TABS = ["Buyers", "Wallets", "Growth", "Discover", "CLAWD", "The Wire", "About"];
 
 const chipBase = {
   padding: "8px 16px",

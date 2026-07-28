@@ -189,12 +189,21 @@ const COMPACT_SECTIONS = [
     ],
   },
   {
-    title: "Raw activity (30d)", color: "#D85A30",
+    title: "Raw activity", color: "#D85A30",
     rows: [
       { key: "Txs 30d", label: "Txs", format: "int", window: "30d" },
+      { key: "Txs 7d", label: "Txs", format: "int", window: "7d" },
+      { key: "Txs 24h", label: "Txs", format: "int", window: "24h" },
       { key: "Vol 30d", label: "Vol", format: "usd", window: "30d" },
+      { key: "Vol 7d", label: "Vol", format: "usd", window: "7d" },
+      { key: "Vol 24h", label: "Vol", format: "usd", window: "24h" },
       { key: "Txs/User", label: "Txs/User", format: "dec1", window: "30d" },
+      { key: "Txs/User 7d", label: "Txs/User", format: "dec1", window: "7d" },
+      { key: "Txs/User 24h", label: "Txs/User", format: "dec1", window: "24h" },
       { key: "Traders", label: "Traders", format: "int", window: "30d" },
+      { key: "Wallets 30d", label: "Wallets", format: "int", window: "30d" },
+      { key: "Wallets 7d", label: "Wallets", format: "int", window: "7d" },
+      { key: "Wallets 24h", label: "Wallets", format: "int", window: "24h" },
     ],
   },
   {
@@ -212,10 +221,13 @@ const COMPACT_SECTIONS = [
     rows: [
       { key: "Buyers 30d", label: "Buyers", format: "int", window: "30d" },
       { key: "Buyers 7d", label: "Buyers", format: "int", window: "7d" },
+      { key: "Buyers 24h", label: "Buyers", format: "int", window: "24h" },
       { key: "1st Buyers 30d", label: "1st Buyers", format: "int", window: "30d" },
       { key: "1st Buyers 7d", label: "1st Buyers", format: "int", window: "7d" },
+      { key: "1st Buyers 24h", label: "1st Buyers", format: "int", window: "24h" },
       { key: "1st Sellers 30d", label: "1st Sellers", format: "int", window: "30d" },
       { key: "1st Sellers 7d", label: "1st Sellers", format: "int", window: "7d" },
+      { key: "1st Sellers 24h", label: "1st Sellers", format: "int", window: "24h" },
     ],
   },
   {
@@ -243,7 +255,23 @@ const COMPACT_SECTIONS = [
       { key: "Buy Vol %", label: "Buy Vol %", format: "pct1", window: "7d" },
       { key: "Whale Min $", label: "Whale Threshold", format: "usd", window: "30d thr" },
     ],
-  }
+  },
+  {
+    title: "Whales (24h)", color: "#0F6E56",
+    rows: [
+      { key: "Whale Net 24h", label: "Whale Net Flow", format: "usdNet", window: "24h" },
+      { key: "Accum % 24h", label: "Accum %", format: "pct1", window: "24h" },
+      { key: "Whale Buyers 24h", label: "Whale Buyers", format: "int", window: "24h" },
+      { key: "Whale Sellers 24h", label: "Whale Sellers", format: "int", window: "24h" },
+      { key: "Hump Net 24h", label: "Humpback Net Flow", format: "usdNet", window: "24h" },
+      { key: "Hump Buyers 24h", label: "Humpback Buyers", format: "int", window: "24h" },
+      { key: "Hump Sellers 24h", label: "Humpback Sellers", format: "int", window: "24h" },
+      { key: "Retail Net 24h", label: "Retail Net Flow", format: "usdNet", window: "24h" },
+      { key: "Whale Vol % 24h", label: "Whale Vol %", format: "pct1", window: "24h" },
+      { key: "Divergence Bps 24h", label: "W/R Divergence (bps)", format: "dec1", window: "24h" },
+      { key: "Buy Vol % 24h", label: "Buy Vol %", format: "pct1", window: "24h" },
+    ],
+  },
 ];
 
 function ProfileSignalBanner({ profile, signal, read }) {

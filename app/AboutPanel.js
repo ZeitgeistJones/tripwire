@@ -1,38 +1,38 @@
 const GLOSSARY_ROWS = [
-  ["Window tokens", "7d = trailing 7-day pulse · 30d = trailing 30-day depth · WoW = this 7d vs prior 7d · live = CoinGecko now · score = composite Tripwire score (not a calendar window) · 30d thr = whale size threshold from 30d trade distribution"],
+  ["Window tokens", "24h = trailing day · 7d = trailing week · 30d = trailing month · WoW = this 7d vs prior 7d · live = CoinGecko now · score = composite Tripwire score (not a calendar window) · 30d thr = whale size threshold from 30d trade distribution"],
   ["O Rk / M Rk / S Rk", "Rank by Opportunity / Momentum / Sustainability score, across all tracked tokens"],
   ["Opp / Mom / Sus · score", "The three core behavioral scores — see scoring section above"],
   ["Prof · score", "Profile category — Breakout / Quick Mover / Slow Burner / Cold — based on position relative to cohort median"],
   ["Qlty % · score", "Activity Quality % — starts at 100, penalised for bot-like patterns, high concentration, or unrealistic retention"],
   ["Risk % · score", "Volume Concentration Risk % — how concentrated trading volume is in a few wallets"],
-  ["Vol · 30d", "Total DEX trading volume in USD over the last 30 days, from dex.trades on Base"],
-  ["Vol/Tx · 30d", "Average dollar value per transaction over 30 days"],
-  ["Vol/Wlt · 30d", "Average dollar volume per unique wallet over 30 days"],
+  ["Vol · 24h / 7d / 30d", "Total DEX trading volume in USD for the window shown under the column header"],
+  ["Vol/Tx · 24h / 7d / 30d", "Average dollar value per transaction for that window"],
+  ["Vol/Wlt · 24h / 7d / 30d", "Average dollar volume per unique wallet for that window"],
   ["Vol Grw % · WoW", "DEX volume change: most recent 7 days vs the 7 days before that"],
   ["Tx Grw % · WoW", "Transaction count change: most recent 7 days vs the 7 days before that"],
   ["User Grw % · WoW", "Unique wallet count change: most recent 7 days vs the 7 days before that"],
-  ["Txs · 30d / 7d", "Total on-chain transaction count to this token's contract (window shown under the column header)"],
-  ["Txs/User · 30d", "Average transactions per unique wallet over 30 days"],
-  ["Wallets · 30d / 7d", "Unique wallets that sent at least one transaction to this token's contract"],
+  ["Txs · 24h / 7d / 30d", "Total on-chain transaction count to this token's contract"],
+  ["Txs/User · 24h / 7d / 30d", "Average transactions per unique wallet for that window"],
+  ["Wallets · 24h / 7d / 30d", "Unique wallets that sent at least one transaction to this token's contract"],
   ["New Wallets · 30d", "Wallets active in the last 30 days with no activity in the prior 31–90 day window"],
   ["Returning · 30d", "Wallets active in both the last 30 days and the prior 31–90 day window"],
   ["New Wallet % · 30d", "New Wallets ÷ total Wallets 30d"],
   ["Retention % · WoW", "Wallets retained from last week ÷ this week's active wallets"],
   ["Avg Txs Ret · 7d", "Average transactions by wallets active both this week and last week"],
   ["Traders · 30d", "Unique wallets that bought or sold on DEX in the last 30 days"],
-  ["Buyers · 30d / 7d", "Unique wallets that bought this token on a DEX in the window"],
-  ["1st Buyers · 30d / 7d", "Wallets whose first buy in a longer lookback landed in that window — not the same as all buyers"],
-  ["1st Sellers · 30d / 7d", "Wallets whose first sell in a longer lookback landed in that window"],
-  ["Buy/Sell Ratio · 7d", "Buyers 7d ÷ unique sellers this week. Above 1.0 means more buying wallets than selling"],
-  ["Buy Vol % · 7d", "Buys as a share of 7d dollar volume — money-weighted complement to Buy/Sell Ratio. High ratio + low Buy Vol % = many small buyers while big wallets sell into them"],
-  ["Whale Net · 7d", "Net USD from large trades in the last 7 days (buys minus sells). Positive = whales accumulating"],
-  ["Accum % · 7d", "Whale buys as a share of all whale volume (7d). ~50% neutral; higher suggests accumulation"],
-  ["Whale Buyers / Sellers · 7d", "Distinct wallets making top-decile-sized buys or sells in the last 7 days"],
-  ["Humpback Net / Buyers / Sellers · 7d", "Same idea as whales, but top 1% of trade sizes (min $1,000) — the mega-whale subset"],
-  ["Retail Net · 7d", "Net USD from all non-whale trades in the last 7 days. Read it against Whale Net"],
-  ["Whale Vol % · 7d", "Whale trades as a share of all 7d volume — how much whale flow actually matters. High % makes retail thin"],
+  ["Buyers · 24h / 7d / 30d", "Unique wallets that bought this token on a DEX in the window"],
+  ["1st Buyers · 24h / 7d / 30d", "Wallets whose first buy in a longer lookback landed in that window — not the same as all buyers"],
+  ["1st Sellers · 24h / 7d / 30d", "Wallets whose first sell in a longer lookback landed in that window"],
+  ["Buy/Sell Ratio · 24h / 7d", "Buyers ÷ unique sellers in that window. Above 1.0 means more buying wallets than selling"],
+  ["Buy Vol % · 24h / 7d", "Buys as a share of dollar volume — money-weighted complement to Buy/Sell Ratio"],
+  ["Whale Net · 24h / 7d", "Net USD from large trades (buys minus sells). Positive = whales accumulating"],
+  ["Accum % · 24h / 7d", "Whale buys as a share of all whale volume. ~50% neutral; higher suggests accumulation"],
+  ["Whale Buyers / Sellers · 24h / 7d", "Distinct wallets making top-decile-sized buys or sells"],
+  ["Humpback Net / Buyers / Sellers · 24h / 7d", "Same idea as whales, but top 1% of trade sizes (min $1,000) — the mega-whale subset"],
+  ["Retail Net · 24h / 7d", "Net USD from all non-whale trades. Read it against Whale Net"],
+  ["Whale Vol % · 24h / 7d", "Whale trades as a share of all volume in that window — how much whale flow actually matters"],
   ["Whale Min $ · 30d thr", "This token's whale threshold — top-10% trade size over 30d (min $100). Scales per token"],
-  ["W/R Div (bps) · 7d", "(Whale Net − Retail Net) ÷ Market Cap × 10,000. Positive = whales lean harder than retail; negative = retail lean / exit-liquidity pattern"],
+  ["W/R Div (bps) · 24h / 7d", "(Whale Net − Retail Net) ÷ Market Cap × 10,000. Positive = whales lean harder than retail"],
   ["Non-Trade New · 30d", "New wallets with no first buy or sell — likely airdrop/transfer. New − 1st Buyers − 1st Sellers, floored at 0"],
   ["Top10 % · 30d", "Share of 30-day transactions from the top 10 most active wallets. Lower is healthier"],
   ["Age (days)", "Days since this token's contract was first deployed on Base"],
@@ -65,13 +65,14 @@ export default function AboutPanel() {
         </p>
         <p style={{ color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>Window tokens</strong> — every column header shows its window under the name:
-          <code>7d</code> trailing week, <code>30d</code> trailing month, <code>WoW</code> this week vs prior,
+          <code>24h</code> trailing day, <code>7d</code> trailing week, <code>30d</code> trailing month, <code>WoW</code> this week vs prior,
           <code>live</code> CoinGecko now, <code>score</code> composite (not a day count),
           <code>30d thr</code> whale-size threshold from 30d trades. Windows are never tooltip-only.
         </p>
         <p style={{ color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>30d vs 7d windows</strong> — counts use 30d for
-          stability. Growth metrics compare the most recent 7 days vs the 7 days before that (WoW).
+          <strong style={{ color: "var(--text)" }}>Period toggle</strong> — Activity, Wallets, and Buyers use{" "}
+          <code>24h | 7d | 30d</code> for apples-to-apples twins. Whales Flow uses <code>24h | 7d</code>.
+          Growth metrics live on the Growth tab (WoW only — this 7d vs prior 7d).
         </p>
         <p style={{ color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>Wallets vs Traders</strong> — Wallets = any contract
@@ -286,10 +287,11 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Movers</strong> — homepage: heating up / cooling off, plain English</li>
           <li><strong style={{ color: "var(--text)" }}>Forecast</strong> — v1 beta paper race: Momentum Hunt, Sticky Flow, Whale Shadow vs Top 10 Mcap</li>
           <li><strong style={{ color: "var(--text)" }}>Overview</strong> — scores, profile, price, signal</li>
-          <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction detail</li>
-          <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts, growth, retention</li>
-          <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — who&apos;s trading: traders, buyers/sellers, first buyers/sellers, buy/sell ratio, Buy Vol %</li>
-          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — big money + health: whale/humpback/retail flow, Whale Vol %, Whale Min $, W/R Div (bps), Qlty %, Risk %, Top10 %, Non-Trade New, Age</li>
+          <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction twins (<code>24h | 7d | 30d</code>)</li>
+          <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts by period; New/Returning on 30d</li>
+          <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — traders, buyers/sellers, first buyers/sellers, buy/sell ratio, Buy Vol %</li>
+          <li><strong style={{ color: "var(--text)" }}>Growth</strong> — WoW rates: Vol/Tx/User Grw %, Retention %, Signal</li>
+          <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — Flow (<code>24h | 7d</code>) + Context (threshold, concentration, scores, age)</li>
           <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
