@@ -1219,7 +1219,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       className={`tw-full-table tw-hscroll${!isDiscover ? " has-actions" : ""}`}
       style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}
     >
-      <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
+      <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "max-content" }}>
         <thead>
           <tr>
             {!isDiscover && <th className="tw-sticky-actions" style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
