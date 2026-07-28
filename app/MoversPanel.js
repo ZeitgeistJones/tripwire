@@ -3,41 +3,19 @@ import StatusBanner from "./StatusBanner";
 import { LinkMobileNav } from "./MobileTabNav";
 
 // ── formatting ────────────────────────────────────────────────
-function fmtPrice(n) {
-  if (n == null) return "—";
-  return `$${n.toPrecision(4)}`;
-}
 function fmtUsd(n) {
   if (n == null) return "—";
   if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
   return `$${Math.round(n).toLocaleString()}`;
 }
-function fmtPct(n) {
-  if (n == null) return "—";
-  return `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
-}
-
-// ── plain-english translations ────────────────────────────────
-const PROF_NORMIE = {
-  Breakout: "Momentum with staying power",
-  "Quick Mover": "Fast spike — could fade",
-  "Slow Burner": "Quietly building",
-  Cold: "Sleepy right now",
-};
-
-const SIGNAL_NORMIE = {
-  "Confirmed Growth": "Price rising with real volume behind it",
-  Absorbed: "Heavy buying — price hasn't caught up yet",
-  "Thin Rally": "Price up, but on thin volume",
-  Cooling: "Activity fading",
-};
 
 const DASH_TABS = [
   "Overview",
   "Activity",
   "Wallets",
   "Buyers",
+  "Growth",
   "Whales & Risk",
   "Discover",
   "Watchlist",
@@ -46,9 +24,9 @@ const DASH_TABS = [
   "About",
 ];
 
-// Build up to 3 plain-english reasons a token is moving
-function getReasons(t) {
-  const reasons = [];
+/** Plain-English on-chain facts — no price calls, no bullish/bearish spin. */
+function getNotableFacts(t) {
+  const facts = [];
   const vol = t["Vol Grw %"];
   const usr = t["User Grw %"];
   const txg = t["Tx Grw %"];
@@ -56,51 +34,78 @@ function getReasons(t) {
   const acc = t["Accum %"];
   const wNet = t["Whale Net 7d"];
   const wBuyers = t["Whale Buyers 7d"];
-  const px = t.priceChange7d;
+  const wSellers = t["Whale Sellers 7d"];
+  const whaleVol = t["Whale Vol %"];
+  const rNet = t["Retail Net 7d"];
 
-  if (vol != null && vol >= 100)
-    reasons.push({ w: vol, text: `Trading volume ${vol >= 200 ? `${Math.round(vol / 100) + 1}x'd` : "more than doubled"} this week` });
-  else if (vol != null && vol >= 30)
-    reasons.push({ w: vol, text: `Volume up ${Math.round(vol)}% week over week` });
+  if (vol != null && Math.abs(vol) >= 30) {
+    const abs = Math.round(Math.abs(vol));
+    if (vol >= 200) facts.push({ w: abs, text: `DEX volume ~${Math.round(vol / 100) + 1}× vs prior week` });
+    else if (vol >= 100) facts.push({ w: abs, text: "DEX volume more than doubled vs prior week" });
+    else if (vol >= 30) facts.push({ w: abs, text: `DEX volume up ${abs}% vs prior week` });
+    else facts.push({ w: abs, text: `DEX volume down ${abs}% vs prior week` });
+  }
 
-  if (acc != null && acc >= 65 && wNet != null && wNet > 0)
-    reasons.push({ w: 90 + acc, text: `Whales are net buyers — ${fmtUsd(wNet)} flowed in${wBuyers ? ` from ${wBuyers} big wallets` : ""}` });
+  if (txg != null && Math.abs(txg) >= 40) {
+    const abs = Math.round(Math.abs(txg));
+    facts.push({ w: abs * 0.85, text: `Transactions ${txg >= 0 ? "up" : "down"} ${abs}% vs prior week` });
+  }
 
-  if (px != null && px >= 10)
-    reasons.push({ w: 60 + px, text: `Price up ${Math.round(px)}% in the last 24h` });
+  if (usr != null && Math.abs(usr) >= 30) {
+    const abs = Math.round(Math.abs(usr));
+    facts.push({ w: abs * 0.9, text: `Active wallets ${usr >= 0 ? "up" : "down"} ${abs}% vs prior week` });
+  }
 
-  if (usr != null && usr >= 50)
-    reasons.push({ w: usr, text: `Active wallets up ${Math.round(usr)}% this week` });
+  if (ret != null && ret >= 45) {
+    facts.push({ w: ret * 0.7, text: `${Math.round(ret)}% of last week's wallets returned` });
+  }
 
-  if (ret != null && ret >= 40)
-    reasons.push({ w: ret, text: `${Math.round(ret)}% of last week's holders came back` });
+  if (wNet != null && Math.abs(wNet) >= 2500) {
+    const dir = wNet > 0 ? "in" : "out";
+    const who = wNet > 0 ? wBuyers : wSellers;
+    facts.push({
+      w: 80 + Math.min(Math.abs(wNet) / 1000, 80),
+      text: `Whale net ${dir} ${fmtUsd(Math.abs(wNet))}${who ? ` · ${who} large wallets` : ""}`,
+    });
+  }
 
-  if (txg != null && txg >= 75)
-    reasons.push({ w: txg * 0.8, text: `Transactions up ${Math.round(txg)}% this week` });
+  if (acc != null && (acc >= 65 || acc <= 35) && wNet != null && Math.abs(wNet) >= 1000) {
+    facts.push({
+      w: 50 + Math.abs(acc - 50),
+      text: `Whale accum ${Math.round(acc)}% (buys share of whale volume)`,
+    });
+  }
 
-  reasons.sort((a, b) => b.w - a.w);
-  return reasons.slice(0, 3).map((r) => r.text);
+  if (whaleVol != null && whaleVol >= 55) {
+    facts.push({ w: whaleVol * 0.6, text: `Whales = ${Math.round(whaleVol)}% of 7d dollar volume` });
+  }
+
+  if (rNet != null && wNet != null && Math.sign(rNet) !== Math.sign(wNet) && Math.abs(wNet) >= 2500 && Math.abs(rNet) >= 2500) {
+    facts.push({
+      w: 70,
+      text: wNet > 0
+        ? `Whales buying while retail net sold ${fmtUsd(Math.abs(rNet))}`
+        : `Whales selling while retail net bought ${fmtUsd(Math.abs(rNet))}`,
+    });
+  }
+
+  facts.sort((a, b) => b.w - a.w);
+  return facts.slice(0, 3).map((f) => f.text);
 }
 
-function getCoolingReasons(t) {
-  const reasons = [];
-  const vol = t["Vol Grw %"];
-  const usr = t["User Grw %"];
-  const acc = t["Accum %"];
-  const wNet = t["Whale Net 7d"];
-  const px = t.priceChange7d;
+function activityNotability(t) {
+  return (
+    Math.abs(t["Vol Grw %"] ?? 0) +
+    Math.abs(t["User Grw %"] ?? 0) * 0.9 +
+    Math.abs(t["Tx Grw %"] ?? 0) * 0.7
+  );
+}
 
-  if (acc != null && acc <= 35 && wNet != null && wNet < 0)
-    reasons.push({ w: 100, text: `Whales are selling — ${fmtUsd(Math.abs(wNet))} flowed out` });
-  if (px != null && px <= -10)
-    reasons.push({ w: 60 + Math.abs(px), text: `Price down ${Math.round(Math.abs(px))}% in the last 24h` });
-  if (vol != null && vol <= -30)
-    reasons.push({ w: Math.abs(vol), text: `Volume down ${Math.round(Math.abs(vol))}% week over week` });
-  if (usr != null && usr <= -30)
-    reasons.push({ w: Math.abs(usr), text: `Active wallets down ${Math.round(Math.abs(usr))}% this week` });
-
-  reasons.sort((a, b) => b.w - a.w);
-  return reasons.slice(0, 3).map((r) => r.text);
+function whaleNotability(t) {
+  const wNet = Math.abs(t["Whale Net 7d"] ?? 0);
+  const mcap = t.marketCapUsd > 0 ? t.marketCapUsd : null;
+  const bps = mcap ? (wNet / mcap) * 10000 : wNet / 100;
+  return Math.min(bps, 250) + Math.min(wNet / 500, 80);
 }
 
 function TabBar() {
@@ -131,14 +136,10 @@ function TabBar() {
   );
 }
 
-// ── card ──────────────────────────────────────────────────────
-function MoverCard({ t, cooling }) {
-  const reasons = cooling ? getCoolingReasons(t) : getReasons(t);
-  const px = t.priceChange7d;
-  const pxColor =
-    px == null ? "var(--text-faint)" : px >= 0 ? "var(--gate-ok-text)" : "var(--gate-fail-text)";
-  const signalText = SIGNAL_NORMIE[t.signal] || null;
-  const profText = PROF_NORMIE[t.Prof] || null;
+function StatCard({ t, tag }) {
+  const facts = getNotableFacts(t);
+  const read = t.read || null;
+  const prof = t.Prof || null;
 
   return (
     <div
@@ -146,11 +147,12 @@ function MoverCard({ t, cooling }) {
         background: "var(--card-bg)",
         border: "1px solid var(--border)",
         borderRadius: "10px",
-        padding: "14px 16px",
+        padding: "12px 14px",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: "6px",
         minWidth: 0,
+        height: "fit-content",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" }}>
@@ -159,90 +161,106 @@ function MoverCard({ t, cooling }) {
             {t.Project}
           </div>
           <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "2px" }}>
-            {t.Symbol} · {fmtUsd(t.marketCapUsd)} mcap
+            {t.Symbol}
+            {t.marketCapUsd != null ? ` · ${fmtUsd(t.marketCapUsd)} mcap` : ""}
           </div>
         </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text)" }}>
-            {fmtPrice(t.priceUsd)}
-            {t.priceSource === "dexscreener" && (
-              <span style={{ opacity: 0.5, fontSize: "11px" }}>*</span>
-            )}
-          </div>
-          <div style={{ fontSize: "12px", fontWeight: 600, color: pxColor }}>
-            {fmtPct(px)} <span style={{ fontWeight: 400, color: "var(--text-faint)" }}>24h</span>
-          </div>
-        </div>
+        {tag ? (
+          <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-faint)", flexShrink: 0, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            {tag}
+          </span>
+        ) : null}
       </div>
 
-      {(signalText || profText) && (
+      {(read || prof) && (
         <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
-          {signalText && (
+          {read && (
             <span
               style={{
                 fontSize: "10px",
                 padding: "2px 7px",
-                borderRadius: "999px",
-                background: cooling ? "var(--read-coral-bg)" : "var(--read-teal-bg)",
-                color: cooling ? "var(--read-coral-text)" : "var(--read-teal-text)",
-              }}
-            >
-              {signalText}
-            </span>
-          )}
-          {profText && (
-            <span
-              style={{
-                fontSize: "10px",
-                padding: "2px 7px",
-                borderRadius: "999px",
+                borderRadius: "4px",
                 background: "var(--badge-neutral-bg)",
                 color: "var(--badge-neutral-text)",
               }}
             >
-              {profText}
+              {read}
+            </span>
+          )}
+          {prof && (
+            <span
+              style={{
+                fontSize: "10px",
+                padding: "2px 7px",
+                borderRadius: "4px",
+                background: "var(--bg-subtle)",
+                color: "var(--text-muted)",
+              }}
+            >
+              {prof}
             </span>
           )}
         </div>
       )}
 
-      {reasons.length > 0 ? (
-        <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
-          {reasons.map((r, i) => (
-            <li key={i} style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.4 }}>
+      {facts.length > 0 ? (
+        <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "2px" }}>
+          {facts.map((r, i) => (
+            <li key={i} style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.35 }}>
               {r}
             </li>
           ))}
         </ul>
       ) : (
         <div style={{ fontSize: "12px", color: "var(--text-faint)" }}>
-          {cooling ? "Activity quietly winding down." : "Steady on-chain activity — nothing flashy, nothing broken."}
+          Quiet week on the usual WoW metrics — listed for context.
         </div>
       )}
     </div>
   );
 }
 
+function Section({ title, hint, children }) {
+  return (
+    <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "8px" }}>
+        <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text)" }}>
+          {title}
+        </div>
+        {hint ? (
+          <div style={{ fontSize: "12px", color: "var(--text-faint)", marginTop: "3px", lineHeight: 1.4 }}>
+            {hint}
+          </div>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 // ── panel ─────────────────────────────────────────────────────
 export default function MoversPanel({ data, lastUpdated }) {
-  const withData = data.filter(
-    (t) => t.signalScore != null && t.priceUsd != null && t.Opp != null
-  );
+  const withData = data.filter((t) => t.Opp != null && t.Project);
 
-  const heating = [...withData]
-    .sort((a, b) => (b.signalScore ?? -999) - (a.signalScore ?? -999) || (b.Opp ?? 0) - (a.Opp ?? 0))
-    .slice(0, 4);
+  const activityPool = [...withData]
+    .filter((t) => activityNotability(t) >= 35)
+    .sort((a, b) => activityNotability(b) - activityNotability(a));
 
-  const heatingNames = new Set(heating.map((t) => t.Project));
-  const cooling = [...withData]
-    .filter((t) => !heatingNames.has(t.Project))
-    .sort((a, b) => (a.signalScore ?? 999) - (b.signalScore ?? 999))
-    .slice(0, 4);
+  const whalePool = [...withData]
+    .filter((t) => Math.abs(t["Whale Net 7d"] ?? 0) >= 2500)
+    .sort((a, b) => whaleNotability(b) - whaleNotability(a));
+
+  const activity = activityPool.slice(0, 6);
+  const activityNames = new Set(activity.map((t) => t.Project));
+  const whales = whalePool.filter((t) => !activityNames.has(t.Project)).slice(0, 6);
+  // If whale section would be thin, allow overlap so we still show prints
+  const whaleCards = whales.length >= 3 ? whales : whalePool.slice(0, 6);
 
   const gridStyle = {
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: "12px",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: "10px",
+    alignItems: "start",
   };
 
   return (
@@ -250,36 +268,38 @@ export default function MoversPanel({ data, lastUpdated }) {
       <StatusBanner lastUpdated={lastUpdated} />
       <TabBar />
 
-      <div style={{ marginBottom: "14px" }}>
+      <div style={{ marginBottom: "16px", maxWidth: "720px" }}>
         <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: 1.5 }}>
-          Which Base AI coins are actually moving right now — and why. Read straight
-          from on-chain activity: real volume, real wallets, real whale flows. No hype feeds.
+          Biggest on-chain swings this week — volume, wallets, whale flow. Not a price board.
+          A spike can mean a dip bid, an exit, or noise (hack churn counts). Second look, not a call.
         </div>
       </div>
 
-      <div>
-        <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--gate-ok-text)", marginBottom: "10px" }}>
-          Heating up
-        </div>
+      <Section
+        title="Activity swings"
+        hint="Largest week-over-week moves in DEX volume, transactions, or active wallets — up or down."
+      >
         <div className="movers-grid" style={gridStyle}>
-          {heating.map((t) => (
-            <MoverCard key={t.Project} t={t} />
-          ))}
+          {activity.length === 0 ? (
+            <div style={{ fontSize: "13px", color: "var(--text-faint)" }}>No large activity swings in the latest scrape.</div>
+          ) : (
+            activity.map((t) => <StatCard key={t.Project} t={t} tag="activity" />)
+          )}
         </div>
-      </div>
+      </Section>
 
-      {cooling.length > 0 && (
-        <div style={{ marginTop: "22px" }}>
-          <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--gate-fail-text)", marginBottom: "10px" }}>
-            Cooling off
-          </div>
-          <div className="movers-grid" style={gridStyle}>
-            {cooling.map((t) => (
-              <MoverCard key={t.Project} t={t} cooling />
-            ))}
-          </div>
+      <Section
+        title="Whale flow"
+        hint="Largest whale net flows over 7d. Size is relative to each token; direction alone isn’t a thesis."
+      >
+        <div className="movers-grid" style={gridStyle}>
+          {whaleCards.length === 0 ? (
+            <div style={{ fontSize: "13px", color: "var(--text-faint)" }}>No large whale nets in the latest scrape.</div>
+          ) : (
+            whaleCards.map((t) => <StatCard key={`w-${t.Project}`} t={t} tag="whales" />)
+          )}
         </div>
-      )}
+      </Section>
 
       <style>{`
         @media (max-width: 1100px) {

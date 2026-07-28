@@ -180,10 +180,10 @@ export default function AboutPanel() {
 
         <h3 style={{ color: "var(--text)" }}>Movers</h3>
         <p style={{ color: "var(--text-muted)" }}>
-          The homepage (<strong style={{ color: "var(--text)" }}>Movers</strong> tab). Surfaces tokens that
-          are heating up or cooling off using signal score, opportunity, volume/user growth, retention,
-          and whale flow — explained in plain English. Not a ranked buy list; a quick read of what&apos;s
-          moving on-chain right now.
+          The homepage (<strong style={{ color: "var(--text)" }}>Movers</strong> tab). Shows the biggest
+          on-chain swings this week — volume / wallets / txs, plus large whale net flows — in plain English.
+          Not a price board and not “heating up / cooling off”: a spike can be a dip bid, an exit, or noise.
+          Second look, not a call.
         </p>
 
         <h3 style={{ color: "var(--text)" }}>Forecast <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--read-amber-text)", background: "var(--read-amber-bg)", padding: "2px 7px", borderRadius: "999px", marginLeft: "6px" }}>v1 beta</span></h3>
@@ -284,7 +284,7 @@ export default function AboutPanel() {
 
         <h3 style={{ color: "var(--text)", marginTop: "28px" }}>Tabs</h3>
         <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
-          <li><strong style={{ color: "var(--text)" }}>Movers</strong> — homepage: heating up / cooling off, plain English</li>
+          <li><strong style={{ color: "var(--text)" }}>Movers</strong> — homepage: biggest on-chain swings &amp; whale flow</li>
           <li><strong style={{ color: "var(--text)" }}>Forecast</strong> — v1 beta paper race: Momentum Hunt, Sticky Flow, Whale Shadow vs Top 10 Mcap</li>
           <li><strong style={{ color: "var(--text)" }}>Overview</strong> — scores, profile, price, signal</li>
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction twins (<code>24h | 7d | 30d</code>)</li>
