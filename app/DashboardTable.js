@@ -164,6 +164,89 @@ function saveCompact(on) {
   } catch {}
 }
 
+const PERIOD_TABS = new Set(["Activity", "Wallets", "Buyers"]);
+const PERIOD_ALWAYS = new Set([null, undefined, "live"]); // Project (no window) + Market Cap
+
+function loadPeriod() {
+  try {
+    const v = localStorage.getItem("zdash-period");
+    if (v === "7d" || v === "30d") return v;
+  } catch {}
+  return "7d";
+}
+
+function savePeriod(period) {
+  try { localStorage.setItem("zdash-period", period); } catch {}
+}
+
+function loadWhalesView() {
+  try {
+    const v = localStorage.getItem("zdash-whales-view");
+    if (v === "flow" || v === "context") return v;
+  } catch {}
+  return "flow";
+}
+
+function saveWhalesView(view) {
+  try { localStorage.setItem("zdash-whales-view", view); } catch {}
+}
+
+function filterColumnsForView(cols, { activeTab, period, whalesView }) {
+  if (!cols?.length) return cols || [];
+  if (PERIOD_TABS.has(activeTab)) {
+    return cols.filter((c) => {
+      if (c.key === "Project" || c.key === "name") return true;
+      if (PERIOD_ALWAYS.has(c.window)) return true;
+      if (period === "7d") return c.window === "7d" || c.window === "WoW";
+      return c.window === "30d";
+    });
+  }
+  if (activeTab === "Whales & Risk") {
+    return cols.filter((c) => {
+      if (c.key === "Project") return true;
+      if (c.window === "live") return true;
+      if (whalesView === "flow") return c.window === "7d";
+      // Context: threshold, 30d concentration, scores, age (no window)
+      return c.window === "30d thr" || c.window === "30d" || c.window === "score" || !c.window;
+    });
+  }
+  return cols;
+}
+
+function SegmentedControl({ options, value, onChange, ariaLabel }) {
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      style={{ display: "inline-flex", borderRadius: "6px", border: "1px solid var(--btn-inactive-border)", overflow: "hidden", flexShrink: 0 }}
+    >
+      {options.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            style={{
+              padding: "5px 12px",
+              border: "none",
+              borderRight: opt === options[options.length - 1] ? "none" : "1px solid var(--btn-inactive-border)",
+              background: active ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+              color: active ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: active ? 600 : 400,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "The Wire", "About"];
 
 const GATE_ADDRESS = "0xc22B7b983EC81523c969753c2385106835E8CfCE";
@@ -639,6 +722,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
   const [compact, setCompact] = useState(() => loadCompact());
   const [tableMode, setTableMode] = useState("summary"); // mobile hybrid: summary | full
+  const [period, setPeriod] = useState(() => loadPeriod());
+  const [whalesView, setWhalesView] = useState(() => loadWhalesView());
   const dragKeyRef = useRef(null);
   const rootRef = useRef(null);
   const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip, toggle: toggleTooltip } = useDelayedTooltip();
@@ -650,10 +735,16 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       const tab = new URLSearchParams(window.location.search).get("tab");
       if (tab && TAB_ORDER.includes(tab)) {
         setActiveTab(tab);
-        const firstNumeric = TABS[tab]?.find((c) => c.type === "number");
-        if (firstNumeric) setSortKey(firstNumeric.key);
-        else if (TABS[tab]?.[0]) setSortKey(TABS[tab][0].key);
-        else if (tab === "Watchlist") setSortKey("Opp");
+        if (!["The Wire", "About", "CLAWD", "Watchlist"].includes(tab)) {
+          const filtered = filterColumnsForView(TABS[tab] || [], {
+            activeTab: tab,
+            period: loadPeriod(),
+            whalesView: loadWhalesView(),
+          });
+          const firstNumeric = filtered.find((c) => c.type === "number");
+          if (firstNumeric) setSortKey(firstNumeric.key);
+          else if (filtered[0]) setSortKey(filtered[0].key);
+        } else if (tab === "Watchlist") setSortKey("Opp");
       }
     } catch {}
   }, []);
@@ -746,8 +837,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const isDiscover = activeTab === "Discover";
   const isWatchlist = activeTab === "Watchlist";
   const isSpecialTab = isTripwire || isAbout || isClawd || isWatchlist;
-  const columns = isSpecialTab ? [] : TABS[activeTab];
+  const rawColumns = isSpecialTab ? [] : (TABS[activeTab] || []);
+  const columns = filterColumnsForView(rawColumns, { activeTab, period, whalesView });
   const windowLegend = tabWindowLegend(columns);
+  const showPeriodToggle = PERIOD_TABS.has(activeTab);
+  const showWhalesToggle = activeTab === "Whales & Risk";
   const rawSource = isDiscover ? discoveryData : data;
   const sourceData = isSpecialTab ? [] : Array.isArray(rawSource) ? rawSource : [];
   const rowKeyField = isDiscover ? "address" : "Address";
@@ -830,10 +924,24 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   function handleTabChange(tab) {
     setActiveTab(tab);
     if (["The Wire", "About", "CLAWD", "Watchlist"].includes(tab)) return;
-    const firstNumeric = TABS[tab]?.find((c) => c.type === "number");
-    setSortKey(firstNumeric ? firstNumeric.key : TABS[tab]?.[0]?.key);
+    const filtered = filterColumnsForView(TABS[tab] || [], {
+      activeTab: tab,
+      period,
+      whalesView,
+    });
+    const firstNumeric = filtered.find((c) => c.type === "number");
+    setSortKey(firstNumeric ? firstNumeric.key : filtered[0]?.key || "Project");
     setSortDir("desc");
   }
+
+  // If period/view hides the active sort column, fall back to first visible numeric.
+  useEffect(() => {
+    if (!columns.length) return;
+    if (columns.some((c) => c.key === sortKey)) return;
+    const firstNumeric = columns.find((c) => c.type === "number");
+    setSortKey(firstNumeric ? firstNumeric.key : columns[0].key);
+    setSortDir("desc");
+  }, [columns, sortKey]);
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -1189,6 +1297,28 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           Tip: primary tabs + More · summary cards by default on Overview/Whales · Full table for every column. ⭐ watch · 📍 pin.
         </p>
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+          {showPeriodToggle && (
+            <SegmentedControl
+              ariaLabel="Period window"
+              value={period}
+              onChange={(next) => { savePeriod(next); setPeriod(next); }}
+              options={[
+                { value: "7d", label: "7d" },
+                { value: "30d", label: "30d" },
+              ]}
+            />
+          )}
+          {showWhalesToggle && (
+            <SegmentedControl
+              ariaLabel="Whales view"
+              value={whalesView}
+              onChange={(next) => { saveWhalesView(next); setWhalesView(next); }}
+              options={[
+                { value: "flow", label: "Flow" },
+                { value: "context", label: "Context" },
+              ]}
+            />
+          )}
           {showHybrid && (
             <button
               type="button"
