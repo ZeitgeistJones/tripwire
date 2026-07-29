@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 export const MOBILE_PRIMARY_TABS = ["Overview", "Whales & Risk", "Watchlist", "Activity"];
-export const MOBILE_MORE_TABS = ["Buyers", "Wallets", "Growth", "Discover", "CLAWD", "The Wire", "About"];
+export const MOBILE_MORE_TABS = ["Buyers", "Wallets", "Growth", "Discover", "CLAWD", "The Wire", "Forecast", "About"];
 
 const chipBase = {
   padding: "8px 16px",
@@ -117,7 +117,6 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
   return (
     <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "6px" }}>
       <Link href="/" style={chipStyle(false)}>Movers</Link>
-      <Link href="/forecast" style={chipStyle(false)}>Forecast</Link>
       {MOBILE_PRIMARY_TABS.map((tab) => (
         <button
           key={tab}
@@ -131,7 +130,56 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
       <MoreMenu
         items={MOBILE_MORE_TABS.map((t) => ({ key: t, label: labelOf(t) }))}
         activeKey={activeTab}
-        onSelect={onTabChange}
+        onSelect={(key) => {
+          if (key === "Forecast") {
+            window.location.href = "/forecast";
+            return;
+          }
+          onTabChange(key);
+        }}
+        renderItem={({ key, label, active, close }) => {
+          if (key === "Forecast") {
+            return (
+              <Link
+                href="/forecast"
+                onClick={close}
+                style={{
+                  ...chipBase,
+                  display: "block",
+                  border: "none",
+                  background: active ? "var(--btn-active-bg)" : "transparent",
+                  color: active ? "var(--btn-active-text)" : "var(--text)",
+                  fontWeight: active ? 600 : 400,
+                  borderRadius: "6px",
+                }}
+              >
+                {label}
+              </Link>
+            );
+          }
+          return (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                close();
+                onTabChange(key);
+              }}
+              style={{
+                ...chipBase,
+                width: "100%",
+                textAlign: "left",
+                border: "none",
+                background: active ? "var(--btn-active-bg)" : "transparent",
+                color: active ? "var(--btn-active-text)" : "var(--text)",
+                fontWeight: active ? 600 : 400,
+                borderRadius: "6px",
+              }}
+            >
+              {label}
+            </button>
+          );
+        }}
       />
     </div>
   );
@@ -140,6 +188,7 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
 /** Movers / Forecast: link-based mobile nav with ?tab= deep links */
 export function LinkMobileNav({ currentPage }) {
   const dashHref = (tab) => `/dashboard?tab=${encodeURIComponent(tab)}`;
+  const moreItems = MOBILE_MORE_TABS.map((t) => ({ key: t, label: t === "Whales & Risk" ? "Whales" : t }));
   return (
     <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "16px" }}>
       {currentPage === "movers" ? (
@@ -147,29 +196,25 @@ export function LinkMobileNav({ currentPage }) {
       ) : (
         <Link href="/" style={chipStyle(false)}>Movers</Link>
       )}
-      {currentPage === "forecast" ? (
-        <span style={chipStyle(true)}>Forecast</span>
-      ) : (
-        <Link href="/forecast" style={chipStyle(false)}>Forecast</Link>
-      )}
       {MOBILE_PRIMARY_TABS.map((tab) => (
         <Link key={tab} href={dashHref(tab)} style={chipStyle(false)}>
           {tab === "Whales & Risk" ? "Whales" : tab}
         </Link>
       ))}
       <MoreMenu
-        items={MOBILE_MORE_TABS}
-        activeKey={null}
-        renderItem={({ key, label, close }) => (
+        items={moreItems}
+        activeKey={currentPage === "forecast" ? "Forecast" : null}
+        renderItem={({ key, label, active, close }) => (
           <Link
-            href={dashHref(key)}
+            href={key === "Forecast" ? "/forecast" : dashHref(key)}
             onClick={close}
             style={{
               ...chipBase,
               display: "block",
               border: "none",
-              background: "transparent",
-              color: "var(--text)",
+              background: active ? "var(--btn-active-bg)" : "transparent",
+              color: active ? "var(--btn-active-text)" : "var(--text)",
+              fontWeight: active ? 600 : 400,
               borderRadius: "6px",
             }}
           >

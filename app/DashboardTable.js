@@ -1278,7 +1278,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     </div>
   );
 
-  const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire", "About"];
+  const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire"];
+  // About + Forecast render after core tabs (Forecast is a separate route, late in nav)
   const hybridClass = showHybrid
     ? (tableMode === "full" ? "tw-hybrid-full" : "tw-hybrid-summary")
     : "";
@@ -1300,18 +1301,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         >
           Movers
         </Link>
-        <Link
-          href="/forecast"
-          style={{
-            padding: "8px 16px", borderRadius: "6px",
-            border: "1px solid var(--btn-inactive-border)",
-            background: "var(--btn-inactive-bg)",
-            color: "var(--btn-inactive-text)",
-            fontWeight: 400, textDecoration: "none",
-          }}
-        >
-          Forecast
-        </Link>
         {allTabsToRender.map((tab) => (
           <button
             key={tab}
@@ -1327,6 +1316,30 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
             {tabLabel(tab)}
           </button>
         ))}
+        <Link
+          href="/forecast"
+          style={{
+            padding: "8px 16px", borderRadius: "6px",
+            border: "1px solid var(--btn-inactive-border)",
+            background: "var(--btn-inactive-bg)",
+            color: "var(--btn-inactive-text)",
+            fontWeight: 400, textDecoration: "none",
+          }}
+        >
+          Forecast
+        </Link>
+        <button
+          onClick={() => handleTabChange("About")}
+          style={{
+            padding: "8px 16px", borderRadius: "6px",
+            border: activeTab === "About" ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+            background: activeTab === "About" ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+            color: activeTab === "About" ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+            cursor: "pointer", fontWeight: activeTab === "About" ? 600 : 400,
+          }}
+        >
+          About
+        </button>
       </div>
 
       <DashboardMobileNav
@@ -1338,6 +1351,13 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       {!isSpecialTab && windowLegend && (
         <p style={{ fontSize: "11px", color: "var(--text-faint)", margin: "0 0 8px", letterSpacing: "0.01em" }}>
           {windowLegend}
+        </p>
+      )}
+      {activeTab === "Wallets" && (period === "24h" || period === "7d") && (
+        <p style={{ fontSize: "11px", color: "var(--text-faint)", margin: "0 0 8px", lineHeight: 1.4 }}>
+          {period === "24h"
+            ? "24h shows wallet count only — New / Returning and Avg Txs Ret need longer windows (30d / 7d)."
+            : "Avg Txs Ret is 7d-only. New / Returning wallets show on 30d."}
         </p>
       )}
 

@@ -285,10 +285,9 @@ export default function AboutPanel() {
         <h3 style={{ color: "var(--text)", marginTop: "28px" }}>Tabs</h3>
         <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
           <li><strong style={{ color: "var(--text)" }}>Movers</strong> — homepage: biggest on-chain swings &amp; whale flow</li>
-          <li><strong style={{ color: "var(--text)" }}>Forecast</strong> — v1 beta paper race: Momentum Hunt, Sticky Flow, Whale Shadow vs Top 10 Mcap</li>
           <li><strong style={{ color: "var(--text)" }}>Overview</strong> — scores, profile, price, signal</li>
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction twins (<code>24h | 7d | 30d</code>)</li>
-          <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts by period; New/Returning on 30d</li>
+          <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts by period; New/Returning on 30d; Avg Txs Ret on 7d</li>
           <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — traders, buyers/sellers, first buyers/sellers, buy/sell ratio, Buy Vol %</li>
           <li><strong style={{ color: "var(--text)" }}>Growth</strong> — WoW rates: Vol/Tx/User Grw %, Retention %, Signal</li>
           <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — Flow (<code>24h | 7d</code>) + Context (threshold, concentration, scores, age)</li>
@@ -296,6 +295,7 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
           <li><strong style={{ color: "var(--text)" }}>The Wire</strong> — on-demand pulse across tracked tokens (temporarily under construction)</li>
+          <li><strong style={{ color: "var(--text)" }}>Forecast</strong> — v1 beta paper race (experiment, not the main product)</li>
           <li><strong style={{ color: "var(--text)" }}>About</strong> — this page</li>
         </ul>
 

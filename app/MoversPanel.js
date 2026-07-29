@@ -10,6 +10,7 @@ function fmtUsd(n) {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
+/** Core dashboard tabs; Forecast sits late (before About). */
 const DASH_TABS = [
   "Overview",
   "Activity",
@@ -21,8 +22,15 @@ const DASH_TABS = [
   "Watchlist",
   "CLAWD",
   "The Wire",
+  "Forecast",
   "About",
 ];
+
+function toneColor(tone) {
+  if (tone === "up") return "var(--gate-ok-text)";
+  if (tone === "down") return "var(--gate-fail-text)";
+  return "var(--text-muted)";
+}
 
 /** Plain-English on-chain facts — no price calls, no bullish/bearish spin. */
 function getNotableFacts(t) {
@@ -40,24 +48,33 @@ function getNotableFacts(t) {
 
   if (vol != null && Math.abs(vol) >= 30) {
     const abs = Math.round(Math.abs(vol));
-    if (vol >= 200) facts.push({ w: abs, text: `DEX volume ~${Math.round(vol / 100) + 1}× vs prior week` });
-    else if (vol >= 100) facts.push({ w: abs, text: "DEX volume more than doubled vs prior week" });
-    else if (vol >= 30) facts.push({ w: abs, text: `DEX volume up ${abs}% vs prior week` });
-    else facts.push({ w: abs, text: `DEX volume down ${abs}% vs prior week` });
+    const tone = vol >= 0 ? "up" : "down";
+    if (vol >= 200) facts.push({ w: abs, tone, text: `DEX volume ~${Math.round(vol / 100) + 1}× vs prior week` });
+    else if (vol >= 100) facts.push({ w: abs, tone, text: "DEX volume more than doubled vs prior week" });
+    else if (vol >= 30) facts.push({ w: abs, tone, text: `DEX volume up ${abs}% vs prior week` });
+    else facts.push({ w: abs, tone, text: `DEX volume down ${abs}% vs prior week` });
   }
 
   if (txg != null && Math.abs(txg) >= 40) {
     const abs = Math.round(Math.abs(txg));
-    facts.push({ w: abs * 0.85, text: `Transactions ${txg >= 0 ? "up" : "down"} ${abs}% vs prior week` });
+    facts.push({
+      w: abs * 0.85,
+      tone: txg >= 0 ? "up" : "down",
+      text: `Transactions ${txg >= 0 ? "up" : "down"} ${abs}% vs prior week`,
+    });
   }
 
   if (usr != null && Math.abs(usr) >= 30) {
     const abs = Math.round(Math.abs(usr));
-    facts.push({ w: abs * 0.9, text: `Active wallets ${usr >= 0 ? "up" : "down"} ${abs}% vs prior week` });
+    facts.push({
+      w: abs * 0.9,
+      tone: usr >= 0 ? "up" : "down",
+      text: `Active wallets ${usr >= 0 ? "up" : "down"} ${abs}% vs prior week`,
+    });
   }
 
   if (ret != null && ret >= 45) {
-    facts.push({ w: ret * 0.7, text: `${Math.round(ret)}% of last week's wallets returned` });
+    facts.push({ w: ret * 0.7, tone: "neutral", text: `${Math.round(ret)}% of last week's wallets returned` });
   }
 
   if (wNet != null && Math.abs(wNet) >= 2500) {
@@ -65,6 +82,7 @@ function getNotableFacts(t) {
     const who = wNet > 0 ? wBuyers : wSellers;
     facts.push({
       w: 80 + Math.min(Math.abs(wNet) / 1000, 80),
+      tone: wNet > 0 ? "up" : "down",
       text: `Whale net ${dir} ${fmtUsd(Math.abs(wNet))}${who ? ` · ${who} large wallets` : ""}`,
     });
   }
@@ -72,17 +90,19 @@ function getNotableFacts(t) {
   if (acc != null && (acc >= 65 || acc <= 35) && wNet != null && Math.abs(wNet) >= 1000) {
     facts.push({
       w: 50 + Math.abs(acc - 50),
+      tone: acc >= 65 ? "up" : "down",
       text: `Whale accum ${Math.round(acc)}% (buys share of whale volume)`,
     });
   }
 
   if (whaleVol != null && whaleVol >= 55) {
-    facts.push({ w: whaleVol * 0.6, text: `Whales = ${Math.round(whaleVol)}% of 7d dollar volume` });
+    facts.push({ w: whaleVol * 0.6, tone: "neutral", text: `Whales = ${Math.round(whaleVol)}% of 7d dollar volume` });
   }
 
   if (rNet != null && wNet != null && Math.sign(rNet) !== Math.sign(wNet) && Math.abs(wNet) >= 2500 && Math.abs(rNet) >= 2500) {
     facts.push({
       w: 70,
+      tone: "neutral",
       text: wNet > 0
         ? `Whales buying while retail net sold ${fmtUsd(Math.abs(rNet))}`
         : `Whales selling while retail net bought ${fmtUsd(Math.abs(rNet))}`,
@@ -90,7 +110,7 @@ function getNotableFacts(t) {
   }
 
   facts.sort((a, b) => b.w - a.w);
-  return facts.slice(0, 3).map((f) => f.text);
+  return facts.slice(0, 3).map(({ text, tone }) => ({ text, tone: tone || "neutral" }));
 }
 
 function activityNotability(t) {
@@ -124,12 +144,15 @@ function TabBar() {
     <>
       <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
         <span style={tabStyle(true)}>Movers</span>
-        <Link href="/forecast" style={tabStyle(false)}>Forecast</Link>
-        {DASH_TABS.map((tab) => (
-          <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
-            {tab}
-          </Link>
-        ))}
+        {DASH_TABS.map((tab) =>
+          tab === "Forecast" ? (
+            <Link key={tab} href="/forecast" style={tabStyle(false)}>Forecast</Link>
+          ) : (
+            <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
+              {tab}
+            </Link>
+          )
+        )}
       </div>
       <LinkMobileNav currentPage="movers" />
     </>
@@ -206,8 +229,8 @@ function StatCard({ t, tag }) {
       {facts.length > 0 ? (
         <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "2px" }}>
           {facts.map((r, i) => (
-            <li key={i} style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.35 }}>
-              {r}
+            <li key={i} style={{ fontSize: "12px", color: toneColor(r.tone), lineHeight: 1.35 }}>
+              {r.text}
             </li>
           ))}
         </ul>
@@ -253,7 +276,6 @@ export default function MoversPanel({ data, lastUpdated }) {
   const activity = activityPool.slice(0, 6);
   const activityNames = new Set(activity.map((t) => t.Project));
   const whales = whalePool.filter((t) => !activityNames.has(t.Project)).slice(0, 6);
-  // If whale section would be thin, allow overlap so we still show prints
   const whaleCards = whales.length >= 3 ? whales : whalePool.slice(0, 6);
 
   const gridStyle = {

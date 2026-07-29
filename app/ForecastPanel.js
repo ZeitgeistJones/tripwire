@@ -7,11 +7,13 @@ const DASH_TABS = [
   "Activity",
   "Wallets",
   "Buyers",
+  "Growth",
   "Whales & Risk",
   "Discover",
   "Watchlist",
   "CLAWD",
   "The Wire",
+  "Forecast",
   "About",
 ];
 
@@ -31,12 +33,14 @@ function TabBar() {
     <>
       <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
         <Link href="/" style={tabStyle(false)}>Movers</Link>
-        <span style={tabStyle(true)}>Forecast</span>
-        {DASH_TABS.map((tab) => (
-          <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
-            {tab}
-          </Link>
-        ))}
+        {DASH_TABS.map((tab) => {
+          if (tab === "Forecast") return <span key={tab} style={tabStyle(true)}>Forecast</span>;
+          return (
+            <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
+              {tab}
+            </Link>
+          );
+        })}
       </div>
       <LinkMobileNav currentPage="forecast" />
     </>
@@ -210,15 +214,26 @@ export default function ForecastPanel({ state }) {
       <TabBar />
       <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
       <div style={{ padding: "8px 0" }}>
-        <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
-          Forecast — the portfolio race
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px" }}>
+            Forecast
+          </div>
+          <span style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            color: "var(--read-amber-text)",
+            background: "var(--read-amber-bg)",
+            padding: "2px 8px",
+            borderRadius: "999px",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}>
+            v1 beta
+          </span>
         </div>
         <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "6px", maxWidth: "680px", lineHeight: 1.5 }}>
-          Four paper portfolios, no real money. Three formulas pick and size their own holdings from
-          on-chain behavior; the fourth just equal-weights the {holdingsCount} biggest market caps.
-          Every portfolio starts at ${startingValue}, stays fully invested, pays {feePct}% on every
-          trade, and rebalances when the behavioral data refreshes. Winner is whoever's worth the
-          most — including against the do-nothing baseline.
+          Paper portfolio experiment — no real money. Three on-chain formulas race a top-10 market-cap
+          baseline. Starts at ${startingValue}, {feePct}% fee per trade, rebalances when Dune data refreshes.
         </div>
       </div>
 
@@ -238,14 +253,14 @@ export default function ForecastPanel({ state }) {
         <span>Prices mark to market hourly</span>
       </div>
 
-      <div className="tw-forecast-cards" style={{ marginTop: "20px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(340px, 100%), 1fr))", gap: "14px" }}>
+      <div className="tw-forecast-cards" style={{ marginTop: "20px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px" }}>
         {leaderboard.map((p, i) => (
           <StrategyCard key={p.id} p={p} rank={i + 1} />
         ))}
       </div>
 
       {history.length > 1 && (
-        <div style={{ marginTop: "32px" }}>
+        <div style={{ marginTop: "28px" }}>
           <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)", marginBottom: "10px" }}>
             Value history
           </div>
@@ -278,7 +293,7 @@ export default function ForecastPanel({ state }) {
         </div>
       )}
 
-      <div style={{ marginTop: "32px", paddingBottom: "40px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.7 }}>
+      <div style={{ marginTop: "28px", paddingBottom: "40px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.65, maxWidth: "720px" }}>
         <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)", marginBottom: "8px" }}>
           The rules (nothing hidden)
         </div>
@@ -293,10 +308,14 @@ export default function ForecastPanel({ state }) {
         <strong>Rebalances</strong> happen when the underlying Dune data refreshes (with a{" "}
         {backstopHours}h backstop), not on a clock — trading on stale data is just noise.{" "}
         <strong>Formulas are versioned:</strong> when one changes, the history keeps flowing and the
-        card marks the era boundary, so a strategy can&apos;t quietly launder its past. This is a v1
-        beta experiment with fake money — not financial advice, not a recommendation, and the
-        formulas will sometimes be confidently wrong. That&apos;s what the race is for.
+        card marks the era boundary, so a strategy can&apos;t quietly launder its past. Paper money only —
+        not financial advice; formulas will sometimes be confidently wrong.
       </div>
+      <style>{`
+        @media (max-width: 720px) {
+          .tw-forecast-cards { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       </div>
     </div>
   );
