@@ -1,3 +1,4 @@
+import { getDashboardData } from "@/lib/getData";
 import AdminPanel from "./AdminPanel";
 
 export const metadata = {
@@ -5,7 +6,11 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminPage() {
+export const revalidate = 3600;
+
+export default async function AdminPage() {
+  const { rows, lastUpdated } = await getDashboardData().catch(() => ({ rows: [], lastUpdated: null }));
+
   return (
     <main
       className="page-shell"
@@ -13,13 +18,13 @@ export default function AdminPage() {
         padding: "20px 24px",
         fontFamily: "sans-serif",
         width: "100%",
-        maxWidth: "720px",
+        maxWidth: "820px",
         margin: "0 auto",
         boxSizing: "border-box",
         minHeight: "100vh",
       }}
     >
-      <AdminPanel />
+      <AdminPanel rows={rows} scoresLastUpdated={lastUpdated} />
     </main>
   );
 }

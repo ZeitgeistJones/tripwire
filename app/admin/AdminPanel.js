@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { buildWhaleCardPrompt, whalePromptTokenOptions } from "@/lib/whaleCardPrompt";
 
 const SECRET_KEY = "tripwire-admin-secret";
 
@@ -49,7 +50,41 @@ const cardStyle = {
   gap: "12px",
 };
 
-export default function AdminPanel() {
+function Segmented({ options, value, onChange, ariaLabel }) {
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      style={{ display: "inline-flex", borderRadius: "6px", border: "1px solid var(--btn-inactive-border)", overflow: "hidden", flexShrink: 0 }}
+    >
+      {options.map((opt, i) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            style={{
+              padding: "5px 12px",
+              border: "none",
+              borderRight: i === options.length - 1 ? "none" : "1px solid var(--btn-inactive-border)",
+              background: active ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+              color: active ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: active ? 600 : 400,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
   const [secret, setSecret] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [unlockError, setUnlockError] = useState(null);
@@ -57,6 +92,18 @@ export default function AdminPanel() {
   const [analysis, setAnalysis] = useState(null);
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState(null);
+  const [whaleAddress, setWhaleAddress] = useState("");
+  const [whaleWindow, setWhaleWindow] = useState("7d");
+  const [whaleCopied, setWhaleCopied] = useState(false);
+
+  const tokenOptions = useMemo(() => whalePromptTokenOptions(rows), [rows]);
+  const rowByAddress = useMemo(() => {
+    const map = {};
+    for (const r of rows) {
+      if (r?.Address) map[r.Address.toLowerCase()] = r;
+    }
+    return map;
+  }, [rows]);
 
   useEffect(() => {
     try {
@@ -71,7 +118,21 @@ export default function AdminPanel() {
   useEffect(() => {
     if (!unlocked) return;
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlocked]);
+
+  useEffect(() => {
+    if (whaleAddress || !tokenOptions.length) return;
+    const clawd = tokenOptions.find((t) => t.project?.toUpperCase() === "CLAWD")
+      || tokenOptions.find((t) => (t.address || "").toLowerCase() === "0x9f86db9fc6f7c9408e8fda3ff8ce4e78ac7a6b07");
+    setWhaleAddress((clawd || tokenOptions[0]).address);
+  }, [tokenOptions, whaleAddress]);
+
+  const selectedRow = whaleAddress ? rowByAddress[whaleAddress.toLowerCase()] : null;
+  const whalePrompt = useMemo(
+    () => buildWhaleCardPrompt(selectedRow, whaleWindow, { scoresLastUpdated }),
+    [selectedRow, whaleWindow, scoresLastUpdated]
+  );
 
   const refresh = async () => {
     try {
@@ -95,7 +156,6 @@ export default function AdminPanel() {
     setUnlockError(null);
     setStatus("checking");
     try {
-      // Cheap auth probe: empty body → 400 if secret is good, 401 if not. No Gemini call.
       const res = await fetch("/api/clawd-report", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-secret": secret },
@@ -183,6 +243,17 @@ export default function AdminPanel() {
     }
   };
 
+  const copyWhalePrompt = async () => {
+    if (!whalePrompt) return;
+    try {
+      await navigator.clipboard.writeText(whalePrompt);
+      setWhaleCopied(true);
+      setTimeout(() => setWhaleCopied(false), 2000);
+    } catch {
+      setStatus("Clipboard failed — select the prompt and copy manually");
+    }
+  };
+
   const displayed = analysis?.text
     ? {
         kind: "ai",
@@ -209,7 +280,7 @@ export default function AdminPanel() {
         <div>
           <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 700, color: "var(--text)" }}>Admin</h1>
           <p style={{ margin: "6px 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            Generate and publish the CLAWD analyst report. Gemini key stays in Vercel.
+            CLAWD reports + whale card prompts for LLM share graphics.
           </p>
         </div>
         <Link href="/dashboard?tab=clawd" style={{ fontSize: "13px", color: "var(--text-faint)", textDecoration: "none" }}>
@@ -257,10 +328,83 @@ export default function AdminPanel() {
 
           <section style={cardStyle}>
             <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Whale card prompt
+            </h2>
+            <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+              Pick a token → copy → paste into ChatGPT / Claude / Gemini. Tuned for a sharable card: big-wallet story,
+              plain-English whale vs humpback definitions, data timestamp, and disclaimer. No Tripwire Gemini call.
+            </p>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 220px", minWidth: 0 }}>
+                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-faint)" }}>Token</span>
+                <select
+                  value={whaleAddress}
+                  onChange={(e) => setWhaleAddress(e.target.value)}
+                  style={{ ...inputStyle, maxWidth: "100%", cursor: "pointer" }}
+                >
+                  {tokenOptions.length === 0 ? (
+                    <option value="">No tokens loaded</option>
+                  ) : (
+                    tokenOptions.map((t) => (
+                      <option key={t.address} value={t.address}>{t.label}</option>
+                    ))
+                  )}
+                </select>
+              </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-faint)" }}>Flow window</span>
+                <Segmented
+                  ariaLabel="Whale flow window"
+                  value={whaleWindow}
+                  onChange={setWhaleWindow}
+                  options={[
+                    { value: "24h", label: "24h" },
+                    { value: "7d", label: "7d" },
+                  ]}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={copyWhalePrompt}
+                disabled={!whalePrompt}
+                style={{ ...primaryBtn, alignSelf: "flex-end", opacity: whalePrompt ? 1 : 0.6 }}
+              >
+                {whaleCopied ? "✓ Copied" : "Copy prompt"}
+              </button>
+            </div>
+            {selectedRow && (
+              <div style={{ fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.45 }}>
+                {selectedRow.Project}
+                {selectedRow["Whale Min $"] != null
+                  ? ` · whale threshold ~$${Number(selectedRow["Whale Min $"]).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                  : ""}
+                {scoresLastUpdated
+                  ? ` · scores as of ${new Date(scoresLastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
+                  : ""}
+              </div>
+            )}
+            <textarea
+              readOnly
+              value={whalePrompt}
+              rows={14}
+              style={{
+                ...inputStyle,
+                maxWidth: "100%",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+                fontSize: "11.5px",
+                resize: "vertical",
+                lineHeight: 1.45,
+                color: "var(--text-muted)",
+              }}
+            />
+          </section>
+
+          <section style={cardStyle}>
+            <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Gemini report
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
-              Writes the AI Analyst Report on the public CLAWD tab. Cached until scores change · ~1 call / 12h.
+              CLAWD analyst text for admin preview. Public CLAWD tab no longer shows this card.
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
               <button
@@ -286,8 +430,8 @@ export default function AdminPanel() {
             </div>
             {status && !busy && (
               <span style={{ fontSize: "12px", color: okStatuses.includes(status) ? "var(--gate-ok-text)" : "var(--gate-fail-text)" }}>
-                {status === "posted" ? "✓ Manual report live on CLAWD"
-                  : status === "generated" ? "✓ Report live on CLAWD"
+                {status === "posted" ? "✓ Manual report saved"
+                  : status === "generated" ? "✓ Report generated"
                   : status === "cached" ? "✓ Already up to date (no API call)"
                   : status}
               </span>
