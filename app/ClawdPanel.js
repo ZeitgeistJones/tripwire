@@ -135,21 +135,40 @@ function MiniSparkline({ data, color }) {
 
 function MetricCard({ label, sublabel, value, valueColor, rank, totalProjects, data, labels, color, formatY }) {
   const hasChart = Array.isArray(data) && data.length > 0;
+  const rankLabel = rank != null && totalProjects != null ? `#${rank} / ${totalProjects}` : null;
+
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden", background: "var(--card-bg)" }}>
+    <div style={{ border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden", background: "var(--card-bg)", height: "100%" }}>
       <div style={{ background: "var(--card-header-bg)", padding: "8px 12px" }}>
         <div style={{ fontWeight: 600, fontSize: "13px", color: "var(--text)" }}>{label}</div>
         <div style={{ fontSize: "11px", color: "var(--text-faint)" }}>{sublabel}</div>
       </div>
-      <div style={{ padding: hasChart ? "10px 12px 12px" : "10px 12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" }}>
-          <span style={{ fontSize: "22px", fontWeight: 600, color: valueColor, lineHeight: 1.15 }}>{value ?? "—"}</span>
-          {rank != null && totalProjects != null && (
-            <span style={{ fontSize: "11px", color: "var(--text-faint)", flexShrink: 0 }}>#{rank} / {totalProjects}</span>
+      {hasChart ? (
+        <div style={{ padding: "10px 12px 12px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" }}>
+            <span style={{ fontSize: "22px", fontWeight: 600, color: valueColor, lineHeight: 1.15 }}>{value ?? "—"}</span>
+            {rankLabel && <span style={{ fontSize: "11px", color: "var(--text-faint)", flexShrink: 0 }}>{rankLabel}</span>}
+          </div>
+          <Sparkline data={data} labels={labels} color={color} formatY={formatY} />
+        </div>
+      ) : (
+        <div style={{
+          padding: "18px 12px 20px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          minHeight: "88px",
+        }}>
+          <span style={{ fontSize: "32px", fontWeight: 700, color: valueColor, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
+            {value ?? "—"}
+          </span>
+          {rankLabel && (
+            <span style={{ fontSize: "12px", color: "var(--text-faint)", marginTop: "8px" }}>{rankLabel}</span>
           )}
         </div>
-        <Sparkline data={data} labels={labels} color={color} formatY={formatY} />
-      </div>
+      )}
     </div>
   );
 }
