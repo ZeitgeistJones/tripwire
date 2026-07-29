@@ -1,8 +1,6 @@
 "use client";
-import React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Chart, registerables } from "chart.js";
-import { buildAnalysisPrompt } from "../lib/clawdAnalysisPrompt";
 
 Chart.register(...registerables);
 
@@ -68,12 +66,13 @@ function cssVar(name, fallback) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-function Sparkline({ data, labels, color, formatY, emptyLabel = "No 8w history yet" }) {
+function Sparkline({ data, labels, color, formatY }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
+  const hasData = Array.isArray(data) && data.length > 0;
 
   useEffect(() => {
-    if (!canvasRef.current || !data || data.length === 0) return;
+    if (!canvasRef.current || !hasData) return;
     if (chartRef.current) chartRef.current.destroy();
 
     const gridColor = cssVar("--chart-grid", "rgba(136,135,128,0.15)");
@@ -85,7 +84,7 @@ function Sparkline({ data, labels, color, formatY, emptyLabel = "No 8w history y
         labels,
         datasets: [{
           data, borderColor: color, backgroundColor: color,
-          pointRadius: 2.5, borderWidth: 2, tension: 0.25,
+          pointRadius: 1.5, borderWidth: 2, tension: 0.25,
         }],
       },
       options: {
@@ -93,11 +92,11 @@ function Sparkline({ data, labels, color, formatY, emptyLabel = "No 8w history y
         plugins: { legend: { display: false } },
         scales: {
           x: {
-            ticks: { font: { size: 10 }, color: tickColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
+            ticks: { font: { size: 9 }, color: tickColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 5 },
             grid: { display: false },
           },
           y: {
-            ticks: { font: { size: 10 }, color: tickColor, maxTicksLimit: 4, callback: formatY || ((v) => Math.round(v * 10) / 10) },
+            ticks: { font: { size: 9 }, color: tickColor, maxTicksLimit: 3, callback: formatY || ((v) => Math.round(v * 10) / 10) },
             grid: { color: gridColor },
           },
         },
@@ -107,15 +106,9 @@ function Sparkline({ data, labels, color, formatY, emptyLabel = "No 8w history y
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(data), JSON.stringify(labels), color]);
 
-  if (!data || data.length === 0) {
-    return (
-      <p style={{ color: "var(--text-faint)", fontSize: "12px", margin: 0, minHeight: 90, display: "flex", alignItems: "center" }}>
-        {emptyLabel}
-      </p>
-    );
-  }
+  if (!hasData) return null;
   return (
-    <div style={{ position: "relative", height: "90px", width: "100%" }}>
+    <div style={{ position: "relative", height: "56px", width: "100%", marginTop: "4px" }}>
       <canvas ref={canvasRef} role="img" aria-label="Trend chart" />
     </div>
   );
@@ -140,21 +133,22 @@ function MiniSparkline({ data, color }) {
   );
 }
 
-function MetricCard({ label, sublabel, value, valueColor, rank, totalProjects, data, labels, color, formatY, emptyLabel }) {
+function MetricCard({ label, sublabel, value, valueColor, rank, totalProjects, data, labels, color, formatY }) {
+  const hasChart = Array.isArray(data) && data.length > 0;
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden", background: "var(--card-bg)" }}>
-      <div style={{ background: "var(--card-header-bg)", padding: "10px 16px" }}>
-        <div style={{ fontWeight: 600, fontSize: "15px", color: "var(--text)" }}>{label}</div>
-        <div style={{ fontSize: "12px", color: "var(--text-faint)" }}>{sublabel}</div>
+      <div style={{ background: "var(--card-header-bg)", padding: "8px 12px" }}>
+        <div style={{ fontWeight: 600, fontSize: "13px", color: "var(--text)" }}>{label}</div>
+        <div style={{ fontSize: "11px", color: "var(--text-faint)" }}>{sublabel}</div>
       </div>
-      <div style={{ padding: "14px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
-          <span style={{ fontSize: "26px", fontWeight: 600, color: valueColor }}>{value ?? "—"}</span>
+      <div style={{ padding: hasChart ? "10px 12px 12px" : "10px 12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" }}>
+          <span style={{ fontSize: "22px", fontWeight: 600, color: valueColor, lineHeight: 1.15 }}>{value ?? "—"}</span>
           {rank != null && totalProjects != null && (
-            <span style={{ fontSize: "12px", color: "var(--text-faint)" }}>Rank #{rank} of {totalProjects}</span>
+            <span style={{ fontSize: "11px", color: "var(--text-faint)", flexShrink: 0 }}>#{rank} / {totalProjects}</span>
           )}
         </div>
-        <Sparkline data={data} labels={labels} color={color} formatY={formatY} emptyLabel={emptyLabel} />
+        <Sparkline data={data} labels={labels} color={color} formatY={formatY} />
       </div>
     </div>
   );
@@ -355,209 +349,26 @@ function ProfileSignalBanner({ profile, signal, read }) {
   const explanation = COMBO_EXPLANATIONS[`${profile}|${signal}`] || "Explanation not available for this combination.";
   return (
     <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px",
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
       background: "var(--bg-subtle)", border: "1px solid var(--border)",
-      borderRadius: "8px", padding: "16px 20px", marginBottom: "20px", flexWrap: "wrap",
+      borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", flexWrap: "wrap",
     }}>
-      <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
         {read && (
-          <span style={{ fontSize: "16px", padding: "6px 14px", borderRadius: "6px", background: readColor.bg, color: readColor.text, fontWeight: 700 }}>
+          <span style={{ fontSize: "14px", padding: "4px 10px", borderRadius: "6px", background: readColor.bg, color: readColor.text, fontWeight: 700 }}>
             Read: {read}
           </span>
         )}
-        <span style={{ fontSize: "12px", padding: "4px 10px", borderRadius: "6px", background: "var(--badge-neutral-bg)", color: "var(--badge-neutral-text)", fontWeight: 500 }}>
+        <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", background: "var(--badge-neutral-bg)", color: "var(--badge-neutral-text)", fontWeight: 500 }}>
           Profile: {profile ?? "—"}
         </span>
-        <span style={{ fontSize: "12px", padding: "4px 10px", borderRadius: "6px", background: "var(--badge-neutral-bg)", color: "var(--badge-neutral-text)", fontWeight: 500 }}>
+        <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", background: "var(--badge-neutral-bg)", color: "var(--badge-neutral-text)", fontWeight: 500 }}>
           Signal: {signal ?? "—"}
         </span>
       </div>
-      <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0, maxWidth: "420px", textAlign: "right" }}>
+      <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0, maxWidth: "420px", textAlign: "right" }}>
         {explanation}
       </p>
-    </div>
-  );
-}
-
-function buildShareText(d) {
-  if (!d) return "";
-  const f = (v, fmt) => {
-    if (v == null || v === "") return "—";
-    const n = Number(v);
-    if (Number.isNaN(n)) return "—";
-    if (fmt === "usd") {
-      if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
-      if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
-      return "$" + Math.round(n).toLocaleString();
-    }
-    if (fmt === "usdSign") return (n < 0 ? "\u2212" : "+") + "$" + Math.abs(Math.round(n)).toLocaleString();
-    if (fmt === "price") return "$" + n.toPrecision(4);
-    if (fmt === "pct") return n.toFixed(1) + "%";
-    if (fmt === "dec") return n.toFixed(1);
-    if (fmt === "int") return Math.round(n).toLocaleString();
-    return String(n);
-  };
-
-  const signal = d.signal || "—";
-  const note = d.signalNote ? " \u00b7 " + d.signalNote : "";
-  const prof = d.Prof || "—";
-  const read = d.read || "—";
-
-  const lines = [
-    "\ud83d\udd17 $CLAWD \u2014 Under the Hood",
-    "",
-    "\ud83d\udcb0 " + f(d.priceUsd, "price") + " | MCap " + f(d.marketCapUsd, "usd"),
-    "\ud83d\udcca Opp " + f(d.Opp, "dec") + " | Mom " + f(d.Mom, "dec") + " | Sus " + f(d.Sus, "dec"),
-    "",
-    "\ud83d\udc33 Whale Flow (7d)",
-    "  Net: " + f(d["Whale Net 7d"], "usdSign") + " | Accum: " + f(d["Accum %"], "pct") + " | Buyers: " + f(d["Whale Buyers 7d"], "int") + " / Sellers: " + f(d["Whale Sellers 7d"], "int"),
-    "  Humpback Net: " + f(d["Hump Net 7d"], "usdSign") + " | Buyers: " + f(d["Hump Buyers 7d"], "int") + " / Sellers: " + f(d["Hump Sellers 7d"], "int"),
-    "  Retail Net: " + f(d["Retail Net 7d"], "usdSign") + " | Whale Vol: " + f(d["Whale Vol %"], "pct"),
-    "  W/R Divergence: " + f(d["Divergence Bps"], "dec") + " bps",
-    "",
-    "\ud83d\udcc8 Activity (7d)",
-    "  Txs: " + f(d["Txs 7d"], "int") + " | Wallets: " + f(d["Wallets 7d"], "int"),
-    "  Retention: " + f(d["Retention %"], "pct") + " | New: " + f(d["New %"], "pct"),
-    "  Vol: " + f(d["Vol 30d"], "usd") + " (30d) | Vol Grw: " + f(d["Vol Grw %"], "pct"),
-    "",
-    "Signal: " + signal + note,
-    "Profile: " + prof + " | Read: " + read,
-    "",
-    "tripwire.vercel.app",
-  ];
-  return lines.join("\n");
-}
-
-function buildObjectiveText(d) {
-  if (!d) return "";
-  const f = (v, fmt) => {
-    if (v == null || v === "") return "\u2014";
-    const n = Number(v);
-    if (Number.isNaN(n)) return "\u2014";
-    if (fmt === "usd") {
-      if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
-      if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
-      return "$" + Math.round(n).toLocaleString();
-    }
-    if (fmt === "usdSign") return (n < 0 ? "\u2212" : "+") + "$" + Math.abs(Math.round(n)).toLocaleString();
-    if (fmt === "price") return "$" + n.toPrecision(4);
-    if (fmt === "pct") return n.toFixed(1) + "%";
-    if (fmt === "int") return Math.round(n).toLocaleString();
-    return String(n);
-  };
-
-  const asOf = new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-
-  const lines = [
-    "$CLAWD \u2014 On-Chain Data (Base)",
-    "As of " + asOf + " \u00b7 source: Dune + CoinGecko/DexScreener",
-    "",
-    "PRICE & SIZE",
-    "  Price: " + f(d.priceUsd, "price"),
-    "  Market cap: " + f(d.marketCapUsd, "usd"),
-    "  30d DEX volume: " + f(d["Vol 30d"], "usd"),
-    "  30d volume change (WoW): " + f(d["Vol Grw %"], "pct"),
-    "",
-    "ACTIVITY (7d)",
-    "  Transactions: " + f(d["Txs 7d"], "int"),
-    "  Active wallets: " + f(d["Wallets 7d"], "int"),
-    "  Unique DEX traders (30d): " + f(d["Traders"], "int"),
-    "  Buyers: " + f(d["Buyers 7d"], "int") + " | Buy/Sell ratio (wallets): " + f(d["Buy/Sell Ratio"], "int"),
-    "  Buyer $ share of volume: " + f(d["Buy Vol %"], "pct"),
-    "",
-    "WALLET RETENTION (7d vs prior week)",
-    "  Retention: " + f(d["Retention %"], "pct") + " of last week's wallets returned",
-    "  New wallet share (30d): " + f(d["New %"], "pct"),
-    "",
-    "LARGE-TRADE FLOW (7d, DEX only)",
-    "  Whale threshold for this token: " + f(d["Whale Min $"], "usd") + "+ per trade",
-    "  Whale net flow: " + f(d["Whale Net 7d"], "usdSign") + " (" + f(d["Whale Buyers 7d"], "int") + " buyers / " + f(d["Whale Sellers 7d"], "int") + " sellers)",
-    "  Mega-trade (top 1%) net flow: " + f(d["Hump Net 7d"], "usdSign") + " (" + f(d["Hump Buyers 7d"], "int") + " buyers / " + f(d["Hump Sellers 7d"], "int") + " sellers)",
-    "  Non-large-trade net flow: " + f(d["Retail Net 7d"], "usdSign"),
-    "  Large trades as % of 7d volume: " + f(d["Whale Vol %"], "pct"),
-    "",
-    "Contract: " + (d.Address || "\u2014"),
-    "Verify independently: basescan.org / dexscreener.com",
-  ];
-  return lines.join("\n");
-}
-
-function buildCondensedText(d) {
-  if (!d) return "";
-  const f = (v, fmt) => {
-    if (v == null || v === "") return "—";
-    const n = Number(v);
-    if (Number.isNaN(n)) return "—";
-    if (fmt === "usd") {
-      if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
-      if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
-      return "$" + Math.round(n).toLocaleString();
-    }
-    if (fmt === "usdSign") return (n < 0 ? "\u2212" : "+") + "$" + Math.abs(Math.round(n)).toLocaleString();
-    if (fmt === "price") return "$" + n.toPrecision(4);
-    if (fmt === "pct") return n.toFixed(1) + "%";
-    if (fmt === "dec") return n.toFixed(1);
-    return String(n);
-  };
-
-  const signal = d.signal || "—";
-  const note = d.signalNote ? " \u00b7 " + d.signalNote : "";
-
-  return [
-    "$CLAWD " + f(d.priceUsd, "price") + " | " + (d.Prof || "") + " | " + signal + note,
-    "\ud83d\udc33 Whale net " + f(d["Whale Net 7d"], "usdSign") + " | Accum " + f(d["Accum %"], "pct") + " | Retail " + f(d["Retail Net 7d"], "usdSign"),
-    "\ud83d\udcc8 " + f(d["Wallets 7d"], "int") + " wallets | " + f(d["Retention %"], "pct") + " retention | Vol " + f(d["Vol Grw %"], "pct"),
-    "tripwire.vercel.app",
-  ].join("\n");
-}
-
-function ShareButtons({ clawdRow, history }) {
-  const [copied, setCopied] = React.useState(null);
-  const copy = (text, label) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(label);
-      setTimeout(() => setCopied(null), 2000);
-    });
-  };
-  const btnStyle = {
-    padding: "6px 12px",
-    borderRadius: "6px",
-    border: "1px solid var(--border)",
-    background: "var(--bg-subtle)",
-    color: "var(--text-muted)",
-    cursor: "pointer",
-    fontSize: "12px",
-    fontWeight: 600,
-  };
-  return (
-    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", margin: "0 0 20px" }}>
-      <button
-        style={btnStyle}
-        onClick={() => copy(buildShareText(clawdRow), "full")}
-      >
-        {copied === "full" ? "\u2713 Copied!" : "Copy full stats"}
-      </button>
-      <button
-        style={btnStyle}
-        onClick={() => copy(buildCondensedText(clawdRow), "short")}
-      >
-        {copied === "short" ? "\u2713 Copied!" : "Copy short version"}
-      </button>
-      <button
-        style={btnStyle}
-        onClick={() => copy(buildObjectiveText(clawdRow), "objective")}
-      >
-        {copied === "objective" ? "\u2713 Copied!" : "Copy objective data only"}
-      </button>
-      <button
-        style={btnStyle}
-        onClick={() => copy(buildAnalysisPrompt(clawdRow, history), "prompt")}
-      >
-        {copied === "prompt" ? "\u2713 Copied!" : "Copy analysis prompt"}
-      </button>
-      <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
-        Paste into Discord / Twitter / Farcaster / Telegram
-      </span>
     </div>
   );
 }
@@ -606,29 +417,28 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
 
   return (
     <div>
-      <h2 style={{ marginTop: 0, color: "var(--text)" }}>CLAWD — Health Check</h2>
+      <h2 style={{ marginTop: 0, marginBottom: "10px", color: "var(--text)", fontSize: "20px" }}>CLAWD — Health Check</h2>
 
       <ProfileSignalBanner profile={clawdRow?.["Prof"]} signal={clawdRow?.signal} read={clawdRow?.read} />
-      <ShareButtons clawdRow={clawdRow} history={behavioralHistory} />
 
-      {status === "loading" && <p style={{ color: "var(--text-muted)" }}>Loading history…</p>}
-      {status === "error"   && <p style={{ color: "#c0392b" }}>Couldn't load history: {errorMsg}</p>}
+      {status === "loading" && <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Loading history…</p>}
+      {status === "error"   && <p style={{ color: "#c0392b", fontSize: "13px" }}>Couldn't load history: {errorMsg}</p>}
       {priceHistory.error   && <p style={{ fontSize: "12px", color: "#c0392b", marginBottom: "8px" }}>Price/market cap history failed to load: {priceHistory.error}</p>}
 
       {status === "done" && (
         <>
           <SectionLabel>Behavioral</SectionLabel>
-          <div className="tw-clawd-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
-            <MetricCard label="Opportunity" sublabel="Score & trend (8w)" value={clawdRow?.["Opp"]} valueColor="#3B6D11" rank={opportunityRank} totalProjects={totalProjects} data={oppData} labels={weekLabels} color="#3B6D11" emptyLabel="No 8w history yet" />
-            <MetricCard label="Momentum" sublabel="Score & trend (8w)" value={clawdRow?.["Mom"]} valueColor="#185FA5" rank={momentumRank} totalProjects={totalProjects} data={momData} labels={weekLabels} color="#185FA5" emptyLabel="No 8w history yet" />
-            <MetricCard label="Sustainability" sublabel="Score & trend (8w)" value={clawdRow?.["Sus"]} valueColor="#854F0B" rank={sustainabilityRank} totalProjects={totalProjects} data={susData} labels={weekLabels} color="#854F0B" emptyLabel="No 8w history yet" />
+          <div className="tw-clawd-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "14px" }}>
+            <MetricCard label="Opportunity" sublabel={hasBehHistory ? "Score & 8w trend" : "Live score"} value={clawdRow?.["Opp"]} valueColor="#3B6D11" rank={opportunityRank} totalProjects={totalProjects} data={oppData} labels={weekLabels} color="#3B6D11" />
+            <MetricCard label="Momentum" sublabel={hasBehHistory ? "Score & 8w trend" : "Live score"} value={clawdRow?.["Mom"]} valueColor="#185FA5" rank={momentumRank} totalProjects={totalProjects} data={momData} labels={weekLabels} color="#185FA5" />
+            <MetricCard label="Sustainability" sublabel={hasBehHistory ? "Score & 8w trend" : "Live score"} value={clawdRow?.["Sus"]} valueColor="#854F0B" rank={sustainabilityRank} totalProjects={totalProjects} data={susData} labels={weekLabels} color="#854F0B" />
           </div>
 
           <SectionLabel>Market</SectionLabel>
-          <div className="tw-clawd-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
-            <MetricCard label="Wallets" sublabel="30d active, trend (8w)" value={clawdRow?.["Wallets 30d"]} valueColor="#3a6ea5" rank={walletsRank} totalProjects={totalProjects} data={walletsData} labels={weekLabels} color="#3a6ea5" formatY={(v) => Math.round(v)} emptyLabel="No 8w history yet" />
-            <MetricCard label="Market Cap" sublabel="USD, trend (60d)" value={clawdRow?.marketCapUsd != null ? formatUsd(clawdRow.marketCapUsd) : "—"} valueColor="#534AB7" rank={marketCapRank} totalProjects={totalProjects} data={mcapThinned.map((p) => p.y)} labels={mcapThinned.map((p) => p.x)} color="#534AB7" formatY={formatUsd} emptyLabel="No price history yet" />
-            <MetricCard label="Price" sublabel="USD, trend (60d)" value={clawdRow?.priceUsd != null ? formatPrice(clawdRow.priceUsd) : "—"} valueColor="#0F6E56" rank={null} totalProjects={totalProjects} data={priceThinned.map((p) => p.y)} labels={priceThinned.map((p) => p.x)} color="#0F6E56" formatY={formatPrice} emptyLabel="No price history yet" />
+          <div className="tw-clawd-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "14px" }}>
+            <MetricCard label="Wallets" sublabel={hasBehHistory ? "30d active · 8w trend" : "30d active"} value={clawdRow?.["Wallets 30d"]} valueColor="#3a6ea5" rank={walletsRank} totalProjects={totalProjects} data={walletsData} labels={weekLabels} color="#3a6ea5" formatY={(v) => Math.round(v)} />
+            <MetricCard label="Market Cap" sublabel="USD · 60d trend" value={clawdRow?.marketCapUsd != null ? formatUsd(clawdRow.marketCapUsd) : "—"} valueColor="#534AB7" rank={marketCapRank} totalProjects={totalProjects} data={mcapThinned.map((p) => p.y)} labels={mcapThinned.map((p) => p.x)} color="#534AB7" formatY={formatUsd} />
+            <MetricCard label="Price" sublabel="USD · 60d trend" value={clawdRow?.priceUsd != null ? formatPrice(clawdRow.priceUsd) : "—"} valueColor="#0F6E56" rank={null} totalProjects={totalProjects} data={priceThinned.map((p) => p.y)} labels={priceThinned.map((p) => p.x)} color="#0F6E56" formatY={formatPrice} />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "8px" }}>
@@ -645,7 +455,7 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
               ]}
             />
           </div>
-          <div className="tw-clawd-grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
+          <div className="tw-clawd-grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
             {sections.map((section, idx) => (
               <div key={`${section.title}-${idx}`} style={{
                 border: "1px solid var(--border)", borderRadius: "8px",
@@ -672,12 +482,16 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
         </>
       )}
 
-      <p style={{ fontSize: "12px", color: "var(--text-faint)", marginTop: "20px" }}>
-        {hasBehHistory
-          ? "Behavioral history is a true backtest — recomputed from on-chain activity as of each past date, including full cohort context, not just CLAWD in isolation. Refreshed roughly weekly, not live."
-          : "Behavioral 8w trend charts need Dune query 7767406 results. Live scores above still come from the main scrape; only the mini line charts are empty until that history query returns rows."}
-        {" "}Price/Market Cap history comes from CoinGecko.
-      </p>
+      {!hasBehHistory && status === "done" && (
+        <p style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "14px" }}>
+          8w score trends need Dune history query 7767406. Live scores above are from the main scrape; Price/MCap trends are CoinGecko.
+        </p>
+      )}
+      {hasBehHistory && (
+        <p style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "14px" }}>
+          Behavioral history is a weekly backtest from on-chain activity. Price/Market Cap history is CoinGecko.
+        </p>
+      )}
     </div>
   );
 }
