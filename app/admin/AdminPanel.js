@@ -8,6 +8,12 @@ import {
   sharePromptTokenOptions,
 } from "@/lib/shareCardPrompts";
 import { moversHighlightForToken } from "@/lib/moversRank";
+import { buildAnalysisPrompt } from "@/lib/clawdAnalysisPrompt";
+import {
+  buildCondensedText,
+  buildObjectiveText,
+  buildShareText,
+} from "@/lib/tokenShareCopy";
 
 const SECRET_KEY = "tripwire-admin-secret";
 
@@ -101,6 +107,8 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
   const [promptWindow, setPromptWindow] = useState("7d");
   const [promptKind, setPromptKind] = useState("whale");
   const [promptCopied, setPromptCopied] = useState(false);
+  const [textCopied, setTextCopied] = useState(null);
+  const [behHistory, setBehHistory] = useState([]);
 
   const tokenOptions = useMemo(() => sharePromptTokenOptions(rows), [rows]);
   const rowByAddress = useMemo(() => {
@@ -135,6 +143,27 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
   }, [tokenOptions, promptAddress]);
 
   const selectedRow = promptAddress ? rowByAddress[promptAddress.toLowerCase()] : null;
+
+  useEffect(() => {
+    if (!unlocked || !selectedRow) return;
+    const isClawd = (selectedRow.Project || "").toUpperCase() === "CLAWD";
+    if (!isClawd) {
+      setBehHistory([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/clawd-history");
+        const json = await res.json();
+        if (!cancelled) setBehHistory(json.behavioralHistory || []);
+      } catch {
+        if (!cancelled) setBehHistory([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [unlocked, selectedRow]);
+
   const moversStatus = useMemo(
     () => (selectedRow ? moversHighlightForToken(rows, selectedRow.Address, promptWindow) : null),
     [rows, selectedRow, promptWindow]
@@ -263,6 +292,29 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
     } catch {
       setStatus("Clipboard failed — select the prompt and copy manually");
     }
+  };
+
+  const copyText = async (text, label) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setTextCopied(label);
+      setTimeout(() => setTextCopied(null), 2000);
+    } catch {
+      setStatus("Clipboard failed — select and copy manually");
+    }
+  };
+
+  const copyBtnStyle = {
+    padding: "6px 12px",
+    borderRadius: "6px",
+    border: "1px solid var(--border)",
+    background: "var(--bg-subtle)",
+    color: "var(--text-muted)",
+    cursor: selectedRow ? "pointer" : "not-allowed",
+    fontSize: "12px",
+    fontWeight: 600,
+    opacity: selectedRow ? 1 : 0.6,
   };
 
   const displayed = analysis?.text
@@ -456,6 +508,52 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
                 color: "var(--text-muted)",
               }}
             />
+          </section>
+
+          <section style={cardStyle}>
+            <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Copy texts
+            </h2>
+            <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+              Same plain-text copies that used to live on the public CLAWD tab. Uses the token selected above.
+            </p>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                type="button"
+                style={copyBtnStyle}
+                disabled={!selectedRow}
+                onClick={() => copyText(buildShareText(selectedRow), "full")}
+              >
+                {textCopied === "full" ? "\u2713 Copied!" : "Copy full stats"}
+              </button>
+              <button
+                type="button"
+                style={copyBtnStyle}
+                disabled={!selectedRow}
+                onClick={() => copyText(buildCondensedText(selectedRow), "short")}
+              >
+                {textCopied === "short" ? "\u2713 Copied!" : "Copy short version"}
+              </button>
+              <button
+                type="button"
+                style={copyBtnStyle}
+                disabled={!selectedRow}
+                onClick={() => copyText(buildObjectiveText(selectedRow), "objective")}
+              >
+                {textCopied === "objective" ? "\u2713 Copied!" : "Copy objective data only"}
+              </button>
+              <button
+                type="button"
+                style={copyBtnStyle}
+                disabled={!selectedRow}
+                onClick={() => copyText(buildAnalysisPrompt(selectedRow, behHistory), "prompt")}
+              >
+                {textCopied === "prompt" ? "\u2713 Copied!" : "Copy analysis prompt"}
+              </button>
+              <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
+                Paste into Discord / Twitter / Farcaster / Telegram
+              </span>
+            </div>
           </section>
 
           <section style={cardStyle}>
