@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import StatusBanner from "./StatusBanner";
 import { LinkMobileNav } from "./MobileTabNav";
+import { rankMovers } from "@/lib/moversRank";
 
 // ── formatting ────────────────────────────────────────────────
 function fmtUsd(n) {
@@ -41,34 +42,6 @@ function loadPeriod() {
 
 function savePeriod(period) {
   try { localStorage.setItem("zdash-period", period); } catch {}
-}
-
-/** Whale flow only has 24h / 7d twins — 30d falls back to 7d. */
-function whaleWindow(period) {
-  return period === "24h" ? "24h" : "7d";
-}
-
-function whaleKeys(period) {
-  const win = whaleWindow(period);
-  return {
-    win,
-    net: `Whale Net ${win}`,
-    buyers: `Whale Buyers ${win}`,
-    sellers: `Whale Sellers ${win}`,
-    retail: `Retail Net ${win}`,
-    accum: win === "24h" ? "Accum % 24h" : "Accum %",
-    whaleVol: win === "24h" ? "Whale Vol % 24h" : "Whale Vol %",
-  };
-}
-
-function activityKeys(period) {
-  if (period === "24h") {
-    return { vol: "Vol 24h", txs: "Txs 24h", wallets: "Wallets 24h", win: "24h" };
-  }
-  if (period === "30d") {
-    return { vol: "Vol 30d", txs: "Txs 30d", wallets: "Wallets 30d", win: "30d" };
-  }
-  return { vol: "Vol 7d", txs: "Txs 7d", wallets: "Wallets 7d", win: "7d" };
 }
 
 function toneColor(tone) {
@@ -111,19 +84,20 @@ function SegmentedControl({ options, value, onChange, ariaLabel }) {
   );
 }
 
-/** Plain-English on-chain facts — no price calls, no bullish/bearish spin. */
+/** Plain-English on-chain facts — kept local; ranking lives in lib/moversRank. */
 function getNotableFacts(t, period) {
   const facts = [];
-  const wk = whaleKeys(period);
-  const ak = activityKeys(period);
-  const wNet = t[wk.net];
-  const wBuyers = t[wk.buyers];
-  const wSellers = t[wk.sellers];
-  const whaleVol = t[wk.whaleVol];
-  const rNet = t[wk.retail];
-  const acc = t[wk.accum];
+  const win = period === "24h" ? "24h" : "7d";
+  const wNet = t[period === "24h" ? "Whale Net 24h" : "Whale Net 7d"];
+  const wBuyers = t[period === "24h" ? "Whale Buyers 24h" : "Whale Buyers 7d"];
+  const wSellers = t[period === "24h" ? "Whale Sellers 24h" : "Whale Sellers 7d"];
+  const whaleVol = t[period === "24h" ? "Whale Vol % 24h" : "Whale Vol %"];
+  const rNet = t[period === "24h" ? "Retail Net 24h" : "Retail Net 7d"];
+  const acc = t[period === "24h" ? "Accum % 24h" : "Accum %"];
+  const volKey = period === "24h" ? "Vol 24h" : period === "30d" ? "Vol 30d" : "Vol 7d";
+  const txsKey = period === "24h" ? "Txs 24h" : period === "30d" ? "Txs 30d" : "Txs 7d";
+  const walletsKey = period === "24h" ? "Wallets 24h" : period === "30d" ? "Wallets 30d" : "Wallets 7d";
 
-  // WoW growth only for 7d — those fields are week-vs-prior-week by definition
   if (period === "7d") {
     const vol = t["Vol Grw %"];
     const usr = t["User Grw %"];
@@ -161,17 +135,17 @@ function getNotableFacts(t, period) {
       facts.push({ w: ret * 0.7, tone: "neutral", text: `${Math.round(ret)}% of last week's wallets returned` });
     }
   } else {
-    const vol = t[ak.vol];
-    const txs = t[ak.txs];
-    const wallets = t[ak.wallets];
+    const vol = t[volKey];
+    const txs = t[txsKey];
+    const wallets = t[walletsKey];
     if (vol != null && vol >= 5000) {
-      facts.push({ w: Math.min(vol / 1000, 120), tone: "neutral", text: `DEX volume ${fmtUsd(vol)} (${ak.win})` });
+      facts.push({ w: Math.min(vol / 1000, 120), tone: "neutral", text: `DEX volume ${fmtUsd(vol)} (${period})` });
     }
     if (txs != null && txs >= 80) {
-      facts.push({ w: Math.min(txs / 5, 100), tone: "neutral", text: `${Math.round(txs).toLocaleString()} txs (${ak.win})` });
+      facts.push({ w: Math.min(txs / 5, 100), tone: "neutral", text: `${Math.round(txs).toLocaleString()} txs (${period})` });
     }
     if (wallets != null && wallets >= 40) {
-      facts.push({ w: Math.min(wallets / 3, 90), tone: "neutral", text: `${Math.round(wallets).toLocaleString()} wallets (${ak.win})` });
+      facts.push({ w: Math.min(wallets / 3, 90), tone: "neutral", text: `${Math.round(wallets).toLocaleString()} wallets (${period})` });
     }
   }
 
@@ -182,7 +156,7 @@ function getNotableFacts(t, period) {
     facts.push({
       w: 80 + Math.min(Math.abs(wNet) / 1000, 80),
       tone: wNet > 0 ? "up" : "down",
-      text: `Whale net ${dir} ${fmtUsd(Math.abs(wNet))} (${wk.win})${who ? ` · ${who} large wallets` : ""}`,
+      text: `Whale net ${dir} ${fmtUsd(Math.abs(wNet))} (${win})${who ? ` · ${who} large wallets` : ""}`,
     });
   }
 
@@ -190,12 +164,12 @@ function getNotableFacts(t, period) {
     facts.push({
       w: 50 + Math.abs(acc - 50),
       tone: acc >= 65 ? "up" : "down",
-      text: `Whale accum ${Math.round(acc)}% (buys share of whale volume, ${wk.win})`,
+      text: `Whale accum ${Math.round(acc)}% (buys share of whale volume, ${win})`,
     });
   }
 
   if (whaleVol != null && whaleVol >= 55) {
-    facts.push({ w: whaleVol * 0.6, tone: "neutral", text: `Whales = ${Math.round(whaleVol)}% of ${wk.win} dollar volume` });
+    facts.push({ w: whaleVol * 0.6, tone: "neutral", text: `Whales = ${Math.round(whaleVol)}% of ${win} dollar volume` });
   }
 
   if (rNet != null && wNet != null && Math.sign(rNet) !== Math.sign(wNet) && Math.abs(wNet) >= whaleMin && Math.abs(rNet) >= whaleMin) {
@@ -203,36 +177,13 @@ function getNotableFacts(t, period) {
       w: 70,
       tone: "neutral",
       text: wNet > 0
-        ? `Whales buying while retail net sold ${fmtUsd(Math.abs(rNet))} (${wk.win})`
-        : `Whales selling while retail net bought ${fmtUsd(Math.abs(rNet))} (${wk.win})`,
+        ? `Whales buying while retail net sold ${fmtUsd(Math.abs(rNet))} (${win})`
+        : `Whales selling while retail net bought ${fmtUsd(Math.abs(rNet))} (${win})`,
     });
   }
 
   facts.sort((a, b) => b.w - a.w);
   return facts.slice(0, 3).map(({ text, tone }) => ({ text, tone: tone || "neutral" }));
-}
-
-function activityNotability(t, period) {
-  if (period === "7d") {
-    return (
-      Math.abs(t["Vol Grw %"] ?? 0) +
-      Math.abs(t["User Grw %"] ?? 0) * 0.9 +
-      Math.abs(t["Tx Grw %"] ?? 0) * 0.7
-    );
-  }
-  const ak = activityKeys(period);
-  const vol = Math.max(0, Number(t[ak.vol]) || 0);
-  const txs = Math.max(0, Number(t[ak.txs]) || 0);
-  const wallets = Math.max(0, Number(t[ak.wallets]) || 0);
-  return Math.log10(vol + 1) * 18 + Math.log10(txs + 1) * 14 + Math.log10(wallets + 1) * 10;
-}
-
-function whaleNotability(t, period) {
-  const wk = whaleKeys(period);
-  const wNet = Math.abs(t[wk.net] ?? 0);
-  const mcap = t.marketCapUsd > 0 ? t.marketCapUsd : null;
-  const bps = mcap ? (wNet / mcap) * 10000 : wNet / 100;
-  return Math.min(bps, 250) + Math.min(wNet / 500, 80);
 }
 
 function TabBar() {
@@ -308,28 +259,12 @@ function StatCard({ t, tag, period }) {
       {(read || prof) && (
         <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
           {read && (
-            <span
-              style={{
-                fontSize: "10px",
-                padding: "2px 7px",
-                borderRadius: "4px",
-                background: "var(--badge-neutral-bg)",
-                color: "var(--badge-neutral-text)",
-              }}
-            >
+            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", background: "var(--badge-neutral-bg)", color: "var(--badge-neutral-text)" }}>
               {read}
             </span>
           )}
           {prof && (
-            <span
-              style={{
-                fontSize: "10px",
-                padding: "2px 7px",
-                borderRadius: "4px",
-                background: "var(--bg-subtle)",
-                color: "var(--text-muted)",
-              }}
-            >
+            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", background: "var(--bg-subtle)", color: "var(--text-muted)" }}>
               {prof}
             </span>
           )}
@@ -345,9 +280,7 @@ function StatCard({ t, tag, period }) {
           ))}
         </ul>
       ) : (
-        <div style={{ fontSize: "12px", color: "var(--text-faint)" }}>
-          {quietLabel}
-        </div>
+        <div style={{ fontSize: "12px", color: "var(--text-faint)" }}>{quietLabel}</div>
       )}
     </div>
   );
@@ -371,26 +304,11 @@ function Section({ title, hint, children }) {
   );
 }
 
-// ── panel ─────────────────────────────────────────────────────
 export default function MoversPanel({ data, lastUpdated }) {
   const [period, setPeriod] = useState(() => loadPeriod());
-  const withData = data.filter((t) => t.Opp != null && t.Project);
-  const wk = whaleKeys(period);
-  const whaleMin = period === "24h" ? 1500 : 2500;
-  const activityMin = period === "7d" ? 35 : 55;
-
-  const activityPool = [...withData]
-    .filter((t) => activityNotability(t, period) >= activityMin)
-    .sort((a, b) => activityNotability(b, period) - activityNotability(a, period));
-
-  const whalePool = [...withData]
-    .filter((t) => Math.abs(t[wk.net] ?? 0) >= whaleMin)
-    .sort((a, b) => whaleNotability(b, period) - whaleNotability(a, period));
-
-  const activity = activityPool.slice(0, 6);
-  const activityNames = new Set(activity.map((t) => t.Project));
-  const whales = whalePool.filter((t) => !activityNames.has(t.Project)).slice(0, 6);
-  const whaleCards = whales.length >= 3 ? whales : whalePool.slice(0, 6);
+  const ranked = useMemo(() => rankMovers(data, period), [data, period]);
+  const activity = ranked.activity;
+  const whaleCards = ranked.whales;
 
   const gridStyle = {
     display: "grid",
@@ -405,7 +323,7 @@ export default function MoversPanel({ data, lastUpdated }) {
 
   const whaleHint = period === "30d"
     ? "Largest whale net flows over 7d (no 30d whale twin in Dune yet). Size is relative to each token; direction alone isn’t a thesis."
-    : `Largest whale net flows over ${wk.win}. Size is relative to each token; direction alone isn’t a thesis.`;
+    : `Largest whale net flows over ${ranked.whaleFlowWindow}. Size is relative to each token; direction alone isn’t a thesis.`;
 
   const blurb = period === "7d"
     ? "Biggest on-chain swings this week — volume, wallets, whale flow. Not a price board. A spike can mean a dip bid, an exit, or noise (hack churn counts). Second look, not a call."

@@ -18,7 +18,7 @@ export default async function AdminPage() {
         padding: "20px 24px",
         fontFamily: "sans-serif",
         width: "100%",
-        maxWidth: "820px",
+        maxWidth: "880px",
         margin: "0 auto",
         boxSizing: "border-box",
         minHeight: "100vh",

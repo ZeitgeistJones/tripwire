@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { buildWhaleCardPrompt, whalePromptTokenOptions } from "@/lib/whaleCardPrompt";
+import {
+  SHARE_PROMPT_KINDS,
+  buildShareCardPrompt,
+  sharePromptTokenOptions,
+} from "@/lib/shareCardPrompts";
+import { moversHighlightForToken } from "@/lib/moversRank";
 
 const SECRET_KEY = "tripwire-admin-secret";
 
@@ -92,11 +97,12 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
   const [analysis, setAnalysis] = useState(null);
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState(null);
-  const [whaleAddress, setWhaleAddress] = useState("");
-  const [whaleWindow, setWhaleWindow] = useState("7d");
-  const [whaleCopied, setWhaleCopied] = useState(false);
+  const [promptAddress, setPromptAddress] = useState("");
+  const [promptWindow, setPromptWindow] = useState("7d");
+  const [promptKind, setPromptKind] = useState("whale");
+  const [promptCopied, setPromptCopied] = useState(false);
 
-  const tokenOptions = useMemo(() => whalePromptTokenOptions(rows), [rows]);
+  const tokenOptions = useMemo(() => sharePromptTokenOptions(rows), [rows]);
   const rowByAddress = useMemo(() => {
     const map = {};
     for (const r of rows) {
@@ -122,17 +128,22 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
   }, [unlocked]);
 
   useEffect(() => {
-    if (whaleAddress || !tokenOptions.length) return;
+    if (promptAddress || !tokenOptions.length) return;
     const clawd = tokenOptions.find((t) => t.project?.toUpperCase() === "CLAWD")
       || tokenOptions.find((t) => (t.address || "").toLowerCase() === "0x9f86db9fc6f7c9408e8fda3ff8ce4e78ac7a6b07");
-    setWhaleAddress((clawd || tokenOptions[0]).address);
-  }, [tokenOptions, whaleAddress]);
+    setPromptAddress((clawd || tokenOptions[0]).address);
+  }, [tokenOptions, promptAddress]);
 
-  const selectedRow = whaleAddress ? rowByAddress[whaleAddress.toLowerCase()] : null;
-  const whalePrompt = useMemo(
-    () => buildWhaleCardPrompt(selectedRow, whaleWindow, { scoresLastUpdated }),
-    [selectedRow, whaleWindow, scoresLastUpdated]
+  const selectedRow = promptAddress ? rowByAddress[promptAddress.toLowerCase()] : null;
+  const moversStatus = useMemo(
+    () => (selectedRow ? moversHighlightForToken(rows, selectedRow.Address, promptWindow) : null),
+    [rows, selectedRow, promptWindow]
   );
+  const sharePrompt = useMemo(
+    () => buildShareCardPrompt(promptKind, selectedRow, rows, promptWindow, { scoresLastUpdated }),
+    [promptKind, selectedRow, rows, promptWindow, scoresLastUpdated]
+  );
+  const kindMeta = SHARE_PROMPT_KINDS.find((k) => k.value === promptKind);
 
   const refresh = async () => {
     try {
@@ -243,12 +254,12 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
     }
   };
 
-  const copyWhalePrompt = async () => {
-    if (!whalePrompt) return;
+  const copySharePrompt = async () => {
+    if (!sharePrompt) return;
     try {
-      await navigator.clipboard.writeText(whalePrompt);
-      setWhaleCopied(true);
-      setTimeout(() => setWhaleCopied(false), 2000);
+      await navigator.clipboard.writeText(sharePrompt);
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 2000);
     } catch {
       setStatus("Clipboard failed — select the prompt and copy manually");
     }
@@ -280,7 +291,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
         <div>
           <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 700, color: "var(--text)" }}>Admin</h1>
           <p style={{ margin: "6px 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            CLAWD reports + whale card prompts for LLM share graphics.
+            Share-image prompts + CLAWD Gemini reports.
           </p>
         </div>
         <Link href="/dashboard?tab=clawd" style={{ fontSize: "13px", color: "var(--text-faint)", textDecoration: "none" }}>
@@ -328,18 +339,48 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
 
           <section style={cardStyle}>
             <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Whale card prompt
+              Share image prompts
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
-              Pick a token → copy → paste into ChatGPT / Claude / Gemini. Tuned for a sharable card: big-wallet story,
-              plain-English whale vs humpback definitions, data timestamp, and disclaimer. No Tripwire Gemini call.
+              Pick a token + window + card type → copy → paste into ChatGPT / Claude / Gemini (image-capable).
+              Prompts ask for a social image first, then a short caption. No Tripwire image API call.
             </p>
+
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {SHARE_PROMPT_KINDS.map((k) => {
+                const active = promptKind === k.value;
+                return (
+                  <button
+                    key={k.value}
+                    type="button"
+                    onClick={() => setPromptKind(k.value)}
+                    title={k.blurb}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      border: active ? "1px solid var(--btn-active-bg)" : "1px solid var(--border)",
+                      background: active ? "var(--btn-active-bg)" : "var(--bg-subtle)",
+                      color: active ? "var(--btn-active-text)" : "var(--text-muted)",
+                      fontSize: "12px",
+                      fontWeight: active ? 700 : 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {k.label}
+                  </button>
+                );
+              })}
+            </div>
+            {kindMeta && (
+              <div style={{ fontSize: "12px", color: "var(--text-faint)" }}>{kindMeta.blurb}</div>
+            )}
+
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
               <label style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 220px", minWidth: 0 }}>
                 <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-faint)" }}>Token</span>
                 <select
-                  value={whaleAddress}
-                  onChange={(e) => setWhaleAddress(e.target.value)}
+                  value={promptAddress}
+                  onChange={(e) => setPromptAddress(e.target.value)}
                   style={{ ...inputStyle, maxWidth: "100%", cursor: "pointer" }}
                 >
                   {tokenOptions.length === 0 ? (
@@ -352,41 +393,59 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
                 </select>
               </label>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-faint)" }}>Flow window</span>
+                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-faint)" }}>Window</span>
                 <Segmented
-                  ariaLabel="Whale flow window"
-                  value={whaleWindow}
-                  onChange={setWhaleWindow}
+                  ariaLabel="Share prompt window"
+                  value={promptWindow}
+                  onChange={setPromptWindow}
                   options={[
                     { value: "24h", label: "24h" },
                     { value: "7d", label: "7d" },
+                    { value: "30d", label: "30d" },
                   ]}
                 />
               </div>
               <button
                 type="button"
-                onClick={copyWhalePrompt}
-                disabled={!whalePrompt}
-                style={{ ...primaryBtn, alignSelf: "flex-end", opacity: whalePrompt ? 1 : 0.6 }}
+                onClick={copySharePrompt}
+                disabled={!sharePrompt}
+                style={{ ...primaryBtn, alignSelf: "flex-end", opacity: sharePrompt ? 1 : 0.6 }}
               >
-                {whaleCopied ? "✓ Copied" : "Copy prompt"}
+                {promptCopied ? "✓ Copied" : "Copy prompt"}
               </button>
             </div>
+
             {selectedRow && (
-              <div style={{ fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.45 }}>
-                {selectedRow.Project}
+              <div style={{ fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.5 }}>
+                <strong style={{ color: "var(--text-muted)", fontWeight: 600 }}>{selectedRow.Project}</strong>
                 {selectedRow["Whale Min $"] != null
-                  ? ` · whale threshold ~$${Number(selectedRow["Whale Min $"]).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                  ? ` · whale thr ~$${Number(selectedRow["Whale Min $"]).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                   : ""}
                 {scoresLastUpdated
                   ? ` · scores as of ${new Date(scoresLastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
                   : ""}
+                {moversStatus && (
+                  <div style={{ marginTop: "4px" }}>
+                    Movers {promptWindow}:{" "}
+                    {moversStatus.isHighlighted ? (
+                      <span style={{ color: "var(--gate-ok-text)" }}>
+                        {moversStatus.onActivityBoard ? `activity #${moversStatus.activityRank}` : ""}
+                        {moversStatus.onActivityBoard && moversStatus.onWhaleBoard ? " · " : ""}
+                        {moversStatus.onWhaleBoard ? `whale #${moversStatus.whaleRank}` : ""}
+                      </span>
+                    ) : (
+                      <span>not on top boards</span>
+                    )}
+                    {promptKind === "whale" && promptWindow === "30d" ? " · whale card uses 7d flow" : ""}
+                  </div>
+                )}
               </div>
             )}
+
             <textarea
               readOnly
-              value={whalePrompt}
-              rows={14}
+              value={sharePrompt}
+              rows={16}
               style={{
                 ...inputStyle,
                 maxWidth: "100%",
