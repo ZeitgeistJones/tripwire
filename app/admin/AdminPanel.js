@@ -516,13 +516,14 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
               Same plain-text copies that used to live on the public CLAWD tab. Uses the token selected above.
+              All &quot;as of&quot; times are the Tripwire / Dune query snapshot — not when you hit copy.
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 style={copyBtnStyle}
                 disabled={!selectedRow}
-                onClick={() => copyText(buildShareText(selectedRow), "full")}
+                onClick={() => copyText(buildShareText(selectedRow, { scoresLastUpdated }), "full")}
               >
                 {textCopied === "full" ? "\u2713 Copied!" : "Copy full stats"}
               </button>
@@ -530,7 +531,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
                 type="button"
                 style={copyBtnStyle}
                 disabled={!selectedRow}
-                onClick={() => copyText(buildCondensedText(selectedRow), "short")}
+                onClick={() => copyText(buildCondensedText(selectedRow, { scoresLastUpdated }), "short")}
               >
                 {textCopied === "short" ? "\u2713 Copied!" : "Copy short version"}
               </button>
@@ -538,7 +539,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
                 type="button"
                 style={copyBtnStyle}
                 disabled={!selectedRow}
-                onClick={() => copyText(buildObjectiveText(selectedRow), "objective")}
+                onClick={() => copyText(buildObjectiveText(selectedRow, { scoresLastUpdated }), "objective")}
               >
                 {textCopied === "objective" ? "\u2713 Copied!" : "Copy objective data only"}
               </button>
@@ -546,7 +547,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
                 type="button"
                 style={copyBtnStyle}
                 disabled={!selectedRow}
-                onClick={() => copyText(buildAnalysisPrompt(selectedRow, behHistory), "prompt")}
+                onClick={() => copyText(buildAnalysisPrompt(selectedRow, behHistory, { scoresLastUpdated }), "prompt")}
               >
                 {textCopied === "prompt" ? "\u2713 Copied!" : "Copy analysis prompt"}
               </button>

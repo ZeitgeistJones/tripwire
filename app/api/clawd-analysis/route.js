@@ -100,7 +100,7 @@ export async function POST(request) {
 
     try {
       const history = await fetchBehavioralHistory();
-      const prompt = buildAnalysisPrompt(clawdRow, history);
+      const prompt = buildAnalysisPrompt(clawdRow, history, { scoresLastUpdated });
       const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
       const text = await callGemini(prompt, model);
 
