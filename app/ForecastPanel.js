@@ -1,51 +1,5 @@
 import Link from "next/link";
 import ExperimentDisclaimer from "./ExperimentDisclaimer";
-import { LinkMobileNav } from "./MobileTabNav";
-
-const DASH_TABS = [
-  "Overview",
-  "Activity",
-  "Wallets",
-  "Buyers",
-  "Growth",
-  "Whales & Risk",
-  "Discover",
-  "Watchlist",
-  "CLAWD",
-  "The Wire",
-  "Forecast",
-  "About",
-];
-
-function TabBar() {
-  const tabStyle = (active) => ({
-    padding: "8px 16px",
-    borderRadius: "6px",
-    border: active ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
-    background: active ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
-    color: active ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
-    fontWeight: active ? 600 : 400,
-    textDecoration: "none",
-    fontSize: "14px",
-  });
-
-  return (
-    <>
-      <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
-        <Link href="/" style={tabStyle(false)}>Movers</Link>
-        {DASH_TABS.map((tab) => {
-          if (tab === "Forecast") return <span key={tab} style={tabStyle(true)}>Forecast</span>;
-          return (
-            <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
-              {tab}
-            </Link>
-          );
-        })}
-      </div>
-      <LinkMobileNav currentPage="forecast" />
-    </>
-  );
-}
 
 function fmtPct(n) {
   if (n == null) return "—";
@@ -194,7 +148,7 @@ function StrategyCard({ p, rank }) {
   );
 }
 
-export default function ForecastPanel({ state }) {
+export default function ForecastPanel({ state, variant = "admin" }) {
   const {
     leaderboard = [],
     history = [],
@@ -211,25 +165,32 @@ export default function ForecastPanel({ state }) {
 
   return (
     <div>
-      <TabBar />
       <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
       <div style={{ padding: "8px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px" }}>
-            Forecast
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px" }}>
+              Forecast
+            </div>
+            <span style={{
+              fontSize: "11px",
+              fontWeight: 700,
+              color: "var(--read-amber-text)",
+              background: "var(--read-amber-bg)",
+              padding: "2px 8px",
+              borderRadius: "999px",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}>
+              v1 beta
+            </span>
+            <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>admin only</span>
           </div>
-          <span style={{
-            fontSize: "11px",
-            fontWeight: 700,
-            color: "var(--read-amber-text)",
-            background: "var(--read-amber-bg)",
-            padding: "2px 8px",
-            borderRadius: "999px",
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-          }}>
-            v1 beta
-          </span>
+          {variant === "admin" && (
+            <Link href="/admin" style={{ fontSize: "13px", color: "var(--text-faint)", textDecoration: "none" }}>
+              ← Admin
+            </Link>
+          )}
         </div>
         <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "6px", maxWidth: "680px", lineHeight: 1.5 }}>
           Paper portfolio experiment — no real money. Three on-chain formulas race a top-10 market-cap

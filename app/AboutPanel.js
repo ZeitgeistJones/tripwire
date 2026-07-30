@@ -51,7 +51,7 @@ export default function AboutPanel() {
           Tripwire tracks AI agent projects on Base — combining on-chain behavior (wallets, transactions,
           retention, whale flow) from Dune with live price and market cap from CoinGecko (DexScreener
           fallback). Core behavioral scores are deliberately <strong style={{ color: "var(--text)" }}>price-independent</strong>;
-          Price, Market Cap, Signal, Movers, and Forecast sit alongside as separate layers.
+          Price, Market Cap, Signal, and Movers sit alongside as separate layers.
           This is an experiment — not financial advice; data may be incomplete.
         </p>
 
@@ -188,60 +188,6 @@ export default function AboutPanel() {
           Second look, not a call.
         </p>
 
-        <h3 style={{ color: "var(--text)" }}>Forecast <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--read-amber-text)", background: "var(--read-amber-bg)", padding: "2px 7px", borderRadius: "999px", marginLeft: "6px" }}>v1 beta</span></h3>
-        <p style={{ color: "var(--text-muted)" }}>
-          Four ongoing <strong style={{ color: "var(--text)" }}>paper portfolios</strong> race each other.
-          No real money. Each starts at $100 with up to 10 holdings. Prices mark to market on every visit;
-          the book only <em>trades</em> when Dune behavioral data refreshes (72h backstop if data is stale).
-          Formulas live in <code>lib/predictions.js</code> — swap a <code>scoreFn</code>, keep the same{" "}
-          <code>id</code>, bump <code>version</code> to mark an era without wiping history.
-        </p>
-        <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Momentum Hunt</strong> — signal + vol/user/tx growth.
-            Skips tokens with Qlty % below 60.
-          </li>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Sticky Flow</strong> — retention, Sus, quality,
-            Accum %, repeat-wallet activity (slow book).
-          </li>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Whale Shadow</strong> — whale net flow scaled by
-            market cap, Accum %, buy/sell breadth, Vol/Wlt.
-          </li>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Top 10 Mcap</strong> — baseline: equal-weight the
-            10 largest market caps. The do-nothing strategy the formulas must beat.
-          </li>
-        </ul>
-        <p style={{ color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>Rules (all strategies)</strong>
-        </p>
-        <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Liquidity gate</strong> — must have a live price and
-            Vol 30d ≥ $25k
-          </li>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Sizing</strong> — formulas use score-proportional
-            weights (floor 5%, cap 20% per name). Baseline is pure equal weight (10% each)
-          </li>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Hysteresis</strong> — sell only if a name falls
-            below rank 15 in that strategy (or fails a gate). Resize a kept name only if weight drifted
-            more than 3 points from target
-          </li>
-          <li>
-            <strong style={{ color: "var(--text)" }}>Friction</strong> — 1% fee on traded notional
-            (buys and sells), baseline included, so churn has a cost
-          </li>
-        </ul>
-        <p style={{ color: "var(--text-muted)" }}>
-          Example: if Momentum&apos;s book is worth $112 and it sells $20 notional / buys $20 notional
-          into new names, fees ≈ <code>0.01 × $40 = $0.40</code>, taken from cash before the new
-          weights are filled. Experiment only — not advice.
-        </p>
-
         <h3 style={{ color: "var(--text)" }}>The Three Core Scores</h3>
         <p style={{ color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>Momentum</strong> — growth-first (new wallets, WoW growth,
@@ -297,7 +243,6 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
           <li><strong style={{ color: "var(--text)" }}>The Wire</strong> — on-demand pulse across tracked tokens (temporarily under construction)</li>
-          <li><strong style={{ color: "var(--text)" }}>Forecast</strong> — v1 beta paper race (experiment, not the main product)</li>
           <li><strong style={{ color: "var(--text)" }}>About</strong> — this page</li>
         </ul>
 

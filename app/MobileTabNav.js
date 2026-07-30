@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 export const MOBILE_PRIMARY_TABS = ["Overview", "Whales & Risk", "Watchlist", "Activity"];
-export const MOBILE_MORE_TABS = ["Buyers", "Wallets", "Growth", "Discover", "CLAWD", "The Wire", "Forecast", "About"];
+export const MOBILE_MORE_TABS = ["Buyers", "Wallets", "Growth", "Discover", "CLAWD", "The Wire", "About"];
 
 const chipBase = {
   padding: "8px 16px",
@@ -130,62 +130,13 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
       <MoreMenu
         items={MOBILE_MORE_TABS.map((t) => ({ key: t, label: labelOf(t) }))}
         activeKey={activeTab}
-        onSelect={(key) => {
-          if (key === "Forecast") {
-            window.location.href = "/forecast";
-            return;
-          }
-          onTabChange(key);
-        }}
-        renderItem={({ key, label, active, close }) => {
-          if (key === "Forecast") {
-            return (
-              <Link
-                href="/forecast"
-                onClick={close}
-                style={{
-                  ...chipBase,
-                  display: "block",
-                  border: "none",
-                  background: active ? "var(--btn-active-bg)" : "transparent",
-                  color: active ? "var(--btn-active-text)" : "var(--text)",
-                  fontWeight: active ? 600 : 400,
-                  borderRadius: "6px",
-                }}
-              >
-                {label}
-              </Link>
-            );
-          }
-          return (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                close();
-                onTabChange(key);
-              }}
-              style={{
-                ...chipBase,
-                width: "100%",
-                textAlign: "left",
-                border: "none",
-                background: active ? "var(--btn-active-bg)" : "transparent",
-                color: active ? "var(--btn-active-text)" : "var(--text)",
-                fontWeight: active ? 600 : 400,
-                borderRadius: "6px",
-              }}
-            >
-              {label}
-            </button>
-          );
-        }}
+        onSelect={(key) => onTabChange(key)}
       />
     </div>
   );
 }
 
-/** Movers / Forecast: link-based mobile nav with ?tab= deep links */
+/** Movers: link-based mobile nav with ?tab= deep links */
 export function LinkMobileNav({ currentPage }) {
   const dashHref = (tab) => `/dashboard?tab=${encodeURIComponent(tab)}`;
   const moreItems = MOBILE_MORE_TABS.map((t) => ({ key: t, label: t === "Whales & Risk" ? "Whales" : t }));
@@ -203,10 +154,10 @@ export function LinkMobileNav({ currentPage }) {
       ))}
       <MoreMenu
         items={moreItems}
-        activeKey={currentPage === "forecast" ? "Forecast" : null}
+        activeKey={null}
         renderItem={({ key, label, active, close }) => (
           <Link
-            href={key === "Forecast" ? "/forecast" : dashHref(key)}
+            href={dashHref(key)}
             onClick={close}
             style={{
               ...chipBase,
@@ -224,9 +175,4 @@ export function LinkMobileNav({ currentPage }) {
       />
     </div>
   );
-}
-
-/** Desktop full strip wrapper class helper — pair with tw-nav-desktop in CSS */
-export function desktopNavClass() {
-  return "tw-tab-strip tw-nav-desktop";
 }

@@ -1280,7 +1280,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   );
 
   const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire"];
-  // About + Forecast render after core tabs (Forecast is a separate route, late in nav)
+  // About is rendered after core tabs (separate button below)
   const hybridClass = showHybrid
     ? (tableMode === "full" ? "tw-hybrid-full" : "tw-hybrid-summary")
     : "";
@@ -1317,18 +1317,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
             {tabLabel(tab)}
           </button>
         ))}
-        <Link
-          href="/forecast"
-          style={{
-            padding: "8px 16px", borderRadius: "6px",
-            border: "1px solid var(--btn-inactive-border)",
-            background: "var(--btn-inactive-bg)",
-            color: "var(--btn-inactive-text)",
-            fontWeight: 400, textDecoration: "none",
-          }}
-        >
-          Forecast
-        </Link>
         <button
           onClick={() => handleTabChange("About")}
           style={{

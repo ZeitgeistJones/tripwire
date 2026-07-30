@@ -417,6 +417,12 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "12px", color: "var(--gate-ok-text)" }}>Unlocked for this browser tab</span>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <Link
+                href="/admin/forecast"
+                style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+              >
+                Forecast v1 beta
+              </Link>
               <button
                 type="button"
                 onClick={() => refreshDashboard()}

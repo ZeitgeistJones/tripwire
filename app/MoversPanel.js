@@ -14,7 +14,7 @@ function fmtUsd(n) {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
-/** Core dashboard tabs; Forecast sits late (before About). */
+/** Core dashboard tabs. */
 const DASH_TABS = [
   "Overview",
   "Activity",
@@ -26,7 +26,6 @@ const DASH_TABS = [
   "Watchlist",
   "CLAWD",
   "The Wire",
-  "Forecast",
   "About",
 ];
 
@@ -202,15 +201,11 @@ function TabBar() {
     <>
       <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
         <span style={tabStyle(true)}>Movers</span>
-        {DASH_TABS.map((tab) =>
-          tab === "Forecast" ? (
-            <Link key={tab} href="/forecast" style={tabStyle(false)}>Forecast</Link>
-          ) : (
-            <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
-              {tab}
-            </Link>
-          )
-        )}
+        {DASH_TABS.map((tab) => (
+          <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
+            {tab}
+          </Link>
+        ))}
       </div>
       <LinkMobileNav currentPage="movers" />
     </>
