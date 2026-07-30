@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   SHARE_PROMPT_KINDS,
+  SHARE_PROMPT_WINDOWS,
   buildShareCardPrompt,
   sharePromptTokenOptions,
 } from "@/lib/shareCardPrompts";
@@ -169,7 +170,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
   }, [unlocked, selectedRow]);
 
   const moversStatus = useMemo(
-    () => (selectedRow ? moversHighlightForToken(rows, selectedRow.Address, promptWindow) : null),
+    () => (selectedRow ? moversHighlightForToken(rows, selectedRow.Address, promptWindow === "all" ? "7d" : promptWindow) : null),
     [rows, selectedRow, promptWindow]
   );
   const sharePrompt = useMemo(
@@ -492,11 +493,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                   ariaLabel="Share prompt window"
                   value={promptWindow}
                   onChange={setPromptWindow}
-                  options={[
-                    { value: "24h", label: "24h" },
-                    { value: "7d", label: "7d" },
-                    { value: "30d", label: "30d" },
-                  ]}
+                  options={SHARE_PROMPT_WINDOWS}
                 />
               </div>
               <button
