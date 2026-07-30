@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 
 const ALL_COLUMNS = [
   { key: "Project",          label: "Project",                 type: "string" },
@@ -233,6 +233,7 @@ export default function WatchlistPanel({
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [sortKey, setSortKey] = useState("Opp");
   const [sortDir, setSortDir] = useState("desc");
+  const [rankExpand, setRankExpand] = useState(null); // { address, colKey }
 
   const activeKeys = new Set(columnConfig?.keys || DEFAULT_COLUMNS);
   const columnOrder = columnConfig?.order || DEFAULT_COLUMNS;
@@ -336,8 +337,17 @@ export default function WatchlistPanel({
               </tr>
             </thead>
             <tbody>
-              {sorted.map((d) => (
-                <tr key={d["Address"]}>
+              {sorted.map((d) => {
+                const address = d["Address"];
+                const expandCol = rankExpand?.address === address
+                  ? orderedActiveColumns.find((c) => c.key === rankExpand.colKey)
+                  : null;
+                const expandRank = expandCol
+                  ? peerRank(expandCol.key, d[expandCol.key], data || [])
+                  : null;
+                return (
+                <Fragment key={address}>
+                <tr>
                   <td className="tw-sticky-actions" style={{ padding: compact ? "2px 4px" : "4px 8px", whiteSpace: "nowrap", width: compact ? "22px" : "28px" }}>
                     <button
                       className="tw-icon-btn"
@@ -372,6 +382,7 @@ export default function WatchlistPanel({
                         </div>
                       </div>
                     ) : null;
+                    const touch = prefersTouchUi();
                     return (
                       <td
                         key={col.key}
@@ -380,16 +391,20 @@ export default function WatchlistPanel({
                           padding: compact ? "3px 6px" : "6px 12px",
                           whiteSpace: "nowrap",
                           color: "var(--text)",
-                          cursor: rankTooltipContent ? "help" : undefined,
+                          cursor: rankInfo ? "pointer" : undefined,
+                          background: rankExpand?.address === address && rankExpand?.colKey === col.key
+                            ? "var(--bg-subtle)" : undefined,
                         }}
-                        onMouseEnter={rankTooltipContent && showTooltip ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
-                        onMouseMove={rankTooltipContent && moveTooltip ? moveTooltip : undefined}
-                        onMouseLeave={rankTooltipContent && hideTooltip ? hideTooltip : undefined}
-                        onPointerDown={rankTooltipContent && toggleTooltip ? (e) => { if (prefersTouchUi()) e.stopPropagation(); } : undefined}
-                        onClick={rankTooltipContent && toggleTooltip ? (e) => {
-                          if (!prefersTouchUi()) return;
+                        onMouseEnter={!touch && rankTooltipContent && showTooltip ? (e) => showTooltip(rankTooltipContent, e, RANK_TOOLTIP_DELAY) : undefined}
+                        onMouseMove={!touch && rankTooltipContent && moveTooltip ? moveTooltip : undefined}
+                        onMouseLeave={!touch && rankTooltipContent && hideTooltip ? hideTooltip : undefined}
+                        onClick={rankInfo && touch ? (e) => {
                           e.stopPropagation();
-                          toggleTooltip(rankTooltipContent, e);
+                          setRankExpand((prev) =>
+                            prev?.address === address && prev?.colKey === col.key
+                              ? null
+                              : { address, colKey: col.key }
+                          );
                         } : undefined}
                       >
                         {col.key === "Project" ? (
@@ -399,7 +414,28 @@ export default function WatchlistPanel({
                     );
                   })}
                 </tr>
-              ))}
+                {expandCol && expandRank ? (
+                  <tr key={`${address}-rank`}>
+                    <td
+                      colSpan={orderedActiveColumns.length + 1}
+                      style={{
+                        padding: "8px 12px",
+                        background: "var(--bg-subtle)",
+                        borderBottom: "1px solid var(--border)",
+                        fontSize: "12px",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      <strong style={{ color: "var(--text)" }}>#{expandRank.rank} of {expandRank.total}</strong>
+                      {" · "}
+                      {expandCol.label}
+                      <span style={{ color: "var(--text-faint)" }}> — tap again to close</span>
+                    </td>
+                  </tr>
+                ) : null}
+                </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

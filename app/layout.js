@@ -141,6 +141,7 @@ export default function RootLayout({ children }) {
               .tw-nav-mobile { display: none !important; }
               .tw-summary-only { display: none !important; }
               .tw-table-mode-toggle { display: none !important; }
+              .tw-mobile-triage { display: none !important; }
 
               @media (max-width: 1023px) {
                 body { overflow-x: clip; }
@@ -160,6 +161,7 @@ export default function RootLayout({ children }) {
                 .tw-hybrid-summary .tw-summary-only { display: block !important; }
                 .tw-hybrid-full .tw-summary-only { display: none !important; }
                 .tw-hybrid-full .tw-full-table { display: block !important; }
+                .tw-mobile-triage { display: block !important; }
 
                 .page-shell {
                   padding-left: 14px !important;
@@ -203,6 +205,11 @@ export default function RootLayout({ children }) {
                   padding: 8px 14px !important;
                   font-size: 13px !important;
                   min-height: 40px;
+                }
+                .tw-segmented button {
+                  min-height: 40px !important;
+                  padding-top: 8px !important;
+                  padding-bottom: 8px !important;
                 }
 
                 .tw-icon-btn {
@@ -250,26 +257,8 @@ export default function RootLayout({ children }) {
                   max-height: calc(100vh - 24px);
                   overflow-y: auto;
                 }
-              }
 
-              @media (max-width: 767px) {
-                .page-shell {
-                  padding-left: 12px !important;
-                  padding-right: 12px !important;
-                  padding-top: 16px !important;
-                }
-
-                .tw-prof-key-grid {
-                  grid-template-columns: 1fr !important;
-                }
-
-                .tw-hscroll {
-                  font-size: 13px !important;
-                }
-                .tw-hscroll table th,
-                .tw-hscroll table td {
-                  padding: 8px 10px !important;
-                }
+                /* Sticky Project / actions on all mobile widths */
                 .tw-hscroll table th.tw-sticky-actions,
                 .tw-hscroll table td.tw-sticky-actions {
                   position: sticky;
@@ -308,6 +297,12 @@ export default function RootLayout({ children }) {
                   text-overflow: ellipsis;
                   white-space: nowrap;
                 }
+                .tw-hscroll thead th {
+                  position: sticky;
+                  top: 0;
+                  z-index: 4;
+                  background: var(--bg);
+                }
                 .tw-hscroll thead th.tw-sticky-actions,
                 .tw-hscroll thead th.tw-sticky-project {
                   z-index: 5;
@@ -317,6 +312,30 @@ export default function RootLayout({ children }) {
                   min-width: 26px !important;
                   min-height: 36px !important;
                   padding: 6px 1px !important;
+                }
+
+                /* Compact densifies type; comfort keeps readable 13px */
+                html.comfort-view .tw-hscroll {
+                  font-size: 13px !important;
+                }
+                html:not(.comfort-view) .tw-hscroll {
+                  font-size: 11px !important;
+                }
+                html.comfort-view .tw-hscroll table th,
+                html.comfort-view .tw-hscroll table td {
+                  padding: 8px 10px !important;
+                }
+              }
+
+              @media (max-width: 767px) {
+                .page-shell {
+                  padding-left: 12px !important;
+                  padding-right: 12px !important;
+                  padding-top: 16px !important;
+                }
+
+                .tw-prof-key-grid {
+                  grid-template-columns: 1fr !important;
                 }
               }
             `,

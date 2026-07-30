@@ -7,6 +7,7 @@ import AboutPanel from "./AboutPanel";
 import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
 import StatusBanner from "./StatusBanner";
+import DefSheet from "./DefSheet";
 import { DashboardMobileNav } from "./MobileTabNav";
 
 
@@ -113,14 +114,129 @@ function touchTooltipHandlers(content, { showTooltip, moveTooltip, hideTooltip, 
 function TooltipBox({ tooltip }) {
   if (!tooltip) return null;
   const { content, x, y } = tooltip;
+  const maxW = 280;
+  const pad = 12;
+  let left = x + 14;
+  let top = y + 14;
+  if (typeof window !== "undefined") {
+    left = Math.min(left, window.innerWidth - maxW - pad);
+    left = Math.max(pad, left);
+    top = Math.min(top, window.innerHeight - 120);
+    top = Math.max(pad, top);
+  }
   return (
     <div style={{
-      position: "fixed", left: x + 14, top: y + 14, maxWidth: "280px",
+      position: "fixed", left, top, maxWidth: `${maxW}px`,
       background: "var(--bg-muted)", border: "1px solid var(--border-strong)",
       borderRadius: "6px", padding: "8px 12px", fontSize: "12px", color: "var(--text)",
       lineHeight: "1.5", zIndex: 9999, pointerEvents: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
     }}>
       {typeof content === "string" ? content : content}
+    </div>
+  );
+}
+
+function MobileTriageBlock({ clawdRow, peerRows, onOpenFullTable, onGoClawd }) {
+  const peers = (peerRows || []).slice(0, 5);
+  return (
+    <div
+      className="tw-mobile-triage"
+      style={{
+        marginBottom: "14px",
+        padding: "14px",
+        borderRadius: "10px",
+        border: "1px solid var(--border)",
+        background: "var(--card-bg)",
+      }}
+    >
+      <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: "10px" }}>
+        Triage
+      </div>
+      {clawdRow ? (
+        <div
+          style={{
+            padding: "12px",
+            borderRadius: "8px",
+            background: "var(--clawd-row-bg)",
+            borderLeft: "3px solid var(--clawd-row-border)",
+            marginBottom: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
+            <strong style={{ fontSize: "16px", color: "var(--text)" }}>CLAWD</strong>
+            {clawdRow.read ? <ReadBadge value={clawdRow.read} /> : null}
+            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{clawdRow.signal || "—"}</span>
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.45 }}>
+            {clawdRow.signalNote
+              || (clawdRow.Prof ? `${clawdRow.Prof} · Opp ${formatValue(clawdRow.Opp, "dec1")}` : `Opp ${formatValue(clawdRow.Opp, "dec1")}`)}
+          </div>
+          <button
+            type="button"
+            onClick={onGoClawd}
+            style={{
+              marginTop: "10px",
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid var(--btn-active-bg)",
+              background: "var(--btn-active-bg)",
+              color: "var(--btn-active-text)",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            CLAWD health check
+          </button>
+        </div>
+      ) : (
+        <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px" }}>CLAWD row not in this snapshot.</p>
+      )}
+      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px" }}>
+        Top Opportunity peers
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        {peers.map((p) => (
+          <div
+            key={p.Address || p.Project}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "8px",
+              fontSize: "13px",
+              padding: "6px 0",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <span style={{ color: "var(--text)", fontWeight: 600 }}>{p.Project}</span>
+            <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+              Opp {formatValue(p.Opp, "dec1")}
+              {p.read ? ` · ${p.read}` : ""}
+            </span>
+          </div>
+        ))}
+        {peers.length === 0 && (
+          <span style={{ fontSize: "12px", color: "var(--text-faint)" }}>No peer scores yet.</span>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onOpenFullTable}
+        style={{
+          marginTop: "12px",
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: "6px",
+          border: "1px solid var(--border)",
+          background: "var(--bg-subtle)",
+          color: "var(--text)",
+          fontSize: "13px",
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        Open full Overview table
+      </button>
     </div>
   );
 }
@@ -220,6 +336,7 @@ function filterColumnsForView(cols, { activeTab, period, whalesView }) {
 function SegmentedControl({ options, value, onChange, ariaLabel }) {
   return (
     <div
+      className="tw-segmented"
       role="group"
       aria-label={ariaLabel}
       style={{ display: "inline-flex", borderRadius: "6px", border: "1px solid var(--btn-inactive-border)", overflow: "hidden", flexShrink: 0 }}
@@ -765,11 +882,14 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
   const [compact, setCompact] = useState(() => loadCompact());
   const [tableMode, setTableMode] = useState("summary"); // mobile hybrid: summary | full
+  const [defSheet, setDefSheet] = useState(null); // { title, body, windowLabel }
+  const [rankExpand, setRankExpand] = useState(null); // { rowKey, colKey }
+  const headerLongPressRef = useRef({ timer: null, fired: false });
   const [period, setPeriod] = useState(() => loadPeriod());
   const [whalesView, setWhalesView] = useState(() => loadWhalesView());
   const dragKeyRef = useRef(null);
   const rootRef = useRef(null);
-  const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip, toggle: toggleTooltip } = useDelayedTooltip();
+  const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip, toggle: toggleTooltip, dismiss: dismissTooltip } = useDelayedTooltip();
 
   useEffect(() => {
     setPinnedKeys(loadPins());
@@ -1076,10 +1196,13 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     const isClawdRow   = !isDiscover && d["Project"] === "CLAWD";
     const isDragTarget = dragOver === d[rowKeyField] && isPinned;
     const isWatched    = !isDiscover && watchedAddresses.includes((d["Address"] || "").toLowerCase());
+    const rowKey = d[rowKeyField];
+    const expandCol = rankExpand?.rowKey === rowKey ? columns.find((c) => c.key === rankExpand.colKey) : null;
+    const expandRank = expandCol ? getCellRank(expandCol.key, expandCol.type, d) : null;
 
-    return (
+    const mainRow = (
       <tr
-        key={d[rowKeyField]}
+        key={rowKey}
         draggable={isPinned}
         onDragStart={isPinned ? () => handleDragStart(d[rowKeyField]) : undefined}
         onDragEnter={isPinned ? () => handleDragEnter(d[rowKeyField]) : undefined}
@@ -1152,31 +1275,26 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                       borderRadius: "999px",
                       background: d.signalNote === "whales in" ? "var(--read-teal-bg)" : "var(--read-coral-bg)",
                       color: d.signalNote === "whales in" ? "var(--read-teal-text)" : "var(--read-coral-text)",
-                      whiteSpace: "nowrap",
                     }}
                   >
                     {d.signalNote}
                   </span>
                 </span>
               )
-            : col.format ? (
-                isFallbackPrice ? (
-                  <span
-                    title="Priced via DexScreener — this token isn’t tracked by CoinGecko"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {formatValue(d[col.key], col.format)}
-                    <span style={{ opacity: 0.6, marginLeft: "1px" }}>*</span>
-                  </span>
-                ) : formatValue(d[col.key], col.format)
-              )
-            : (d[col.key] ?? "—");
+            : (
+              <>
+                {formatValue(d[col.key], col.format)}
+                {isFallbackPrice ? (
+                  <span title="Price via DexScreener (not on CoinGecko)" style={{ marginLeft: "2px", color: "var(--text-faint)", fontSize: "10px" }}>*</span>
+                ) : null}
+              </>
+            );
           const rankTooltipContent = rankInfo ? (
             <div>
-              <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
-                {rankInfo.rank} <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>/ {rankInfo.total}</span>
+              <div style={{ fontWeight: 600 }}>
+                #{rankInfo.rank} of {rankInfo.total}
               </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
                 Rank for <strong>{col.label}</strong>
                 {col.window ? <span style={{ color: "var(--text-faint)" }}> · {col.window}</span> : null}
               </div>
@@ -1185,9 +1303,23 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               </div>
             </div>
           ) : null;
-          const tipHandlers = touchTooltipHandlers(rankTooltipContent, {
-            showTooltip, moveTooltip, hideTooltip, toggleTooltip, delay: RANK_TOOLTIP_DELAY,
-          });
+          const tipHandlers = rankTooltipContent && !prefersTouchUi()
+            ? touchTooltipHandlers(rankTooltipContent, {
+                showTooltip, moveTooltip, hideTooltip, toggleTooltip, delay: RANK_TOOLTIP_DELAY,
+              })
+            : {};
+          const touchExpandHandlers = rankInfo && prefersTouchUi()
+            ? {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  setRankExpand((prev) =>
+                    prev?.rowKey === rowKey && prev?.colKey === col.key
+                      ? null
+                      : { rowKey, colKey: col.key }
+                  );
+                },
+              }
+            : {};
           return (
             <td
               key={col.key}
@@ -1195,9 +1327,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
               style={{
                 padding: compact ? "3px 6px" : "6px 12px",
                 whiteSpace: "nowrap",
-                cursor: rankTooltipContent ? "help" : undefined,
+                cursor: rankInfo ? "pointer" : undefined,
+                background: rankExpand?.rowKey === rowKey && rankExpand?.colKey === col.key
+                  ? "var(--bg-subtle)" : undefined,
               }}
               {...tipHandlers}
+              {...touchExpandHandlers}
             >
               <GatedCell blurred={isRowGated}>
                 {isProjectCol ? (
@@ -1209,8 +1344,33 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
         })}
       </tr>
     );
-  }
 
+    if (!expandCol || !expandRank || isRowGated) return mainRow;
+
+    return (
+      <>
+        {mainRow}
+        <tr key={`${rowKey}-rank-expand`}>
+          <td
+            colSpan={columns.length + (isDiscover ? 0 : 1)}
+            style={{
+              padding: "8px 12px",
+              background: "var(--bg-subtle)",
+              borderBottom: "1px solid var(--border)",
+              fontSize: "12px",
+              color: "var(--text-muted)",
+            }}
+          >
+            <strong style={{ color: "var(--text)" }}>#{expandRank.rank} of {expandRank.total}</strong>
+            {" · "}
+            {expandCol.label}
+            {expandCol.window ? ` · ${expandCol.window}` : ""}
+            <span style={{ color: "var(--text-faint)" }}> — 1 = best · tap again to close</span>
+          </td>
+        </tr>
+      </>
+    );
+  }
   const isHybridTab = HYBRID_TABS.has(activeTab);
   const showHybrid = isHybridTab && !isSpecialTab;
 
@@ -1226,20 +1386,40 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
             {!isDiscover && <th className="tw-sticky-actions" style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
             {columns.map((col) => {
               const isProjectCol = col.key === "Project" || col.key === "name";
+              const openDef = () => {
+                if (!col.tooltip) return;
+                dismissTooltip();
+                setDefSheet({
+                  title: col.label,
+                  body: col.tooltip,
+                  windowLabel: col.window || null,
+                });
+              };
               return (
               <th
                 key={col.key}
                 className={isProjectCol ? "tw-sticky-project" : undefined}
-                onMouseEnter={col.tooltip ? (e) => showTooltip(col.tooltip, e, HEADER_TOOLTIP_DELAY) : undefined}
-                onMouseMove={col.tooltip ? moveTooltip : undefined}
-                onMouseLeave={col.tooltip ? hideTooltip : undefined}
-                onPointerDown={col.tooltip ? (e) => { if (prefersTouchUi()) e.stopPropagation(); } : undefined}
-                onClick={(e) => {
-                  handleSort(col.key);
-                  if (col.tooltip && prefersTouchUi()) {
-                    e.stopPropagation();
-                    toggleTooltip(col.tooltip, e);
+                onMouseEnter={!prefersTouchUi() && col.tooltip ? (e) => showTooltip(col.tooltip, e, HEADER_TOOLTIP_DELAY) : undefined}
+                onMouseMove={!prefersTouchUi() && col.tooltip ? moveTooltip : undefined}
+                onMouseLeave={!prefersTouchUi() && col.tooltip ? hideTooltip : undefined}
+                onPointerDown={col.tooltip ? (e) => {
+                  if (!prefersTouchUi()) return;
+                  e.stopPropagation();
+                  headerLongPressRef.current.fired = false;
+                  clearTimeout(headerLongPressRef.current.timer);
+                  headerLongPressRef.current.timer = setTimeout(() => {
+                    headerLongPressRef.current.fired = true;
+                    openDef();
+                  }, 450);
+                } : undefined}
+                onPointerUp={() => clearTimeout(headerLongPressRef.current.timer)}
+                onPointerCancel={() => clearTimeout(headerLongPressRef.current.timer)}
+                onClick={() => {
+                  if (headerLongPressRef.current.fired) {
+                    headerLongPressRef.current.fired = false;
+                    return;
                   }
+                  handleSort(col.key);
                 }}
                 style={{
                   textAlign: "left", borderBottom: "1px solid var(--border-strong)",
@@ -1247,11 +1427,35 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
                   whiteSpace: isProjectCol ? "nowrap" : "normal", verticalAlign: "bottom",
                 }}
               >
-                {isProjectCol ? (
-                  <span className="tw-name-clip">{col.label}{sortKey === col.key ? (sortDir === "desc" ? " \u25BC" : " \u25B2") : ""}</span>
-                ) : (
-                  <ColumnHeaderLabel col={col} sortKey={sortKey} sortDir={sortDir} />
-                )}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                  {isProjectCol ? (
+                    <span className="tw-name-clip">{col.label}{sortKey === col.key ? (sortDir === "desc" ? " \u25BC" : " \u25B2") : ""}</span>
+                  ) : (
+                    <ColumnHeaderLabel col={col} sortKey={sortKey} sortDir={sortDir} />
+                  )}
+                  {col.tooltip ? (
+                    <button
+                      type="button"
+                      className="tw-tip-mobile"
+                      aria-label={`Definition for ${col.label}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDef();
+                      }}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "var(--text-faint)",
+                        fontSize: "11px",
+                        lineHeight: 1,
+                        padding: "2px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      ⓘ
+                    </button>
+                  ) : null}
+                </span>
               </th>
               );
             })}
@@ -1355,7 +1559,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Use <strong>←</strong> <strong>→</strong> to scroll wide tables. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
         </p>
         <p className="tw-tip-mobile" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
-          Tip: primary tabs + More · summary cards by default on Overview/Whales · Full table for every column. ⭐ watch · 📍 pin.
+          Tip: primary tabs + More · Summary/Full on Overview &amp; Whales · tap header to sort · long-press or ⓘ for defs · tap a number for peer rank. ⭐ watch · 📍 pin.
         </p>
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
           {showPeriodToggle && (
@@ -1443,6 +1647,17 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
           contract address, not yet in your tracked list. Verify each before adding — category tagging on
           CoinGecko isn't perfect either.
         </p>
+      )}
+
+      {activeTab === "Overview" && (
+        <MobileTriageBlock
+          clawdRow={clawdRow}
+          peerRows={[...dataArr]
+            .filter((d) => d?.Project && d.Project !== "CLAWD" && d.Opp != null)
+            .sort((a, b) => Number(b.Opp) - Number(a.Opp))}
+          onOpenFullTable={() => setTableMode("full")}
+          onGoClawd={() => handleTabChange("CLAWD")}
+        />
       )}
 
       {activeTab === "Overview" && <ProfSignalKey />}
@@ -1535,6 +1750,13 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
       </div>
 
       <TooltipBox tooltip={tooltip} />
+      <DefSheet
+        open={!!defSheet}
+        title={defSheet?.title}
+        body={defSheet?.body}
+        windowLabel={defSheet?.windowLabel}
+        onClose={() => setDefSheet(null)}
+      />
     </div>
   );
 }

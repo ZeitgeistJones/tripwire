@@ -18,10 +18,12 @@
 | MT-6 | P2 | CLAWD status block + quieter actions | `ClawdPanel.js` |
 | MT-7 | P3 | Expert full-table mode polish (sticky header + sticky Project) | `DashboardTable.js`, `layout.js` |
 
+**Shipped:** MT-2, MT-3, Project sticky ellipsis, MT-4, More menu portal + active label, Compact font densify fix, sticky Project/thead ≤1023, MT-1 triage strip, MT-5 def sheet + rank expand.
+
+**Open:** MT-6 (CLAWD hierarchy polish).
+
 Suggested ship order: **MT-2 → MT-3 → MT-1 → MT-4 → MT-6 → MT-5 → MT-7**  
 (Nav + hybrid table unlock the triage viewport; comfort/status/discovery polish after.)
-
-**Shipped:** MT-2, MT-3, Project sticky ellipsis fix, MT-4 (mobile comfort default).
 
 ---
 

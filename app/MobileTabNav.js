@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 
 export const MOBILE_PRIMARY_TABS = ["Overview", "Whales & Risk", "Watchlist", "Activity"];
@@ -26,87 +27,143 @@ function chipStyle(active) {
   };
 }
 
+function itemKey(item) {
+  return typeof item === "string" ? item : item.key;
+}
+function itemLabel(item) {
+  return typeof item === "string" ? item : item.label;
+}
+
+/**
+ * More menu portals to document.body so it is not clipped by overflow-x tab strips.
+ */
 function MoreMenu({ items, activeKey, onSelect, renderItem }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const moreActive = items.some((item) => (typeof item === "string" ? item : item.key) === activeKey);
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  const moreActive = items.some((item) => itemKey(item) === activeKey);
+  const activeItem = items.find((item) => itemKey(item) === activeKey);
+  const chipText = moreActive && activeItem ? itemLabel(activeItem) : "More";
+
+  useLayoutEffect(() => {
+    if (!open || !btnRef.current) {
+      setPos(null);
+      return;
+    }
+    const place = () => {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({
+        top: Math.round(r.bottom + 4),
+        right: Math.round(Math.max(8, window.innerWidth - r.right)),
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (btnRef.current?.contains(e.target)) return;
+      if (menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
+  const menu =
+    open &&
+    pos &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <div
+        ref={menuRef}
+        role="menu"
+        style={{
+          position: "fixed",
+          top: pos.top,
+          right: pos.right,
+          minWidth: "180px",
+          maxHeight: "min(70vh, 420px)",
+          overflowY: "auto",
+          background: "var(--bg)",
+          border: "1px solid var(--border-strong)",
+          borderRadius: "8px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+          zIndex: 10000,
+          padding: "6px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2px",
+        }}
+      >
+        {items.map((item) => {
+          const key = itemKey(item);
+          const label = itemLabel(item);
+          const active = key === activeKey;
+          if (renderItem) {
+            return (
+              <div key={key} onClick={() => setOpen(false)}>
+                {renderItem({ key, label, active, close: () => setOpen(false) })}
+              </div>
+            );
+          }
+          return (
+            <button
+              key={key}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onSelect?.(key);
+              }}
+              style={{
+                ...chipBase,
+                width: "100%",
+                textAlign: "left",
+                border: "none",
+                background: active ? "var(--btn-active-bg)" : "transparent",
+                color: active ? "var(--btn-active-text)" : "var(--text)",
+                fontWeight: active ? 600 : 400,
+                borderRadius: "6px",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>,
+      document.body
+    );
+
   return (
-    <div ref={wrapRef} style={{ position: "relative", flexShrink: 0 }}>
+    <div style={{ position: "relative", flexShrink: 0 }}>
       <button
+        ref={btnRef}
         type="button"
         style={chipStyle(moreActive || open)}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
+        title={moreActive ? `More · ${chipText}` : "More tabs"}
       >
-        More{moreActive ? " ·" : ""} ▾
+        {chipText} ▾
       </button>
-      {open && (
-        <div
-          role="menu"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            right: 0,
-            minWidth: "180px",
-            background: "var(--bg)",
-            border: "1px solid var(--border-strong)",
-            borderRadius: "8px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 50,
-            padding: "6px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "2px",
-          }}
-        >
-          {items.map((item) => {
-            const key = typeof item === "string" ? item : item.key;
-            const label = typeof item === "string" ? item : item.label;
-            const active = key === activeKey;
-            if (renderItem) {
-              return (
-                <div key={key} onClick={() => setOpen(false)}>
-                  {renderItem({ key, label, active, close: () => setOpen(false) })}
-                </div>
-              );
-            }
-            return (
-              <button
-                key={key}
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  onSelect?.(key);
-                }}
-                style={{
-                  ...chipBase,
-                  width: "100%",
-                  textAlign: "left",
-                  border: "none",
-                  background: active ? "var(--btn-active-bg)" : "transparent",
-                  color: active ? "var(--btn-active-text)" : "var(--text)",
-                  fontWeight: active ? 600 : 400,
-                  borderRadius: "6px",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {menu}
     </div>
   );
 }
