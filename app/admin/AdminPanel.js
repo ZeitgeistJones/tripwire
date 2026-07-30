@@ -520,7 +520,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                   : ""}
                 {moversStatus && (
                   <div style={{ marginTop: "4px" }}>
-                    Movers {promptWindow}:{" "}
+                    Movers {promptWindow === "all" ? "7d" : promptWindow}:{" "}
                     {moversStatus.isHighlighted ? (
                       <span style={{ color: "var(--gate-ok-text)" }}>
                         {moversStatus.onActivityBoard ? `activity #${moversStatus.activityRank}` : ""}
@@ -530,8 +530,11 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                     ) : (
                       <span>not on top boards</span>
                     )}
+                    {promptWindow === "all" ? " · card includes multiple windows" : ""}
                     {promptKind === "whale" && promptWindow === "30d" ? " · whale card uses 7d flow" : ""}
+                    {promptKind === "whale" && promptWindow === "all" ? " · whale bands: 24h + 7d (no 30d twin)" : ""}
                     {promptKind === "buyers" && promptWindow === "30d" ? " · no 30d buy/sell ratio twin" : ""}
+                    {promptKind === "all" ? " · stacked Whale + Buyers + Activity" : ""}
                   </div>
                 )}
               </div>
