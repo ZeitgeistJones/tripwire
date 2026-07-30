@@ -95,7 +95,7 @@ function Segmented({ options, value, onChange, ariaLabel }) {
   );
 }
 
-export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
+export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: initialScoresLastUpdated = null }) {
   const [secret, setSecret] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [unlockError, setUnlockError] = useState(null);
@@ -109,6 +109,9 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
   const [promptCopied, setPromptCopied] = useState(false);
   const [textCopied, setTextCopied] = useState(null);
   const [behHistory, setBehHistory] = useState([]);
+  const [rows, setRows] = useState(initialRows);
+  const [scoresLastUpdated, setScoresLastUpdated] = useState(initialScoresLastUpdated);
+  const [dataRefreshing, setDataRefreshing] = useState(false);
 
   const tokenOptions = useMemo(() => sharePromptTokenOptions(rows), [rows]);
   const rowByAddress = useMemo(() => {
@@ -132,6 +135,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
   useEffect(() => {
     if (!unlocked) return;
     refresh();
+    refreshDashboard({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlocked]);
 
@@ -173,6 +177,33 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
     [promptKind, selectedRow, rows, promptWindow, scoresLastUpdated]
   );
   const kindMeta = SHARE_PROMPT_KINDS.find((k) => k.value === promptKind);
+
+  const refreshDashboard = async ({ silent = false } = {}) => {
+    if (!secret) return;
+    if (!silent) setDataRefreshing(true);
+    try {
+      const res = await fetch("/api/admin/dashboard-snapshot", {
+        headers: { "x-admin-secret": secret },
+        cache: "no-store",
+      });
+      if (res.status === 401) {
+        lock();
+        return;
+      }
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Failed to refresh dashboard snapshot");
+      if (Array.isArray(j.rows)) setRows(j.rows);
+      if (j.lastUpdated != null) setScoresLastUpdated(j.lastUpdated);
+      if (!silent) {
+        setStatus("data_refreshed");
+        setTimeout(() => setStatus(null), 2500);
+      }
+    } catch (e) {
+      if (!silent) setStatus(String(e.message || "refresh failed"));
+    } finally {
+      if (!silent) setDataRefreshing(false);
+    }
+  };
 
   const refresh = async () => {
     try {
@@ -334,8 +365,8 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
         }
       : null;
 
-  const busy = status === "generating" || status === "forcing" || status === "posting" || status === "checking";
-  const okStatuses = ["posted", "generated", "cached"];
+  const busy = status === "generating" || status === "forcing" || status === "posting" || status === "checking" || dataRefreshing;
+  const okStatuses = ["posted", "generated", "cached", "data_refreshed"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -382,11 +413,22 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
         </div>
       ) : (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "12px", color: "var(--gate-ok-text)" }}>Unlocked for this browser tab</span>
-            <button type="button" onClick={lock} style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px" }}>
-              Lock
-            </button>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => refreshDashboard()}
+                disabled={dataRefreshing}
+                style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px", cursor: dataRefreshing ? "wait" : "pointer" }}
+                title="Pull latest Dune results + prices (bypasses 1h cache)"
+              >
+                {dataRefreshing ? "Refreshing snapshot…" : "Refresh snapshot"}
+              </button>
+              <button type="button" onClick={lock} style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px" }}>
+                Lock
+              </button>
+            </div>
           </div>
 
           <section style={cardStyle}>
@@ -395,7 +437,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
               Pick a token + window + card type → copy → paste into ChatGPT / Claude / Gemini (image-capable).
-              Prompts ask for a social image first, then a short caption. No Tripwire image API call.
+              Prompts ask for a social image first, then a short caption. Uses the refreshed snapshot below (not a stale page load).
             </p>
 
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -516,7 +558,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
               Same plain-text copies that used to live on the public CLAWD tab. Uses the token selected above.
-              All &quot;as of&quot; times are the Tripwire / Dune query snapshot — not when you hit copy.
+              All &quot;as of&quot; times and numbers come from the current admin snapshot — hit <strong style={{ color: "var(--text-muted)" }}>Refresh snapshot</strong> after a new Dune run.
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
               <button
@@ -591,6 +633,7 @@ export default function AdminPanel({ rows = [], scoresLastUpdated = null }) {
                 {status === "posted" ? "✓ Manual report saved"
                   : status === "generated" ? "✓ Report generated"
                   : status === "cached" ? "✓ Already up to date (no API call)"
+                  : status === "data_refreshed" ? "✓ Dashboard snapshot refreshed from Dune"
                   : status}
               </span>
             )}
