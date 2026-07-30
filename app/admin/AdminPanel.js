@@ -534,6 +534,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                       <span>not on top boards</span>
                     )}
                     {promptKind === "whale" && promptWindow === "30d" ? " · whale card uses 7d flow" : ""}
+                    {promptKind === "buyers" && promptWindow === "30d" ? " · no 30d buy/sell ratio twin" : ""}
                   </div>
                 )}
               </div>
