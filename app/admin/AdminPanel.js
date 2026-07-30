@@ -586,7 +586,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                 disabled={!selectedRow}
                 onClick={() => copyText(buildObjectiveText(selectedRow, { scoresLastUpdated }), "objective")}
               >
-                {textCopied === "objective" ? "\u2713 Copied!" : "Copy objective data only"}
+                {textCopied === "objective" ? "\u2713 Copied!" : "Copy on-chain snapshot"}
               </button>
               <button
                 type="button"
