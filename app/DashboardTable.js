@@ -394,6 +394,7 @@ const TABS = {
     { key: "Whale Vol % 24h",   label: "Whale Vol %",     type: "number", format: "pct1", window: "24h", tooltip: "Whale trades as a share of all 24h volume" },
     { key: "Divergence Bps 24h", label: "W/R Div (bps)",  type: "number", format: "dec1", window: "24h", tooltip: "Whale-vs-retail divergence in basis points of market cap over 24h" },
     { key: "Whale Min $",       label: "Whale Min $",     type: "number", format: "usd", window: "30d thr", tooltip: "The whale threshold for THIS token \u2014 the top-10% trade size over 30d (min $100). What counts as a whale trade scales with each token's own market: might be $800 on a microcap, $50k on a major" },
+    { key: "Hump Min $",        label: "Hump Min $",      type: "number", format: "usd", window: "30d thr", tooltip: "The humpback / mega-trade threshold for THIS token \u2014 top-1% trade size over 30d, floored at $1,000. If this shows $1,000, the token is sitting on the floor (true p99 is at or below $1k). If higher, that is the live top-1% bar." },
     { key: "Top10 %",           label: "Top10 %",         type: "number", format: "pct1", window: "30d", tooltip: "Share of all 30-day transactions from the top 10 most active wallets \u2014 lower is healthier" },
     { key: "Non-Trade New 30d", label: "Non-Trade New",   type: "number", format: "int", window: "30d", tooltip: "New wallets in the last 30 days that made no first buy or sell" },
     { key: "Qlty %",            label: "Qlty %",          type: "number", format: "pct1", window: "score", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
@@ -923,7 +924,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
     "Hump Net 7d", "Hump Net 24h", "Hump Buyers 7d", "Hump Sellers 7d",
     "Hump Buyers 24h", "Hump Sellers 24h",
     "Retail Net 7d", "Retail Net 24h", "Whale Vol %", "Whale Vol % 24h",
-    "Whale Min $", "Divergence Bps", "Divergence Bps 24h",
+    "Whale Min $", "Hump Min $", "Divergence Bps", "Divergence Bps 24h",
     "Qlty %", "Risk %", "Top10 %",
   ];
   const ranks = {};

@@ -326,6 +326,7 @@ const COMPACT_SECTIONS = [
       { key: "Vol/Tx 7d", label: "Vol/Tx", format: "usd2", window: "7d" },
       { key: "Vol/Tx 24h", label: "Vol/Tx", format: "usd2", window: "24h" },
       { key: "Whale Min $", label: "Whale Threshold", format: "usd", window: "30d thr" },
+      { key: "Hump Min $", label: "Humpback Threshold", format: "usd", window: "30d thr" },
     ],
   },
   {

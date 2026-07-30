@@ -1,6 +1,8 @@
 -- =============================================================================
 -- FULL paste-ready one-shot. Paste THIS ENTIRE file into Dune (replace query body).
 -- Starts with WITH. Do NOT paste dune-one-shot-24h-twins.sql alone.
+-- Exposes "Whale Min $" and "Hump Min $" (max(p99, $1000)) so the app can show
+-- live mega threshold vs sitting on the $1k floor.
 -- =============================================================================
 
 WITH tracked_tokens AS (
@@ -754,7 +756,8 @@ whale_flow AS (
         SUM(CASE WHEN dt.block_time >= now() - interval '1' day
                   AND dt.token_sold_address = tt.address THEN dt.amount_usd ELSE 0 END) AS total_sell_usd_24h,
 
-        MAX(wt.whale_min_usd) AS whale_min_usd
+        MAX(wt.whale_min_usd) AS whale_min_usd,
+        MAX(wt.hump_min_usd) AS hump_min_usd
     FROM dex_trades_7d dt
     INNER JOIN tracked_tokens tt
         ON dt.token_bought_address = tt.address
@@ -893,6 +896,7 @@ combined AS (
             , 1)
         END AS "Buy Vol % 24h",
         ROUND(COALESCE(wf.whale_min_usd, 0), 0) AS "Whale Min $",
+        ROUND(COALESCE(wf.hump_min_usd, 0), 0) AS "Hump Min $",
         COALESCE(wf.hump_buyers_7d, 0) AS "Hump Buyers 7d",
         COALESCE(wf.hump_sellers_7d, 0) AS "Hump Sellers 7d",
         COALESCE(wf.hump_buyers_24h, 0) AS "Hump Buyers 24h",
@@ -1085,6 +1089,7 @@ SELECT
     "Buy Vol %",
     "Buy Vol % 24h",
     "Whale Min $",
+    "Hump Min $",
     "Non-Trade New 30d",
     ROUND("Top10", 1) AS "Top10 %",
     COALESCE(DATE_DIFF('day', CAST(ta.deployed_at AS DATE), CURRENT_DATE), 0) AS "Token Age Days",
