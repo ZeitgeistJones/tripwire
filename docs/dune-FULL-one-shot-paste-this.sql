@@ -157,7 +157,7 @@ WITH tracked_tokens AS (
         (0x591666816c7c527b02a162a88aae75f20b90eba3, 'TEMPO', 'TEMPO', 'non-agent-via-bankr'),
         (0xc46c41005a1a88b0c1491f2b542a4831d6d1eba3, 'A2H', 'A2H', 'non-agent-via-bankr'),
         (0x8070b5e222f1ec077845e46ced2267e0def4cba3, 'Protean', 'PRTN', 'non-agent-via-bankr'),
-        (0x3722264aB15a1dfCe5a5af89e6547F7949A8ABA3, 'LienFi', 'LIEN', 'non-agent-via-bankr'),
+        (0x3722264aB15a1dfCe5a5af89e6547F7949A8ABA3, 'LienFi', 'LFI', 'non-agent-via-bankr'),
 
         -- NON-AGENT VIA CLANKER
         (0xB695559b26BB2c9703ef1935c37AeaE9526bab07, 'Moltbook', 'MOLT', 'non-agent-via-clanker'),
