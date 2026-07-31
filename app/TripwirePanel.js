@@ -6,26 +6,17 @@ const COLUMNS = [
   { key: "marketCapUsd", label: "Market Cap", format: "usd" },
   { key: "Wallets 15m", label: "Active Wallets 15m" },
   { key: "Txs 15m", label: "Txs 15m" },
-  { key: "New Wallets 15m", label: "New Wallets 15m" },
   { key: "Wallets 1h", label: "Active Wallets 1h" },
   { key: "Txs 1h", label: "Txs 1h" },
-  { key: "New Wallets 1h", label: "New Wallets 1h" },
   { key: "Wallets 6h", label: "Active Wallets 6h" },
   { key: "Txs 6h", label: "Txs 6h" },
-  { key: "New Buyers 6h", label: "New Buyers 6h" },
-  { key: "New Sellers 6h", label: "New Sellers 6h" },
   { key: "Wallets 24h", label: "Active Wallets 24h" },
   { key: "Txs 24h", label: "Txs 24h" },
-  { key: "New Buyers 24h", label: "New Buyers 24h" },
-  { key: "New Sellers 24h", label: "New Sellers 24h" },
 ];
 
 const TRIPWIRE_KEY_METRICS = [
-  { name: "Txs 15m / 1h / 6h / 24h",          desc: "On-chain transactions in each window — a spike means something just happened" },
+  { name: "Txs 15m / 1h / 6h / 24h",            desc: "On-chain transactions in each window — a spike means something just happened" },
   { name: "Active Wallets 15m / 1h / 6h / 24h", desc: "Unique wallets that transacted — distinguishes broad activity from one whale moving" },
-  { name: "New Wallets 15m / 1h",               desc: "Wallets interacting for the first time — new arrivals, not existing holders" },
-  { name: "New Buyers 6h / 24h",                desc: "Wallets buying for the first time in the window — a demand signal" },
-  { name: "New Sellers 6h / 24h",               desc: "Wallets selling for the first time in the window — a distribution signal" },
   { name: "Market Cap",                          desc: "Live market cap from CoinGecko at time of query" },
 ];
 
@@ -159,10 +150,10 @@ export default function TripwirePanel({ hasAccess, walletAddress = null }) {
       lineHeight: "1.6",
       maxWidth: "680px",
     }}>
-      The Wire is an on-demand pulse check — it runs a fresh Dune query right now and returns activity from
+      The Wire is an on-demand pulse check — it runs a fresh Dune query and returns wallets + txs for
       the last 15 minutes, 1 hour, 6 hours, and 24 hours across every tracked project. Use it right after
-      news breaks, a token gets mentioned, or you want to know what's moving at this exact moment. It takes
-      1–2 minutes to run. Usage may be limited to stay within free-tier Dune query credits.
+      news breaks, a token gets mentioned, or you want to know what is moving right now. It usually
+      finishes in under a minute. Usage may be limited to stay within free-tier Dune query credits.
     </div>
   );
 
@@ -218,7 +209,7 @@ export default function TripwirePanel({ hasAccess, walletAddress = null }) {
 
         {status === "running" && (
           <span style={{ marginTop: "10px", color: "var(--text-muted)", fontSize: "13px", textAlign: "center" }}>
-            Calling Dune fresh — takes 1–2 minutes.
+            Calling Dune fresh — usually under a minute.
           </span>
         )}
         {status === "error" && (
