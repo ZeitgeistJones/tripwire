@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 function formatTs(value) {
   if (!value) return "—";
@@ -10,29 +11,50 @@ function formatTs(value) {
   });
 }
 
+function tsMs(value) {
+  if (!value) return null;
+  const n = new Date(value).getTime();
+  return Number.isNaN(n) ? null : n;
+}
+
 export default function StatusBanner({ lastUpdated: initialLastUpdated }) {
-  const [formatted, setFormatted] = useState("—");
+  const router = useRouter();
+  // Always show the timestamp that matches the row data on this page.
+  // Never label the table with a newer Dune time than the numbers themselves.
+  const [formatted, setFormatted] = useState(() => formatTs(initialLastUpdated));
+
+  useEffect(() => {
+    setFormatted(formatTs(initialLastUpdated));
+  }, [initialLastUpdated]);
 
   useEffect(() => {
     let cancelled = false;
 
-    // Always format in the browser so timezone matches across pages.
-    if (initialLastUpdated) setFormatted(formatTs(initialLastUpdated));
-
-    async function load() {
+    async function checkForNewerScores() {
       try {
         const res = await fetch("/api/scores-updated", { cache: "no-store" });
         if (!res.ok) return;
         const json = await res.json();
-        if (!cancelled) setFormatted(formatTs(json.lastUpdated));
+        if (cancelled) return;
+        const remoteMs = tsMs(json.lastUpdated);
+        const pageMs = tsMs(initialLastUpdated);
+        // Dune advanced past what this page rendered — reload RSC props so
+        // table numbers and this banner stay on the same snapshot.
+        if (remoteMs != null && (pageMs == null || remoteMs > pageMs)) {
+          router.refresh();
+        }
       } catch {
         // keep whatever we already show
       }
     }
 
-    load();
-    return () => { cancelled = true; };
-  }, [initialLastUpdated]);
+    checkForNewerScores();
+    const id = setInterval(checkForNewerScores, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [initialLastUpdated, router]);
 
   return (
     <div style={{

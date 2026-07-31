@@ -1,3 +1,4 @@
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getDashboardDataFresh } from "@/lib/getData";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,14 @@ export async function GET(req) {
 
   try {
     const { rows, lastUpdated } = await getDashboardDataFresh();
+    // Keep public dashboard / movers in sync with the snapshot admin just pulled.
+    try {
+      revalidateTag("dune-dashboard");
+      revalidatePath("/");
+      revalidatePath("/dashboard");
+    } catch (revalErr) {
+      console.warn("[admin/dashboard-snapshot] revalidate:", String(revalErr));
+    }
     return Response.json({ rows, lastUpdated });
   } catch (err) {
     console.error("[admin/dashboard-snapshot]", String(err));
