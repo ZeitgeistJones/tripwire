@@ -52,7 +52,7 @@ function formatValue(val, format) {
   return val;
 }
 
-export default function TripwirePanel({ hasAccess }) {
+export default function TripwirePanel({ hasAccess, walletAddress = null }) {
   const [status, setStatus] = useState("idle");
   const [rows, setRows] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
@@ -66,6 +66,12 @@ export default function TripwirePanel({ hasAccess }) {
     pollRef.current = null;
   }
 
+  function wireHeaders() {
+    const h = {};
+    if (walletAddress) h["x-wallet-address"] = String(walletAddress).toLowerCase();
+    return h;
+  }
+
   async function runTripwire() {
     setStatus("starting");
     setErrorMsg("");
@@ -73,7 +79,10 @@ export default function TripwirePanel({ hasAccess }) {
     attemptsRef.current = 0;
 
     try {
-      const startRes = await fetch("/api/tripwire/start", { method: "POST" });
+      const startRes = await fetch("/api/tripwire/start", {
+        method: "POST",
+        headers: wireHeaders(),
+      });
       const startJson = await startRes.json();
       if (!startRes.ok || !startJson.executionId) {
         throw new Error(startJson.error || "Failed to start The Wire run");
@@ -89,7 +98,10 @@ export default function TripwirePanel({ hasAccess }) {
           return;
         }
         try {
-          const statusRes = await fetch(`/api/tripwire/status?executionId=${startJson.executionId}`);
+          const statusRes = await fetch(
+            `/api/tripwire/status?executionId=${startJson.executionId}`,
+            { headers: wireHeaders() }
+          );
           const statusJson = await statusRes.json();
           if (statusJson.state === "QUERY_STATE_COMPLETED") {
             stopPolling();

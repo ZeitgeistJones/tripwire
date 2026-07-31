@@ -6,9 +6,11 @@ import { base } from "wagmi/chains";
 import AboutPanel from "./AboutPanel";
 import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
+import TripwirePanel from "./TripwirePanel";
 import StatusBanner from "./StatusBanner";
 import DefSheet from "./DefSheet";
 import { DashboardMobileNav } from "./MobileTabNav";
+import { isWireTester } from "@/lib/wireAccess";
 
 
 // ── Custom delayed tooltip ────────────────────────────────────────────────────
@@ -937,6 +939,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     query: { enabled: !!address },
   });
   const hasAccess = !!hasAccessRaw;
+  const wireTester = isWireTester(address);
 
   // ── Load watchlist from Upstash when wallet connects ─────────────────────
   useEffect(() => {
@@ -1666,35 +1669,68 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
 
       <div style={{ minHeight: "500px" }}>
         {isTripwire && (
-          <div style={{
-            marginTop: "24px",
-            padding: "40px 24px",
-            border: "1px solid var(--border)",
-            borderRadius: "10px",
-            background: "var(--bg-subtle)",
-            textAlign: "center",
-          }}>
-            <div style={{
-              display: "inline-block",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "var(--read-amber-text)",
-              background: "var(--read-amber-bg)",
-              padding: "4px 10px",
-              borderRadius: "999px",
-              marginBottom: "12px",
-            }}>
-              Under construction
+          wireTester ? (
+            <div>
+              <div style={{
+                marginBottom: "16px",
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                background: "var(--bg-subtle)",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px",
+                alignItems: "center",
+              }}>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "var(--read-amber-text)",
+                  background: "var(--read-amber-bg)",
+                  padding: "4px 10px",
+                  borderRadius: "999px",
+                }}>
+                  Under construction
+                </span>
+                <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+                  Team testing — The Wire is open only to the tester wallet while we rebuild.
+                </span>
+              </div>
+              <TripwirePanel hasAccess={true} walletAddress={address} />
             </div>
-            <p style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--text)" }}>
-              The Wire is temporarily offline
-            </p>
-            <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)", maxWidth: "420px", marginLeft: "auto", marginRight: "auto" }}>
-              We&apos;re rebuilding this pulse check. Check back soon.
-            </p>
-          </div>
+          ) : (
+            <div style={{
+              marginTop: "24px",
+              padding: "40px 24px",
+              border: "1px solid var(--border)",
+              borderRadius: "10px",
+              background: "var(--bg-subtle)",
+              textAlign: "center",
+            }}>
+              <div style={{
+                display: "inline-block",
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: "var(--read-amber-text)",
+                background: "var(--read-amber-bg)",
+                padding: "4px 10px",
+                borderRadius: "999px",
+                marginBottom: "12px",
+              }}>
+                Under construction
+              </div>
+              <p style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--text)" }}>
+                The Wire is temporarily offline
+              </p>
+              <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)", maxWidth: "440px", marginLeft: "auto", marginRight: "auto" }}>
+                Team is testing a rebuild. Public access is paused — check back soon.
+              </p>
+            </div>
+          )
         )}
         {isAbout     && <AboutPanel />}
         {isClawd     && (

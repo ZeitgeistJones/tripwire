@@ -281,7 +281,7 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
-          <li><strong style={{ color: "var(--text)" }}>The Wire</strong> — on-demand pulse across tracked tokens (temporarily under construction)</li>
+          <li><strong style={{ color: "var(--text)" }}>The Wire</strong> — on-demand pulse across tracked tokens (under construction; team testing)</li>
           <li><strong style={{ color: "var(--text)" }}>About</strong> — this page (includes Changelog)</li>
         </ul>
 

@@ -1,3 +1,5 @@
+import { isWireTester } from "@/lib/wireAccess";
+
 async function fetchCoinGeckoMarketCap(address) {
   try {
     const res = await fetch(
@@ -16,6 +18,14 @@ async function fetchCoinGeckoMarketCap(address) {
 }
 
 export async function GET(request) {
+  const wallet = request.headers.get("x-wallet-address") || "";
+  if (!isWireTester(wallet)) {
+    return Response.json(
+      { error: "The Wire is under construction — tester access only." },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const executionId = searchParams.get("executionId");
   if (!executionId) {

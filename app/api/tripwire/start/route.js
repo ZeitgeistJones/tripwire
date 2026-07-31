@@ -1,6 +1,18 @@
+import { isWireTester } from "@/lib/wireAccess";
+
 const TRIPWIRE_QUERY_ID = "7765068";
 
-export async function POST() {
+function unauthorized() {
+  return Response.json(
+    { error: "The Wire is under construction — tester access only." },
+    { status: 403 }
+  );
+}
+
+export async function POST(request) {
+  const wallet = request.headers.get("x-wallet-address") || "";
+  if (!isWireTester(wallet)) return unauthorized();
+
   try {
     const res = await fetch(
       `https://api.dune.com/api/v1/query/${TRIPWIRE_QUERY_ID}/execute`,
