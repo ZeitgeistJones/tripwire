@@ -89,6 +89,8 @@ function ReadBadge({ value }) {
 
 function formatValue(val, format) {
   if (val == null || val === "") return "—";
+  // String columns (Project, Signal, Prof, …) have no numeric format — pass through.
+  if (!format) return val;
   const n = Number(val);
   if (Number.isNaN(n)) return "—";
   if (format === "price") return `$${n.toPrecision(4)}`;
