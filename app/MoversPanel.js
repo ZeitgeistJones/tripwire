@@ -337,7 +337,7 @@ export default function MoversPanel({ data, lastUpdated, snapshotBuiltAt = null 
     : `On-chain activity and whale flow over ${period === "30d" ? "30d (whales use 7d)" : period}, sized to each token. Not a price board. Second look, not a call.`;
 
   const methodNote =
-    "How ranking works: Activity favors real volume (and turnover vs mcap on 24h/30d), not empty % spikes. Whale flow favors net flow vs mcap plus whale–retail divergence — large-cap dollar prints without relative size or disagreement rank lower. Full detail on About.";
+    "How ranking works: Activity favors real volume (and turnover vs mcap on 24h/30d), not empty % spikes. Whale flow favors net flow vs mcap plus whale–retail divergence — large-cap dollar prints without relative size or disagreement rank lower.";
 
   return (
     <div>
@@ -368,8 +368,12 @@ export default function MoversPanel({ data, lastUpdated, snapshotBuiltAt = null 
         maxWidth: "820px",
       }}>
         {methodNote}{" "}
+        <Link href="/dashboard?tab=About#changelog" style={{ color: "var(--text-muted)", textDecoration: "underline" }}>
+          About · Changelog
+        </Link>
+        {" · "}
         <Link href="/dashboard?tab=About" style={{ color: "var(--text-muted)", textDecoration: "underline" }}>
-          About
+          methodology
         </Link>
       </p>
       <Section title="Activity swings" hint={activityHint}>

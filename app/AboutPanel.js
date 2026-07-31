@@ -1,3 +1,5 @@
+import { CHANGELOG } from "@/lib/changelog";
+
 const GLOSSARY_ROWS = [
   ["Window tokens", "24h = trailing day · 7d = trailing week · 30d = trailing month · WoW = this 7d vs prior 7d · live = CoinGecko now · score = composite Tripwire score (not a calendar window) · 30d thr = whale size threshold from 30d trade distribution"],
   ["O Rk / M Rk / S Rk", "Rank by Opportunity / Momentum / Sustainability score, across all tracked tokens"],
@@ -54,6 +56,31 @@ export default function AboutPanel() {
           Price, Market Cap, Signal, and Movers sit alongside as separate layers.
           This is an experiment — not financial advice; data may be incomplete.
         </p>
+
+        <h3 id="changelog" style={{ color: "var(--text)" }}>Changelog</h3>
+        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
+          Curated product / methodology notes — not every deploy. Newest first.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px", marginBottom: "8px" }}>
+          {CHANGELOG.map((entry) => (
+            <div key={`${entry.date}-${entry.title}`}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline", marginBottom: "4px" }}>
+                <time
+                  dateTime={entry.date}
+                  style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-faint)", letterSpacing: "0.02em" }}
+                >
+                  {entry.date}
+                </time>
+                <strong style={{ color: "var(--text)", fontSize: "14px" }}>{entry.title}</strong>
+              </div>
+              <ul style={{ margin: "0", paddingLeft: "20px", color: "var(--text-muted)", fontSize: "13px" }}>
+                {entry.bullets.map((b) => (
+                  <li key={b} style={{ marginBottom: "4px" }}>{b}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
 
         <h3 style={{ color: "var(--text)" }}>Key Terms</h3>
         <p style={{ color: "var(--text-muted)" }}>
@@ -255,7 +282,7 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
           <li><strong style={{ color: "var(--text)" }}>The Wire</strong> — on-demand pulse across tracked tokens (temporarily under construction)</li>
-          <li><strong style={{ color: "var(--text)" }}>About</strong> — this page</li>
+          <li><strong style={{ color: "var(--text)" }}>About</strong> — this page (includes Changelog)</li>
         </ul>
 
         <h3 style={{ marginTop: "32px", color: "var(--text)" }}>Thanks</h3>
