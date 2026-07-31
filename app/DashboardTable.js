@@ -8,6 +8,7 @@ import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
 import TripwirePanel from "./TripwirePanel";
 import StatusBanner from "./StatusBanner";
+import WireBanner from "./WireBanner";
 import DefSheet from "./DefSheet";
 import { DashboardMobileNav } from "./MobileTabNav";
 import { isWireTester } from "@/lib/wireAccess";
