@@ -444,7 +444,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
               Pick a token + window + card type → copy → paste into ChatGPT / Claude / Gemini (image-capable).
-              Prompts ask for a social image first, then a short caption. Uses the refreshed snapshot below (not a stale page load).
+              Prompts ask for a social image first, then a short caption. Uses the shared Upstash snapshot (same rows the public site serves).
             </p>
 
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
