@@ -9,7 +9,11 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const { rows, lastUpdated } = await getDashboardData().catch(() => ({ rows: [], lastUpdated: null }));
+  const { rows, lastUpdated, builtAt } = await getDashboardData().catch(() => ({
+    rows: [],
+    lastUpdated: null,
+    builtAt: null,
+  }));
 
   return (
     <main
@@ -24,7 +28,7 @@ export default async function AdminPage() {
         minHeight: "100vh",
       }}
     >
-      <AdminPanel rows={rows} scoresLastUpdated={lastUpdated} />
+      <AdminPanel rows={rows} scoresLastUpdated={lastUpdated} snapshotBuiltAt={builtAt} />
     </main>
   );
 }

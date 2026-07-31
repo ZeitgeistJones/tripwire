@@ -17,10 +17,15 @@ function tsMs(value) {
   return Number.isNaN(n) ? null : n;
 }
 
-export default function StatusBanner({ lastUpdated: initialLastUpdated }) {
+/**
+ * Clock always matches the rows on this page (lastUpdated prop).
+ * If Upstash publishes a newer snapshot (builtAt), soft-reload so table + clock update together.
+ */
+export default function StatusBanner({
+  lastUpdated: initialLastUpdated,
+  snapshotBuiltAt: initialBuiltAt = null,
+}) {
   const router = useRouter();
-  // Always show the timestamp that matches the row data on this page.
-  // Never label the table with a newer Dune time than the numbers themselves.
   const [formatted, setFormatted] = useState(() => formatTs(initialLastUpdated));
 
   useEffect(() => {
@@ -30,17 +35,24 @@ export default function StatusBanner({ lastUpdated: initialLastUpdated }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function checkForNewerScores() {
+    async function checkForNewerSnapshot() {
       try {
         const res = await fetch("/api/scores-updated", { cache: "no-store" });
         if (!res.ok) return;
         const json = await res.json();
         if (cancelled) return;
-        const remoteMs = tsMs(json.lastUpdated);
-        const pageMs = tsMs(initialLastUpdated);
-        // Dune advanced past what this page rendered — reload RSC props so
-        // table numbers and this banner stay on the same snapshot.
-        if (remoteMs != null && (pageMs == null || remoteMs > pageMs)) {
+
+        const remoteBuilt = tsMs(json.builtAt);
+        const pageBuilt = tsMs(initialBuiltAt);
+        const remoteDune = tsMs(json.lastUpdated);
+        const pageDune = tsMs(initialLastUpdated);
+
+        const builtNewer =
+          remoteBuilt != null && (pageBuilt == null || remoteBuilt > pageBuilt);
+        const duneNewer =
+          remoteDune != null && (pageDune == null || remoteDune > pageDune);
+
+        if (builtNewer || duneNewer) {
           router.refresh();
         }
       } catch {
@@ -48,13 +60,13 @@ export default function StatusBanner({ lastUpdated: initialLastUpdated }) {
       }
     }
 
-    checkForNewerScores();
-    const id = setInterval(checkForNewerScores, 60_000);
+    checkForNewerSnapshot();
+    const id = setInterval(checkForNewerSnapshot, 30_000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, [initialLastUpdated, router]);
+  }, [initialLastUpdated, initialBuiltAt, router]);
 
   return (
     <div style={{

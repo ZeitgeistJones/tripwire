@@ -1,4 +1,4 @@
-import { getDashboardDataFresh } from "@/lib/getData";
+import { getDashboardData, getDashboardDataFresh } from "@/lib/getData";
 
 export const dynamic = "force-dynamic";
 
@@ -7,8 +7,8 @@ function unauthorized() {
 }
 
 /**
- * Rebuild from Dune + prices and publish to Upstash.
- * Public pages / banner read that same snapshot — admin Refresh is the alignment lever.
+ * ?read=1 → return the shared Upstash snapshot (no Dune rebuild).
+ * default → rebuild from Dune + prices and publish (Admin "Refresh snapshot").
  */
 export async function GET(req) {
   const secret = req.headers.get("x-admin-secret") || "";
@@ -16,8 +16,14 @@ export async function GET(req) {
   if (!expected || secret !== expected) return unauthorized();
 
   try {
-    const { rows, lastUpdated } = await getDashboardDataFresh();
-    return Response.json({ rows, lastUpdated });
+    const url = new URL(req.url);
+    const readOnly = url.searchParams.get("read") === "1";
+    const data = readOnly ? await getDashboardData() : await getDashboardDataFresh();
+    return Response.json({
+      rows: data.rows,
+      lastUpdated: data.lastUpdated,
+      builtAt: data.builtAt ?? null,
+    });
   } catch (err) {
     console.error("[admin/dashboard-snapshot]", String(err));
     return Response.json({ error: String(err?.message || err) }, { status: 500 });

@@ -872,7 +872,7 @@ function ProfSignalKey() {
 }
 
 
-export default function DashboardTable({ data, discoveryData = [], lastUpdated }) {
+export default function DashboardTable({ data, discoveryData = [], lastUpdated, snapshotBuiltAt = null }) {
   const [activeTab, setActiveTab] = useState("Overview");
   const [sortKey, setSortKey] = useState("Opp");
   const [sortDir, setSortDir] = useState("desc");
@@ -1493,7 +1493,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated }
 
   return (
     <div ref={rootRef}>
-      <StatusBanner lastUpdated={lastUpdated} />
+      <StatusBanner lastUpdated={lastUpdated} snapshotBuiltAt={snapshotBuiltAt} />
 
       <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
         <Link

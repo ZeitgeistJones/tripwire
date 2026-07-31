@@ -1,9 +1,13 @@
-import { getScoresLastUpdated } from "@/lib/getData";
+import { getDashboardSnapshotMeta } from "@/lib/getData";
 
 export const dynamic = "force-dynamic";
 
-/** Same lastUpdated as the table — from the Upstash dashboard snapshot. */
+/**
+ * Snapshot identity for the public UI.
+ * Banner must only refresh the page when this advances — never show a clock
+ * that doesn't match the table rows.
+ */
 export async function GET() {
-  const lastUpdated = await getScoresLastUpdated();
-  return Response.json({ lastUpdated });
+  const meta = await getDashboardSnapshotMeta();
+  return Response.json(meta);
 }

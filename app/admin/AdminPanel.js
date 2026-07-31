@@ -96,7 +96,11 @@ function Segmented({ options, value, onChange, ariaLabel }) {
   );
 }
 
-export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: initialScoresLastUpdated = null }) {
+export default function AdminPanel({
+  rows: initialRows = [],
+  scoresLastUpdated: initialScoresLastUpdated = null,
+  snapshotBuiltAt: initialBuiltAt = null,
+}) {
   const [secret, setSecret] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [unlockError, setUnlockError] = useState(null);
@@ -112,6 +116,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
   const [behHistory, setBehHistory] = useState([]);
   const [rows, setRows] = useState(initialRows);
   const [scoresLastUpdated, setScoresLastUpdated] = useState(initialScoresLastUpdated);
+  const [snapshotBuiltAt, setSnapshotBuiltAt] = useState(initialBuiltAt);
   const [dataRefreshing, setDataRefreshing] = useState(false);
 
   const tokenOptions = useMemo(() => sharePromptTokenOptions(rows), [rows]);
@@ -136,7 +141,12 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
   useEffect(() => {
     if (!unlocked) return;
     refresh();
-    refreshDashboard({ silent: true });
+    // Pull shared Upstash snapshot (same as public site) — do not republish on unlock.
+    refreshDashboard({ silent: true, readOnly: true });
+    const id = setInterval(() => {
+      refreshDashboard({ silent: true, readOnly: true });
+    }, 30_000);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlocked]);
 
@@ -179,11 +189,12 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
   );
   const kindMeta = SHARE_PROMPT_KINDS.find((k) => k.value === promptKind);
 
-  const refreshDashboard = async ({ silent = false } = {}) => {
+  const refreshDashboard = async ({ silent = false, readOnly = false } = {}) => {
     if (!secret) return;
     if (!silent) setDataRefreshing(true);
     try {
-      const res = await fetch("/api/admin/dashboard-snapshot", {
+      const qs = readOnly ? "?read=1" : "";
+      const res = await fetch(`/api/admin/dashboard-snapshot${qs}`, {
         headers: { "x-admin-secret": secret },
         cache: "no-store",
       });
@@ -195,6 +206,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
       if (!res.ok) throw new Error(j.error || "Failed to refresh dashboard snapshot");
       if (Array.isArray(j.rows)) setRows(j.rows);
       if (j.lastUpdated != null) setScoresLastUpdated(j.lastUpdated);
+      if (j.builtAt != null) setSnapshotBuiltAt(j.builtAt);
       if (!silent) {
         setStatus("data_refreshed");
         setTimeout(() => setStatus(null), 2500);
@@ -316,13 +328,35 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
   };
 
   const copySharePrompt = async () => {
-    if (!sharePrompt) return;
+    if (!promptAddress) return;
     try {
-      await navigator.clipboard.writeText(sharePrompt);
+      // Re-read shared snapshot so the pasted prompt matches the live site exactly.
+      const res = await fetch("/api/admin/dashboard-snapshot?read=1", {
+        headers: { "x-admin-secret": secret },
+        cache: "no-store",
+      });
+      if (res.status === 401) {
+        lock();
+        return;
+      }
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Failed to read shared snapshot");
+      const nextRows = Array.isArray(j.rows) ? j.rows : rows;
+      if (Array.isArray(j.rows)) setRows(j.rows);
+      if (j.lastUpdated != null) setScoresLastUpdated(j.lastUpdated);
+      if (j.builtAt != null) setSnapshotBuiltAt(j.builtAt);
+      const row = nextRows.find(
+        (r) => (r.Address || "").toLowerCase() === promptAddress.toLowerCase()
+      );
+      const text = buildShareCardPrompt(promptKind, row, nextRows, promptWindow, {
+        scoresLastUpdated: j.lastUpdated ?? scoresLastUpdated,
+      });
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
       setPromptCopied(true);
       setTimeout(() => setPromptCopied(false), 2000);
-    } catch {
-      setStatus("Clipboard failed — select the prompt and copy manually");
+    } catch (e) {
+      setStatus(String(e.message || "Clipboard failed — select the prompt and copy manually"));
     }
   };
 
@@ -428,7 +462,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                 onClick={() => refreshDashboard()}
                 disabled={dataRefreshing}
                 style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px", cursor: dataRefreshing ? "wait" : "pointer" }}
-                title="Pull latest Dune results + prices and publish to Upstash (site + banner read the same snapshot)"
+                title="Pull latest Dune results + prices and publish to Upstash (site + banner + admin all read this)"
               >
                 {dataRefreshing ? "Refreshing snapshot…" : "Refresh snapshot"}
               </button>

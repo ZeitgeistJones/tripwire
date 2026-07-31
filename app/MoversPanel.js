@@ -299,7 +299,7 @@ function Section({ title, hint, children }) {
   );
 }
 
-export default function MoversPanel({ data, lastUpdated }) {
+export default function MoversPanel({ data, lastUpdated, snapshotBuiltAt = null }) {
   const [period, setPeriod] = useState(() => loadPeriod());
   const ranked = useMemo(() => rankMovers(data, period), [data, period]);
   const activity = ranked.activity;
@@ -326,7 +326,7 @@ export default function MoversPanel({ data, lastUpdated }) {
 
   return (
     <div>
-      <StatusBanner lastUpdated={lastUpdated} />
+      <StatusBanner lastUpdated={lastUpdated} snapshotBuiltAt={snapshotBuiltAt} />
       <TabBar />
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "16px" }}>
