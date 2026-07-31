@@ -428,7 +428,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                 onClick={() => refreshDashboard()}
                 disabled={dataRefreshing}
                 style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px", cursor: dataRefreshing ? "wait" : "pointer" }}
-                title="Pull latest Dune results + prices (bypasses 1h cache)"
+                title="Pull latest Dune results + prices and publish to Upstash (site + banner read the same snapshot)"
               >
                 {dataRefreshing ? "Refreshing snapshot…" : "Refresh snapshot"}
               </button>
@@ -643,7 +643,7 @@ export default function AdminPanel({ rows: initialRows = [], scoresLastUpdated: 
                 {status === "posted" ? "✓ Manual report saved"
                   : status === "generated" ? "✓ Report generated"
                   : status === "cached" ? "✓ Already up to date (no API call)"
-                  : status === "data_refreshed" ? "✓ Dashboard snapshot refreshed from Dune"
+                  : status === "data_refreshed" ? "✓ Shared snapshot published (site + admin aligned)"
                   : status}
               </span>
             )}

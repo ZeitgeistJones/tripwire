@@ -2,7 +2,8 @@ import { getDashboardData } from "@/lib/getData";
 import Header from "./Header";
 import MoversPanel from "./MoversPanel";
 
-export const revalidate = 3600;
+// Always read the shared Upstash snapshot (no ISR copy that can drift from admin).
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const { rows: data, lastUpdated } = await getDashboardData();

@@ -6,7 +6,7 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const { rows, lastUpdated } = await getDashboardData().catch(() => ({ rows: [], lastUpdated: null }));

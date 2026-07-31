@@ -3,7 +3,8 @@ import { getDiscoveryData } from "@/lib/getDiscoveryData";
 import DashboardTable from "../DashboardTable";
 import Header from "../Header";
 
-export const revalidate = 3600;
+// Always read the shared Upstash snapshot (no ISR copy that can drift from admin).
+export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const { rows: data, lastUpdated } = await getDashboardData();
