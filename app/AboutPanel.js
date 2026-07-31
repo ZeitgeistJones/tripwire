@@ -182,12 +182,24 @@ export default function AboutPanel() {
 
         <h3 style={{ color: "var(--text)" }}>Movers</h3>
         <p style={{ color: "var(--text-muted)" }}>
-          The homepage (<strong style={{ color: "var(--text)" }}>Movers</strong> tab). Shows the biggest
-          on-chain swings this week — volume / wallets / txs, plus large whale net flows — in plain English.
-          Not a price board and not “heating up / cooling off”: a spike can be a dip bid, an exit, or noise.
-          Second look, not a call.
+          The homepage (<strong style={{ color: "var(--text)" }}>Movers</strong> tab). Two short lists —
+          Activity swings and Whale flow — for 24h / 7d / 30d. Not a price board and not “heating up”:
+          a spike can be a dip bid, an exit, or noise. Second look, not a call.
         </p>
-
+        <p style={{ color: "var(--text-muted)" }}>
+          <strong style={{ color: "var(--text)" }}>Activity</strong> — on 7d, week-over-week % moves in
+          volume / wallets / txs, multiplied by real 7d volume credibility and soft-damped by market cap
+          so empty microcap % spikes don’t dominate. On 24h / 30d, turnover-aware (volume vs mcap when
+          known) plus txs and wallets, with a minimum absolute volume floor.
+        </p>
+        <p style={{ color: "var(--text-muted)" }}>
+          <strong style={{ color: "var(--text)" }}>Whale flow</strong> — dollar gate first, then rank by
+          whale net as basis points of market cap, plus{" "}
+          <strong style={{ color: "var(--text)" }}>W/R Div</strong> (whale-vs-retail divergence) and a
+          boost when whales and retail disagree in sign, plus a small breadth crumb (distinct large
+          buyers/sellers). Raw mega-cap dollar flow without relative size or disagreement ranks lower.
+          30d whale list still uses the 7d flow twin.
+        </p>
         <h3 style={{ color: "var(--text)" }}>The Three Core Scores</h3>
         <p style={{ color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>Momentum</strong> — growth-first (new wallets, WoW growth,
@@ -232,7 +244,7 @@ export default function AboutPanel() {
 
         <h3 style={{ color: "var(--text)", marginTop: "28px" }}>Tabs</h3>
         <ul style={{ paddingLeft: "20px", color: "var(--text-muted)" }}>
-          <li><strong style={{ color: "var(--text)" }}>Movers</strong> — homepage: biggest on-chain swings &amp; whale flow</li>
+          <li><strong style={{ color: "var(--text)" }}>Movers</strong> — homepage: size-aware activity swings &amp; whale flow (mcap + W/R Div)</li>
           <li><strong style={{ color: "var(--text)" }}>Overview</strong> — scores, profile, price, signal</li>
           <li><strong style={{ color: "var(--text)" }}>Activity</strong> — volume and transaction twins (<code>24h | 7d | 30d</code>)</li>
           <li><strong style={{ color: "var(--text)" }}>Wallets</strong> — wallet counts by period; New/Returning on 30d; Avg Txs Ret on 7d</li>

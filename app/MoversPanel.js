@@ -181,6 +181,18 @@ function getNotableFacts(t, period) {
     });
   }
 
+  const divBps = t[period === "24h" ? "Divergence Bps 24h" : "Divergence Bps"];
+  if (divBps != null && Math.abs(divBps) >= 80) {
+    const abs = Math.abs(divBps).toFixed(0);
+    facts.push({
+      w: 55 + Math.min(Math.abs(divBps) / 5, 40),
+      tone: divBps > 0 ? "up" : "down",
+      text: divBps > 0
+        ? `W/R Div +${abs} bps — whales lean harder than retail vs mcap (${win})`
+        : `W/R Div −${abs} bps — retail leans harder than whales vs mcap (${win})`,
+    });
+  }
+
   facts.sort((a, b) => b.w - a.w);
   return facts.slice(0, 3).map(({ text, tone }) => ({ text, tone: tone || "neutral" }));
 }
@@ -313,23 +325,26 @@ export default function MoversPanel({ data, lastUpdated, snapshotBuiltAt = null 
   };
 
   const activityHint = period === "7d"
-    ? "Largest week-over-week moves in DEX volume, transactions, or active wallets — up or down."
-    : `Busiest tokens by DEX volume, transactions, and wallets over ${period}. Absolute levels (no prior-${period} twin yet).`;
+    ? "WoW % moves in volume, wallets, and txs — weighted by real 7d volume and soft-damped by market cap so tiny-base spikes don’t win by default."
+    : `Turnover-aware activity over ${period} (DEX volume vs market cap when known, plus txs and wallets). Minimum volume floor applied.`;
 
   const whaleHint = period === "30d"
-    ? "Largest whale net flows over 7d (no 30d whale twin in Dune yet). Size is relative to each token; direction alone isn’t a thesis."
-    : `Largest whale net flows over ${ranked.whaleFlowWindow}. Size is relative to each token; direction alone isn’t a thesis.`;
+    ? "Whale nets use the 7d twin (no 30d flow yet). Ranked by flow vs market cap, whale-vs-retail divergence, and wallet breadth — not raw dollar size alone."
+    : `Ranked by whale net vs market cap, whale-vs-retail divergence, and buyer/seller breadth over ${ranked.whaleFlowWindow} — not raw dollar size alone. Direction isn’t a thesis.`;
 
   const blurb = period === "7d"
-    ? "Biggest on-chain swings this week — volume, wallets, whale flow. Not a price board. A spike can mean a dip bid, an exit, or noise (hack churn counts). Second look, not a call."
-    : `Biggest on-chain activity and whale flow over ${period === "30d" ? "30d (whales use 7d)" : period}. Not a price board. Second look, not a call.`;
+    ? "On-chain swings sized to each token — not a raw leaderboard and not a price board. A spike can mean a dip bid, an exit, or noise. Second look, not a call."
+    : `On-chain activity and whale flow over ${period === "30d" ? "30d (whales use 7d)" : period}, sized to each token. Not a price board. Second look, not a call.`;
+
+  const methodNote =
+    "How ranking works: Activity favors real volume (and turnover vs mcap on 24h/30d), not empty % spikes. Whale flow favors net flow vs mcap plus whale–retail divergence — large-cap dollar prints without relative size or disagreement rank lower. Full detail on About.";
 
   return (
     <div>
       <StatusBanner lastUpdated={lastUpdated} snapshotBuiltAt={snapshotBuiltAt} />
       <TabBar />
 
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "16px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
         <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: 1.5, maxWidth: "720px" }}>
           {blurb}
         </div>
@@ -345,6 +360,18 @@ export default function MoversPanel({ data, lastUpdated, snapshotBuiltAt = null 
         />
       </div>
 
+      <p style={{
+        margin: "0 0 16px",
+        fontSize: "12px",
+        color: "var(--text-faint)",
+        lineHeight: 1.45,
+        maxWidth: "820px",
+      }}>
+        {methodNote}{" "}
+        <Link href="/dashboard?tab=About" style={{ color: "var(--text-muted)", textDecoration: "underline" }}>
+          About
+        </Link>
+      </p>
       <Section title="Activity swings" hint={activityHint}>
         <div className="movers-grid" style={gridStyle}>
           {activity.length === 0 ? (
