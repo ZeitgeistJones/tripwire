@@ -1497,7 +1497,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
 
   return (
     <div ref={rootRef}>
-      <StatusBanner lastUpdated={lastUpdated} snapshotBuiltAt={snapshotBuiltAt} />
+      {isTripwire ? (
+        <WireBanner />
+      ) : (
+        <StatusBanner lastUpdated={lastUpdated} snapshotBuiltAt={snapshotBuiltAt} />
+      )}
 
       <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
         <Link
