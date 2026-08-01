@@ -1,273 +1,75 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import {
+  CLAWDWIRE_CSS,
+  Disclosure,
+  FlashNum,
+  HourlyTape,
+  Ladder,
+  LiveDot,
+  Matrix,
+  PressureBar,
+  Section,
+  StatStrip,
+  SuspectBadge,
+  WalletLens,
+} from "./ClawdWireKit";
+import {
+  FLAT_HOUR_SHARE,
+  divergenceBps,
+  fmtInt,
+  fmtMins,
+  fmtPct,
+  fmtPctSigned,
+  fmtPctSmall,
+  fmtPrice,
+  fmtRatio,
+  fmtScore,
+  fmtUsd,
+  fmtUsdCompact,
+  fmtUsdSigned,
+  fmtUtcHour,
+  freshness,
+  heatBand,
+  holdBand,
+  netTone,
+  num,
+  parseHourlyTape,
+  roundTripBand,
+  timeAgo,
+  toneColor,
+  utcHourKey,
+} from "@/lib/clawdWireFormat";
 
 const SYNC_MS = 45_000;
 
-function num(v) {
-  if (v == null || v === "") return null;
-  const n = Number(v);
-  return Number.isNaN(n) ? null : n;
+/**
+ * Trade windows. The rail's selector drives the hero readout and highlights the
+ * matching column in the flow matrix, so one control does both jobs.
+ */
+const WINDOWS = [
+  { key: "15m", label: "15m", note: "immediate" },
+  { key: "1h", label: "1h", note: "short pulse" },
+  { key: "6h", label: "6h", note: "session" },
+  { key: "24h", label: "24h", note: "full day" },
+];
+
+const PARTICIPATION_WINDOWS = [
+  { key: "24h", label: "24h" },
+  { key: "7d", label: "7d" },
+  { key: "30d", label: "30d" },
+];
+
+function cell(raw, text, tone) {
+  return { raw, text, tone };
 }
 
-function fmtUsd(v, digits = 0) {
-  const n = num(v);
-  if (n == null) return "—";
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `$${n.toLocaleString(undefined, { maximumFractionDigits: digits })}`;
-  return `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+/** Round-trip fields were renamed in the query; keep reading the old key too. */
+function roundTripVol(row) {
+  return row?.["Round-trip Vol % 24h"] ?? row?.["Wash Vol % 24h"] ?? null;
 }
-
-function fmtInt(v) {
-  const n = num(v);
-  if (n == null) return "—";
-  return Math.round(n).toLocaleString();
-}
-
-function fmtPct(v) {
-  const n = num(v);
-  if (n == null) return "—";
-  return `${n.toFixed(1)}%`;
-}
-
-function fmtScore(v) {
-  const n = num(v);
-  if (n == null) return "—";
-  return n.toFixed(1);
-}
-
-function fmtRatio(v) {
-  const n = num(v);
-  if (n == null) return "—";
-  return n.toFixed(2);
-}
-
-function fmtMins(v) {
-  const n = num(v);
-  if (n == null) return "—";
-  if (n < 60) return `${Math.round(n)}m`;
-  if (n < 60 * 24) return `${(n / 60).toFixed(1)}h`;
-  return `${(n / (60 * 24)).toFixed(1)}d`;
-}
-
-function fmtText(v) {
-  if (v == null || v === "") return "—";
-  const s = String(v);
-  // Peak hour timestamps from Dune — show compact UTC
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-    const d = new Date(s.endsWith("Z") || s.includes("+") ? s : `${s}Z`);
-    if (!Number.isNaN(d.getTime())) {
-      return d.toISOString().slice(0, 16).replace("T", " ") + "Z";
-    }
-  }
-  return s;
-}
-
-function shortAddr(addr) {
-  if (!addr || addr.length < 12) return addr || "—";
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
-
-function parseWalletLines(raw) {
-  if (raw == null || raw === "") return [];
-  return String(raw)
-    .split(" | ")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const parts = line.split(" · ").map((p) => p.trim());
-      const wallet = parts.find((p) => /^0x[a-fA-F0-9]{40}$/.test(p)) || null;
-      const txPart = parts.find((p) => /^tx0x[a-fA-F0-9]+$/i.test(p));
-      const tx = txPart ? txPart.replace(/^tx/i, "") : null;
-      const rest = parts.filter((p) => p !== wallet && p !== txPart);
-      return { wallet, tx, detail: rest.join(" · ") || line };
-    });
-}
-
-function WalletLens({ title, subtitle, raw }) {
-  const lines = parseWalletLines(raw);
-  return (
-    <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
-      <div style={{ marginBottom: "10px" }}>
-        <h3
-          style={{
-            margin: 0,
-            fontSize: "15px",
-            fontWeight: 700,
-            color: "var(--text)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {title}
-        </h3>
-        {subtitle && (
-          <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
-            {subtitle}
-          </p>
-        )}
-      </div>
-      {lines.length === 0 ? (
-        <Stat label="—" value="—" />
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {lines.map((line, i) => (
-            <div
-              key={`${title}-${i}`}
-              style={{
-                background: "var(--bg-subtle)",
-                border: "1px solid var(--border)",
-                borderRadius: "10px",
-                padding: "12px 14px",
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px 14px",
-                alignItems: "baseline",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-faint)", minWidth: 18 }}>
-                {i + 1}
-              </span>
-              {line.wallet ? (
-                <a
-                  href={`https://basescan.org/address/${line.wallet}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    color: "var(--text)",
-                    textDecoration: "none",
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                  }}
-                  title={line.wallet}
-                >
-                  {shortAddr(line.wallet)}
-                </a>
-              ) : null}
-              <span style={{ fontSize: "13px", color: "var(--text-muted)", flex: "1 1 160px" }}>
-                {line.detail}
-              </span>
-              {line.tx ? (
-                <a
-                  href={`https://basescan.org/tx/${line.tx}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ fontSize: "12px", color: "var(--text-faint)", textDecoration: "underline" }}
-                >
-                  tx {shortAddr(line.tx)}
-                </a>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function netColor(v) {
-  const n = num(v);
-  if (n == null || n === 0) return "var(--text)";
-  return n > 0 ? "var(--read-teal-text)" : "var(--read-coral-text)";
-}
-
-function RankChip({ label, score, rank, total }) {
-  return (
-    <div
-      style={{
-        background: "var(--bg)",
-        border: "1px solid var(--border)",
-        borderRadius: "10px",
-        padding: "12px 14px",
-        minWidth: 0,
-      }}
-    >
-      <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-faint)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-        {label}
-      </div>
-      <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--text)", marginTop: "4px", fontVariantNumeric: "tabular-nums" }}>
-        {fmtScore(score)}
-      </div>
-      <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
-        {rank != null && total ? `Rank ${rank} / ${total}` : "—"}
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, color, large }) {
-  return (
-    <div
-      style={{
-        background: "var(--bg-subtle)",
-        border: "1px solid var(--border)",
-        borderRadius: "10px",
-        padding: large ? "16px 18px" : "12px 14px",
-        minWidth: 0,
-        animation: "cwFadeIn 0.45s ease both",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          color: "var(--text-faint)",
-          marginBottom: "6px",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: large ? "28px" : "18px",
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
-          color: color || "var(--text)",
-          lineHeight: 1.15,
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function WindowBlock({ title, subtitle, children }) {
-  return (
-    <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
-      <div style={{ marginBottom: "10px" }}>
-        <h3
-          style={{
-            margin: 0,
-            fontSize: "15px",
-            fontWeight: 700,
-            color: "var(--text)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {title}
-        </h3>
-        {subtitle && (
-          <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
-            {subtitle}
-          </p>
-        )}
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-          gap: "10px",
-        }}
-      >
-        {children}
-      </div>
-    </section>
-  );
+function roundTripWallets(row) {
+  return row?.["Round-trip Wallets 24h"] ?? row?.["Wash Wallets 24h"] ?? null;
 }
 
 export default function ClawdWirePanel({
@@ -285,10 +87,13 @@ export default function ClawdWirePanel({
   const [lastRunAt, setLastRunAt] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [syncHint, setSyncHint] = useState("");
+  const [activeWindow, setActiveWindow] = useState("1h");
+  const [stuck, setStuck] = useState(false);
   const pollRef = useRef(null);
   const attemptsRef = useRef(0);
   const lastRunRef = useRef(null);
   const executingRef = useRef(false);
+  const sentinelRef = useRef(null);
 
   function stopExecPoll() {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -377,12 +182,18 @@ export default function ClawdWirePanel({
     return () => clearTimeout(t);
   }, [syncHint]);
 
+  // Shadow under the rail only once it has actually pinned to the top.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), {
+      threshold: 0,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasAccess]);
+
   async function runClawdWire() {
-    if (!walletAddress) {
-      setStatus("error");
-      setErrorMsg("Connect your Tripwire wallet first.");
-      return;
-    }
     executingRef.current = true;
     setStatus("starting");
     setErrorMsg("");
@@ -395,9 +206,9 @@ export default function ClawdWirePanel({
         method: "POST",
         headers: wireHeaders(),
       });
-      const startJson = await startRes.json().catch(() => ({}));
+      const startJson = await startRes.json();
       if (!startRes.ok || !startJson.executionId) {
-        throw new Error(startJson.error || `Failed to start ClawdWire run (${startRes.status})`);
+        throw new Error(startJson.error || "Failed to start ClawdWire run");
       }
 
       setStatus("running");
@@ -446,525 +257,783 @@ export default function ClawdWirePanel({
   }
 
   const isRunning = status === "starting" || status === "running";
+  const marketCap = row?.marketCapUsd ?? clawdRow?.marketCapUsd ?? null;
+
+  // ── Derived reads (presentation only — every band names one source metric) ──
+  const activeNet = row ? row[`Net USD ${activeWindow}`] : null;
+  const activeBuy = row ? row[`Buy USD ${activeWindow}`] : null;
+  const activeSell = row ? row[`Sell USD ${activeWindow}`] : null;
+  const activeWallets = row ? row[`Wallets ${activeWindow}`] : null;
+  const activeTxs = row ? row[`Txs ${activeWindow}`] : null;
+
+  const heat = heatBand(row?.["Heat % 1h"]);
+  const shape = roundTripBand(roundTripVol(row));
+  const hold = holdBand(row?.["Survive 1d %"]);
+  const whaleNet24h = row?.["Whale Net 24h"] ?? null;
+  const fresh = freshness(lastRunAt);
+
+  const peakHourKey = utcHourKey(row?.["Peak Price Hour"]);
+  const worstHourKey = utcHourKey(row?.["Worst Net Hour"]);
+  const netTape = useMemo(() => parseHourlyTape(row?.["Hourly Net Tape 24h"]), [row]);
+  const whaleTape = useMemo(() => parseHourlyTape(row?.["Hourly Whale Tape 24h"]), [row]);
+
+  const flowColumns = useMemo(
+    () => WINDOWS.map((w) => ({ ...w, active: w.key === activeWindow })),
+    [activeWindow]
+  );
+
+  const flowRows = useMemo(() => {
+    if (!row) return [];
+    const per = (field, fmt, toned) =>
+      WINDOWS.map((w) => {
+        const raw = row[`${field} ${w.key}`];
+        return cell(raw, fmt(raw), toned ? netTone(raw) : undefined);
+      });
+    return [
+      { label: "Net $", hint: "buy − sell", emph: true, cells: per("Net USD", fmtUsdSigned, true) },
+      { label: "Buy $", cells: per("Buy USD", fmtUsdCompact).map((c) => ({ ...c, tone: "pos" })) },
+      { label: "Sell $", cells: per("Sell USD", fmtUsdCompact).map((c) => ({ ...c, tone: "neg" })) },
+      { label: "Buy vol %", hint: "share of window volume", cells: per("Buy Vol %", fmtPct) },
+      { label: "Wallets", cells: per("Wallets", fmtInt) },
+      { label: "Txs", cells: per("Txs", fmtInt) },
+      { label: "Buyers", cells: per("Buyers", fmtInt) },
+      { label: "Sellers", cells: per("Sellers", fmtInt) },
+      { label: "Max trade $", hint: "largest single swap", cells: per("Max Trade USD", fmtUsdCompact) },
+    ];
+  }, [row]);
+
+  const cohortRows = useMemo(() => {
+    if (!row) return [];
+    const tier = (name) => ({
+      label: name,
+      hint:
+        name === "Whale"
+          ? `≥ ${fmtUsd(row["Whale Min $"])}`
+          : name === "Hump"
+          ? `≥ ${fmtUsd(row["Hump Min $"])}`
+          : "below hump tier",
+      emph: name === "Whale",
+      cells: [
+        cell(row[`${name} Net 24h`], fmtUsdSigned(row[`${name} Net 24h`]), netTone(row[`${name} Net 24h`])),
+        cell(row[`${name} Net 7d`], fmtUsdSigned(row[`${name} Net 7d`]), netTone(row[`${name} Net 7d`])),
+        cell(row[`${name} Buyers 24h`], fmtInt(row[`${name} Buyers 24h`])),
+        cell(row[`${name} Sellers 24h`], fmtInt(row[`${name} Sellers 24h`])),
+        cell(row[`${name} Buyers 7d`], fmtInt(row[`${name} Buyers 7d`])),
+        cell(row[`${name} Sellers 7d`], fmtInt(row[`${name} Sellers 7d`])),
+      ],
+    });
+    return [tier("Whale"), tier("Hump"), tier("Retail")];
+  }, [row]);
+
+  const participationRows = useMemo(() => {
+    if (!row) return [];
+    const per = (field, fmt) =>
+      PARTICIPATION_WINDOWS.map((w) => {
+        const raw = row[`${field} ${w.key}`];
+        return cell(raw, fmt(raw));
+      });
+    return [
+      { label: "Volume $", emph: true, cells: per("Vol", fmtUsdCompact) },
+      { label: "Traders", hint: "unique addresses", cells: per("Traders", fmtInt) },
+      { label: "Wallets", cells: per("Wallets", fmtInt) },
+      { label: "Txs", cells: per("Txs", fmtInt) },
+      { label: "Buyers", cells: per("Buyers", fmtInt) },
+      { label: "Sellers", cells: per("Sellers", fmtInt) },
+      { label: "First-time buyers", hint: "first buy in the 30d scan", cells: per("1st Buyers", fmtInt) },
+      { label: "First-time sellers", hint: "first sell in the 30d scan", cells: per("1st Sellers", fmtInt) },
+      { label: "Buy/sell ratio", cells: per("Buy/Sell Ratio", fmtRatio) },
+      { label: "Buy vol %", cells: per("Buy Vol %", fmtPct) },
+      { label: "Vol per tx $", cells: per("Vol/Tx", fmtUsdCompact) },
+      { label: "Txs per trader", cells: per("Txs/Trader", fmtRatio) },
+    ];
+  }, [row]);
+
+  // Timing: the three hours around the price peak, all flow vs whale flow.
+  const peakRows = useMemo(() => {
+    if (!row) return [];
+    const line = (label, before, at, after) => ({
+      label,
+      emph: label === "All flow",
+      cells: [before, at, after].map((k) => cell(row[k], fmtUsdSigned(row[k]), netTone(row[k]))),
+    });
+    return [
+      line("All flow", "Net Hour Before Peak", "Net At Peak Hour", "Net Hour After Peak"),
+      line("Whale flow", "Whale Net Hour Before Peak", "Whale Net At Peak Hour", "Whale Net Hour After Peak"),
+    ];
+  }, [row]);
+
+  const matchRows = useMemo(() => {
+    if (!row) return [];
+    const pair = (label, k24, k30, fmt, toned) => ({
+      label,
+      emph: label === "Net result $",
+      cells: [k24, k30].map((k) =>
+        cell(row[k], fmt(row[k]), toned ? netTone(row[k]) : undefined)
+      ),
+    });
+    return [
+      pair("Above-match %", "Winner % 24h", "Winner % 30d", fmtPct),
+      pair("Above-match wallets", "PnL Winners 24h", "PnL Winners 30d", fmtInt),
+      pair("Below-match wallets", "PnL Losers 24h", "PnL Losers 30d", fmtInt),
+      pair("Both-side wallets", "Closed Wallets 24h", "Closed Wallets 30d", fmtInt),
+      pair("Above-match $", "Closed Gains $ 24h", "Closed Gains $ 30d", fmtUsdCompact),
+      pair("Below-match $", "Closed Losses $ 24h", "Closed Losses $ 30d", fmtUsdCompact),
+      pair("Net result $", "Net Closed PnL $ 24h", "Net Closed PnL $ 30d", fmtUsdSigned, true),
+    ];
+  }, [row]);
 
   if (!hasAccess) {
     return (
       <div style={{ paddingTop: "24px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
-        Connect a Tripwire-eligible wallet to use ClawdWire.
+        Tester wallet only while under construction.
       </div>
     );
   }
 
-  return (
-    <div style={{ maxWidth: "920px" }}>
-      <style>{`
-        @keyframes cwFadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+  const railStatus = isRunning
+    ? status === "starting"
+      ? "Starting Dune execute…"
+      : "Running on Dune…"
+    : lastRunAt
+    ? `Pulse ${timeAgo(lastRunAt)}`
+    : "No pulse yet";
 
-      {/* Hero */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-          justifyContent: "space-between",
-          gap: "16px",
-          marginBottom: "22px",
-          padding: "20px 22px",
-          borderRadius: "12px",
-          border: "1px solid var(--clawd-row-border)",
-          background:
-            "linear-gradient(145deg, rgba(122,184,74,0.14) 0%, var(--bg-subtle) 42%, var(--bg) 100%)",
-          animation: "cwFadeIn 0.4s ease both",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 700,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--clawd-row-border)",
-              marginBottom: "6px",
-            }}
+  return (
+    <div className="cw-root">
+      <style>{CLAWDWIRE_CSS}</style>
+
+      {/* ── Pulse: state layer ──────────────────────────────────────────── */}
+      <div className="cw-hero">
+        <div className="cw-hero-top">
+          <span className="cw-ticker">CLAWD</span>
+          <span className="cw-mono" style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>
+            <FlashNum raw={clawdRow?.priceUsd}>{fmtPrice(clawdRow?.priceUsd)}</FlashNum>
+          </span>
+          <span
+            className="cw-mono"
+            style={{ fontSize: "13px", fontWeight: 700, color: toneColor(netTone(clawdRow?.priceChange7d)) }}
           >
-            On-chain pulse
+            {fmtPctSigned(clawdRow?.priceChange7d)}
+            <span style={{ color: "var(--text-xfaint)", fontWeight: 400 }}> 24h</span>
+          </span>
+          <span className="cw-mono" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+            MC {fmtUsd(marketCap)}
+          </span>
+          {clawdRow?.read ? (
+            <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
+              {[clawdRow.read, clawdRow.signal, clawdRow.Prof].filter(Boolean).join(" · ")}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Dominant readout: net flow for the selected window. Price is on every
+            other venue — net flow is what this instrument uniquely knows. */}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "18px 28px" }}>
+          <div style={{ minWidth: "220px", flex: "1 1 260px" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.11em",
+                textTransform: "uppercase",
+                color: "var(--text-faint)",
+                marginBottom: "8px",
+              }}
+            >
+              Net flow · {activeWindow}
+            </div>
+            <div
+              className="cw-display"
+              style={{
+                fontSize: "clamp(38px, 7vw, 56px)",
+                color: row ? toneColor(netTone(activeNet)) : "var(--text-faint)",
+              }}
+            >
+              <FlashNum raw={activeNet}>{row ? fmtUsdSigned(activeNet) : "—"}</FlashNum>
+            </div>
+            <div style={{ marginTop: "12px", maxWidth: "420px" }}>
+              <PressureBar buy={activeBuy} sell={activeSell} />
+              <div
+                className="cw-mono"
+                style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginTop: "6px", fontSize: "11px" }}
+              >
+                <span style={{ color: "var(--read-teal-text)" }}>buy {fmtUsdCompact(activeBuy)}</span>
+                <span style={{ color: "var(--text-xfaint)" }}>
+                  {fmtInt(activeWallets)} wallets · {fmtInt(activeTxs)} txs
+                </span>
+                <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
+              </div>
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: "42px",
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              color: "var(--text)",
-              lineHeight: 1,
-            }}
-          >
-            CLAWD
-          </div>
-          <div style={{ marginTop: "8px", fontSize: "14px", color: "var(--text-muted)" }}>
-            Market cap {fmtUsd(row?.marketCapUsd ?? clawdRow?.marketCapUsd)}
-            {clawdRow?.Prof ? ` · ${clawdRow.Prof}` : ""}
-            {clawdRow?.signal ? ` · ${clawdRow.signal}` : ""}
-            {clawdRow?.read ? ` · ${clawdRow.read}` : ""}
-          </div>
-          <div style={{ marginTop: "4px", fontSize: "12px", color: "var(--text-faint)" }}>
-            {lastRunAt
-              ? `Pulse run ${new Date(lastRunAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
-              : "Waiting for first Dune pulse run"}
-            {" · "}
-            Scores from shared snapshot (Pull Dune / Refresh prices)
+
+          {/* Standing: shared-snapshot scores, kept present but subordinate. */}
+          <div className="cw-standing">
+            <div
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.11em",
+                textTransform: "uppercase",
+                color: "var(--text-faint)",
+              }}
+            >
+              Standing
+            </div>
+            {[
+              ["Opp", clawdRow?.Opp, opportunityRank],
+              ["Mom", clawdRow?.Mom, momentumRank],
+              ["Sus", clawdRow?.Sus, sustainabilityRank],
+            ].map(([label, score, rank]) => (
+              <div key={label} className="cw-mono cw-standing-row">
+                <span>{label}</span>
+                <span>{fmtScore(score)}</span>
+                <span>{rank != null && totalProjects ? `#${rank}/${totalProjects}` : "—"}</span>
+              </div>
+            ))}
+            <div className="cw-mono" style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+              Qlty {fmtPct(clawdRow?.["Qlty %"])} · Risk {fmtPct(clawdRow?.["Risk %"])}
+            </div>
+            <div style={{ fontSize: "9.5px", color: "var(--text-xfaint)", letterSpacing: "0.02em" }}>
+              shared snapshot · not recomputed per pulse
+            </div>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
-          <button
-            type="button"
-            onClick={runClawdWire}
-            disabled={isRunning}
-            style={{
-              padding: "12px 22px",
-              borderRadius: "8px",
-              border: isRunning ? "1px solid var(--border-strong)" : "1px solid var(--clawd-row-border)",
-              background: isRunning ? "var(--text-faint)" : "var(--clawd-row-border)",
-              color: isRunning ? "var(--btn-active-text)" : "#0f140c",
-              cursor: isRunning ? "not-allowed" : "pointer",
-              fontWeight: 700,
-              fontSize: "14px",
+
+        {/* The questions a visitor actually asks, in order. Each chip names the
+            one metric behind it — none of them is a blended score. */}
+        <div className="cw-chips">
+          <VerdictChip
+            label="Alive?"
+            band={heat}
+            value={fmtPct(row?.["Heat % 1h"])}
+            raw={row?.["Heat % 1h"]}
+            note={`Heat % 1h — share of 24h volume traded in the last hour. A flat day sits at ${FLAT_HOUR_SHARE.toFixed(1)}%.`}
+          />
+          <VerdictChip
+            label="Trade shape"
+            band={shape}
+            value={fmtPct(roundTripVol(row))}
+            raw={roundTripVol(row)}
+            suspect
+            note={`Round-trip vol % 24h across ${fmtInt(roundTripWallets(row))} wallets. A research heuristic from trade shape — market making looks like this too.`}
+          />
+          <VerdictChip
+            label="Driven by"
+            band={{
+              label: whaleNet24h == null ? "no data" : num(whaleNet24h) > 0 ? "accumulating" : "distributing",
+              tone: whaleNet24h == null ? "faint" : netTone(whaleNet24h),
             }}
-          >
-            {status === "starting" && "Starting…"}
-            {status === "running" && "Running on Dune…"}
-            {!isRunning && "Trip ClawdWire"}
-          </button>
-          <button
-            type="button"
-            onClick={() => pullLatest({ quiet: false })}
-            disabled={isRunning}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid var(--border)",
-              background: "transparent",
-              color: "var(--text-muted)",
-              cursor: isRunning ? "not-allowed" : "pointer",
-              fontSize: "12px",
-              fontWeight: 600,
-            }}
-          >
-            Sync latest (no re-run)
-          </button>
+            value={fmtPct(row?.["Whale Vol % 24h"])}
+            raw={row?.["Whale Vol % 24h"]}
+            note={`Whale Vol % 24h — share of volume from whale-tier wallets. Whale net ${fmtUsdSigned(whaleNet24h)}.`}
+          />
+          <VerdictChip
+            label="Holding?"
+            band={hold}
+            value={fmtPct(row?.["Survive 1d %"])}
+            raw={row?.["Survive 1d %"]}
+            note={`Survive 1d % — first-time buyers from the 30d cohort (${fmtInt(row?.["1st Buyer Cohort 30d"])}) still holding a day later.`}
+          />
+        </div>
+
+        <div style={{ marginTop: "13px", fontSize: "10px", color: "var(--text-xfaint)", lineHeight: 1.6 }}>
+          <span style={{ color: "var(--read-teal-text)" }}>■</span> inflow ·{" "}
+          <span style={{ color: "var(--read-coral-text)" }}>■</span> outflow ·{" "}
+          <span style={{ color: "var(--read-amber-text)" }}>■</span> research heuristic, not confirmed. Colour carries no other meaning on this page.
         </div>
       </div>
 
-      {syncHint && (
-        <p style={{ margin: "0 0 12px", fontSize: "12px", color: "var(--read-teal-text)" }}>{syncHint}</p>
-      )}
-      {status === "error" && errorMsg && (
-        <p style={{ margin: "0 0 12px", fontSize: "13px", color: "var(--read-coral-text)" }}>{errorMsg}</p>
-      )}
-      {isRunning && (
-        <p style={{ margin: "0 0 12px", fontSize: "13px", color: "var(--text-muted)" }}>
-          Executing on Dune — results will land here automatically.
-        </p>
-      )}
+      <div ref={sentinelRef} aria-hidden="true" style={{ height: "1px" }} />
 
-      {!row && !isRunning && (
-        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
-          No results yet. Run the query on Dune or hit Trip ClawdWire — this page auto-syncs every ~45s.
-        </p>
-      )}
+      {/* ── Command rail — the only control surface, pinned on scroll ────── */}
+      <div className="cw-rail" data-stuck={stuck ? "true" : "false"}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", minWidth: 0 }}>
+          <LiveDot tone={isRunning ? "caution" : fresh.tone} ping={isRunning || fresh.tone === "pos"} />
+          <span className="cw-mono" style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+            {railStatus}
+          </span>
+        </span>
 
-      {/* Chunk A — scored snapshot (no Dune cost) */}
-      {clawdRow && (
-        <section style={{ marginBottom: "26px", animation: "cwFadeIn 0.45s ease both" }}>
-          <div style={{ marginBottom: "10px" }}>
-            <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>
-              Tripwire scores
-            </h3>
-            <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
-              From the shared dashboard snapshot — not recomputed on each pulse
-            </p>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-              gap: "10px",
-              marginBottom: "10px",
-            }}
+        <span className="cw-seg" role="group" aria-label="Trade window">
+          {WINDOWS.map((w) => (
+            <button
+              key={w.key}
+              type="button"
+              aria-pressed={w.key === activeWindow}
+              onClick={() => setActiveWindow(w.key)}
+            >
+              {w.label}
+            </button>
+          ))}
+        </span>
+
+        {stuck && row ? (
+          <span
+            className="cw-mono"
+            style={{ fontSize: "13px", fontWeight: 700, color: toneColor(netTone(activeNet)), whiteSpace: "nowrap" }}
           >
-            <RankChip label="Opportunity" score={clawdRow.Opp} rank={opportunityRank} total={totalProjects} />
-            <RankChip label="Momentum" score={clawdRow.Mom} rank={momentumRank} total={totalProjects} />
-            <RankChip label="Sustainability" score={clawdRow.Sus} rank={sustainabilityRank} total={totalProjects} />
-            <Stat label="Quality %" value={fmtPct(clawdRow["Qlty %"])} />
-            <Stat label="Risk %" value={fmtPct(clawdRow["Risk %"])} />
-            <Stat label="Price 24h" value={fmtPct(clawdRow.priceChange7d)} color={netColor(clawdRow.priceChange7d)} />
-          </div>
-          {clawdRow.signalNote && (
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.45 }}>
-              Signal note: {clawdRow.signalNote}
-            </div>
-          )}
-        </section>
-      )}
+            {fmtUsdSigned(activeNet)}
+          </span>
+        ) : null}
 
-      {row && (
+        <span className="cw-rail-spacer" />
+
+        <button type="button" className="cw-btn" onClick={() => pullLatest({ quiet: false })} disabled={isRunning}>
+          Sync
+        </button>
+        <button type="button" className="cw-btn cw-btn-primary" onClick={runClawdWire} disabled={isRunning}>
+          {isRunning ? "Running…" : "Trip ClawdWire"}
+        </button>
+      </div>
+
+      {syncHint || (status === "error" && errorMsg) || isRunning ? (
+        <p
+          style={{
+            margin: "10px 0 0",
+            fontSize: "12px",
+            color:
+              status === "error" && errorMsg
+                ? "var(--read-coral-text)"
+                : syncHint
+                ? "var(--read-teal-text)"
+                : "var(--text-muted)",
+          }}
+        >
+          {status === "error" && errorMsg
+            ? errorMsg
+            : syncHint || "Executing on Dune — results land here automatically."}
+        </p>
+      ) : null}
+
+      {clawdRow?.signalNote ? (
+        <p style={{ margin: "10px 0 0", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5, maxWidth: "780px" }}>
+          {clawdRow.signalNote}
+        </p>
+      ) : null}
+
+      {!row ? (
+        <div
+          style={{
+            marginTop: "26px",
+            padding: "28px 20px",
+            border: "1px dashed var(--border)",
+            borderRadius: "10px",
+            textAlign: "center",
+            color: "var(--text-muted)",
+            fontSize: "13px",
+          }}
+        >
+          No pulse results yet. Hit <strong>Trip ClawdWire</strong> for a fresh Dune execute — this page
+          auto-syncs every ~45s and will fill in on its own once a run lands.
+        </div>
+      ) : (
         <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: "12px",
-              marginBottom: "10px",
-            }}
+          {/* ── 01 Flow ─────────────────────────────────────────────────── */}
+          <Section
+            index="01"
+            title="Flow"
+            subtitle="Money and participation by window. Net $ is buy minus sell; 15m carries no buyer/seller split in the source query."
+            headline={`Net 24h ${fmtUsdSigned(row["Net USD 24h"])}`}
           >
-            <Stat label="Net $ 15m" value={fmtUsd(row["Net USD 15m"])} color={netColor(row["Net USD 15m"])} large />
-            <Stat label="Net $ 1h" value={fmtUsd(row["Net USD 1h"])} color={netColor(row["Net USD 1h"])} large />
-            <Stat label="Net $ 6h" value={fmtUsd(row["Net USD 6h"])} color={netColor(row["Net USD 6h"])} large />
-            <Stat label="Net $ 24h" value={fmtUsd(row["Net USD 24h"])} color={netColor(row["Net USD 24h"])} large />
-          </div>
-          <p style={{ margin: "0 0 28px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.45 }}>
-            Net $ = buy dollars − sell dollars (flow). Red net means more sell $ than buy $ — not “more losers.”
-            Matched trade results below are a research heuristic only — not tax, accounting, or advice.
-          </p>
-
-          <WindowBlock title="15 minutes" subtitle="Immediate heat">
-            <Stat label="Wallets" value={fmtInt(row["Wallets 15m"])} />
-            <Stat label="Txs" value={fmtInt(row["Txs 15m"])} />
-            <Stat label="Buy $" value={fmtUsd(row["Buy USD 15m"])} color="var(--read-teal-text)" />
-            <Stat label="Sell $" value={fmtUsd(row["Sell USD 15m"])} color="var(--read-coral-text)" />
-            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 15m"])} />
-          </WindowBlock>
-
-          <WindowBlock title="1 hour" subtitle="Short pulse">
-            <Stat label="Wallets" value={fmtInt(row["Wallets 1h"])} />
-            <Stat label="Txs" value={fmtInt(row["Txs 1h"])} />
-            <Stat label="Buy $" value={fmtUsd(row["Buy USD 1h"])} color="var(--read-teal-text)" />
-            <Stat label="Sell $" value={fmtUsd(row["Sell USD 1h"])} color="var(--read-coral-text)" />
-            <Stat label="Buyers" value={fmtInt(row["Buyers 1h"])} />
-            <Stat label="Sellers" value={fmtInt(row["Sellers 1h"])} />
-            <Stat label="Buy vol %" value={fmtPct(row["Buy Vol % 1h"])} />
-            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 1h"])} />
-          </WindowBlock>
-
-          <WindowBlock title="6 hours" subtitle="Session flow">
-            <Stat label="Wallets" value={fmtInt(row["Wallets 6h"])} />
-            <Stat label="Txs" value={fmtInt(row["Txs 6h"])} />
-            <Stat label="Buy $" value={fmtUsd(row["Buy USD 6h"])} color="var(--read-teal-text)" />
-            <Stat label="Sell $" value={fmtUsd(row["Sell USD 6h"])} color="var(--read-coral-text)" />
-            <Stat label="Buyers" value={fmtInt(row["Buyers 6h"])} />
-            <Stat label="Sellers" value={fmtInt(row["Sellers 6h"])} />
-            <Stat label="Buy vol %" value={fmtPct(row["Buy Vol % 6h"])} />
-            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 6h"])} />
-          </WindowBlock>
-
-          <WindowBlock title="24 hours" subtitle="Full-day money + activity">
-            <Stat label="Wallets" value={fmtInt(row["Wallets 24h"])} />
-            <Stat label="Txs" value={fmtInt(row["Txs 24h"])} />
-            <Stat label="Buy $" value={fmtUsd(row["Buy USD 24h"])} color="var(--read-teal-text)" />
-            <Stat label="Sell $" value={fmtUsd(row["Sell USD 24h"])} color="var(--read-coral-text)" />
-            <Stat label="Buyers" value={fmtInt(row["Buyers 24h"])} />
-            <Stat label="Sellers" value={fmtInt(row["Sellers 24h"])} />
-            <Stat label="Buy vol %" value={fmtPct(row["Buy Vol % 24h"])} />
-            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 24h"])} />
-          </WindowBlock>
-
-          <WindowBlock
-            title="Whales 24h"
-            subtitle={`Live tiers · whale ≥ ${fmtUsd(row["Whale Min $"])} · hump ≥ ${fmtUsd(row["Hump Min $"])} (30d CLAWD percentiles)`}
-          >
-            <Stat label="Whale net $" value={fmtUsd(row["Whale Net 24h"])} color={netColor(row["Whale Net 24h"])} large />
-            <Stat label="Hump net $" value={fmtUsd(row["Hump Net 24h"])} color={netColor(row["Hump Net 24h"])} large />
-            <Stat label="Retail net $" value={fmtUsd(row["Retail Net 24h"])} color={netColor(row["Retail Net 24h"])} large />
-            <Stat label="Accum %" value={fmtPct(row["Accum % 24h"])} />
-            <Stat label="Whale vol %" value={fmtPct(row["Whale Vol % 24h"])} />
-            <Stat label="Whale buyers" value={fmtInt(row["Whale Buyers 24h"])} />
-            <Stat label="Whale sellers" value={fmtInt(row["Whale Sellers 24h"])} />
-            <Stat label="Hump buyers" value={fmtInt(row["Hump Buyers 24h"])} />
-            <Stat label="Hump sellers" value={fmtInt(row["Hump Sellers 24h"])} />
-            <Stat
-              label="W/R div (bps)"
-              value={(() => {
-                const mcap = num(row?.marketCapUsd ?? clawdRow?.marketCapUsd);
-                const w = num(row["Whale Net 24h"]);
-                const r = num(row["Retail Net 24h"]);
-                if (mcap == null || mcap <= 0 || w == null || r == null) return "—";
-                return ((w - r) / mcap * 10000).toFixed(1);
-              })()}
-            />
-          </WindowBlock>
-
-          <WindowBlock
-            title="Whales 7d"
-            subtitle="Same tier logic as the CLAWD tab / main dashboard"
-          >
-            <Stat label="Whale net $" value={fmtUsd(row["Whale Net 7d"])} color={netColor(row["Whale Net 7d"])} large />
-            <Stat label="Hump net $" value={fmtUsd(row["Hump Net 7d"])} color={netColor(row["Hump Net 7d"])} large />
-            <Stat label="Retail net $" value={fmtUsd(row["Retail Net 7d"])} color={netColor(row["Retail Net 7d"])} large />
-            <Stat label="Accum %" value={fmtPct(row["Accum %"])} />
-            <Stat label="Whale vol %" value={fmtPct(row["Whale Vol %"])} />
-            <Stat label="Buy vol % 7d" value={fmtPct(row["Buy Vol % 7d"])} />
-            <Stat label="Whale buyers" value={fmtInt(row["Whale Buyers 7d"])} />
-            <Stat label="Whale sellers" value={fmtInt(row["Whale Sellers 7d"])} />
-            <Stat label="Hump buyers" value={fmtInt(row["Hump Buyers 7d"])} />
-            <Stat label="Hump sellers" value={fmtInt(row["Hump Sellers 7d"])} />
-            <Stat
-              label="W/R div (bps)"
-              value={(() => {
-                const mcap = num(row?.marketCapUsd ?? clawdRow?.marketCapUsd);
-                const w = num(row["Whale Net 7d"]);
-                const r = num(row["Retail Net 7d"]);
-                if (mcap == null || mcap <= 0 || w == null || r == null) return "—";
-                return ((w - r) / mcap * 10000).toFixed(1);
-              })()}
-            />
-          </WindowBlock>
-
-          <WindowBlock
-            title="Stickiness"
-            subtitle="New vs returning traders in the 30d CLAWD window (1st buy/sell = first seen in that window)"
-          >
-            <Stat label="Vol 24h" value={fmtUsd(row["Vol 24h"])} large />
-            <Stat label="Vol 7d" value={fmtUsd(row["Vol 7d"])} large />
-            <Stat label="Vol 30d" value={fmtUsd(row["Vol 30d"])} large />
-            <Stat label="Wallets 7d" value={fmtInt(row["Wallets 7d"])} />
-            <Stat label="Txs 7d" value={fmtInt(row["Txs 7d"])} />
-            <Stat label="Traders 24h" value={fmtInt(row["Traders 24h"])} />
-            <Stat label="Traders 7d" value={fmtInt(row["Traders 7d"])} />
-            <Stat label="Traders 30d" value={fmtInt(row["Traders 30d"])} />
-            <Stat label="New traders 7d" value={fmtInt(row["New Traders 7d"])} />
-            <Stat label="Returning 7d" value={fmtInt(row["Returning Traders 7d"])} />
-            <Stat label="Returning % 7d" value={fmtPct(row["Returning % 7d"])} />
-            <Stat label="Buy/sell ratio 24h" value={fmtRatio(row["Buy/Sell Ratio 24h"])} />
-            <Stat label="Buy/sell ratio 7d" value={fmtRatio(row["Buy/Sell Ratio 7d"])} />
-            <Stat label="Buyers 7d" value={fmtInt(row["Buyers 7d"])} />
-            <Stat label="Sellers 7d" value={fmtInt(row["Sellers 7d"])} />
-            <Stat label="1st buyers 24h" value={fmtInt(row["1st Buyers 24h"])} />
-            <Stat label="1st buyers 7d" value={fmtInt(row["1st Buyers 7d"])} />
-            <Stat label="1st buyers 30d" value={fmtInt(row["1st Buyers 30d"])} />
-            <Stat label="1st sellers 24h" value={fmtInt(row["1st Sellers 24h"])} />
-            <Stat label="1st sellers 7d" value={fmtInt(row["1st Sellers 7d"])} />
-            <Stat label="1st sellers 30d" value={fmtInt(row["1st Sellers 30d"])} />
-            <Stat label="Buyers 30d" value={fmtInt(row["Buyers 30d"])} />
-            <Stat label="Sellers 30d" value={fmtInt(row["Sellers 30d"])} />
-            <Stat label="Vol/tx 24h" value={fmtUsd(row["Vol/Tx 24h"])} />
-            <Stat label="Vol/tx 7d" value={fmtUsd(row["Vol/Tx 7d"])} />
-            <Stat label="Vol/tx 30d" value={fmtUsd(row["Vol/Tx 30d"])} />
-            <Stat label="Txs/trader 24h" value={fmtRatio(row["Txs/Trader 24h"])} />
-            <Stat label="Txs/trader 7d" value={fmtRatio(row["Txs/Trader 7d"])} />
-            <Stat label="Txs/trader 30d" value={fmtRatio(row["Txs/Trader 30d"])} />
-          </WindowBlock>
-
-          <WalletLens
-            title="Top buyers 24h"
-            subtitle="Wallet · buy $ · buy txs · net · biggest trade tx (Basescan links)"
-            raw={row["Top Buyers 24h"]}
-          />
-          <WalletLens
-            title="Top sellers 24h"
-            subtitle="Wallet · sell $ · sell txs · net · biggest trade tx"
-            raw={row["Top Sellers 24h"]}
-          />
-          <WalletLens
-            title="Top net accumulators 24h"
-            subtitle="Wallets with the largest buy−sell net (includes total txs)"
-            raw={row["Top Net Accumulators 24h"]}
-          />
-          <WalletLens
-            title="Biggest prints 24h"
-            subtitle="Largest single DEX trades — side · $ · wallet · tx"
-            raw={row["Biggest Prints 24h"]}
-          />
-
-          <WindowBlock
-            title="WoW growth"
-            subtitle="This 7d vs prior 7d on the same 30d CLAWD trade scan"
-          >
-            <Stat label="Vol grw %" value={fmtPct(row["Vol Grw %"])} color={netColor(row["Vol Grw %"])} large />
-            <Stat label="Tx grw %" value={fmtPct(row["Tx Grw %"])} color={netColor(row["Tx Grw %"])} large />
-            <Stat label="User grw %" value={fmtPct(row["User Grw %"])} color={netColor(row["User Grw %"])} large />
-            <Stat label="Retention %" value={fmtPct(row["Retention %"])} large />
-            <Stat label="Retained traders" value={fmtInt(row["Retained Traders"])} />
-            <Stat label="New vs prev week" value={fmtInt(row["New vs Prev Week"])} />
-            <Stat label="Vol prev 7d" value={fmtUsd(row["Vol Prev 7d"])} />
-            <Stat label="Txs prev 7d" value={fmtInt(row["Txs Prev 7d"])} />
-            <Stat label="Traders prev 7d" value={fmtInt(row["Traders Prev 7d"])} />
-          </WindowBlock>
-
-          <WindowBlock
-            title="Heat & distribution"
-            subtitle="How concentrated the day is + who is flipping both sides"
-          >
-            <Stat label="Heat % 1h" value={fmtPct(row["Heat % 1h"])} large />
-            <Stat label="Heat % 6h" value={fmtPct(row["Heat % 6h"])} large />
-            <Stat label="Trade heat % 1h" value={fmtPct(row["Trade Heat % 1h"])} />
-            <Stat label="Median trade $" value={fmtUsd(row["Median Trade 24h"])} />
-            <Stat label="P90 trade $" value={fmtUsd(row["P90 Trade 24h"])} />
-            <Stat label="Flippers 24h" value={fmtInt(row["Flippers 24h"])} />
-            <Stat label="Flipper % 24h" value={fmtPct(row["Flipper % 24h"])} />
-            <Stat label="Whale traders 7d" value={fmtInt(row["Whale Traders 7d"])} />
-            <Stat label="Whale active 24h" value={fmtInt(row["Whale Active 24h"])} />
-            <Stat label="Whale persist %" value={fmtPct(row["Whale Persist %"])} />
-          </WindowBlock>
-
-          <WindowBlock
-            title="Trade-shape signals"
-            subtitle="Research heuristics from trade sizes/timing — not accusations, not proof of intent"
-          >
-            <Stat label="Size uniformity %" value={fmtPct(row["Size Uniformity %"])} large />
-            <Stat label="Size CV 24h" value={fmtRatio(row["Size CV 24h"])} />
-            <Stat label="Vol per 1% move $" value={fmtUsd(row["Vol per 1% Move $"])} large />
-            <Stat label="Abs move % 24h" value={fmtPct(row["Abs Move % 24h"])} />
-            <Stat label="Impact % / $1k" value={fmtPct(row["Impact % per $1k"])} />
-            <Stat
-              label="Round-trip vol % 24h"
-              value={fmtPct(row["Round-trip Vol % 24h"] ?? row["Wash Vol % 24h"])}
-              large
-            />
-            <Stat
-              label="Round-trip wallets 24h"
-              value={fmtInt(row["Round-trip Wallets 24h"] ?? row["Wash Wallets 24h"])}
-            />
-            <Stat label="Longest buy streak" value={fmtInt(row["Longest Buy Streak"])} />
-            <Stat label="Longest sell streak" value={fmtInt(row["Longest Sell Streak"])} />
-          </WindowBlock>
-
-          <WindowBlock
-            title="Conviction"
-            subtitle="Diamond-hand survival of first buyers (30d window) + how fast sellers flip"
-          >
-            <Stat label="Survive 1h %" value={fmtPct(row["Survive 1h %"])} large />
-            <Stat label="Survive 1d %" value={fmtPct(row["Survive 1d %"])} large />
-            <Stat label="Survive 3d %" value={fmtPct(row["Survive 3d %"])} />
-            <Stat label="Survive 7d %" value={fmtPct(row["Survive 7d %"])} />
-            <Stat label="1st buyer cohort" value={fmtInt(row["1st Buyer Cohort 30d"])} />
-            <Stat label="Median flip" value={fmtMins(row["Median Flip Mins"])} />
-            <Stat label="Flip · new" value={fmtMins(row["Median Flip Mins New"])} />
-            <Stat label="Flip · returning" value={fmtMins(row["Median Flip Mins Returning"])} />
-          </WindowBlock>
-
-          <WindowBlock
-            title="Timing vs peak"
-            subtitle="Aligns on-chain flow to the 24h trade-price peak (DEX implied) — match to the CG spike hour"
-          >
-            <Stat label="Peak hour (UTC)" value={fmtText(row["Peak Price Hour"])} large />
-            <Stat label="Net before peak" value={fmtUsd(row["Net Hour Before Peak"])} color={netColor(row["Net Hour Before Peak"])} />
-            <Stat label="Whale before peak" value={fmtUsd(row["Whale Net Hour Before Peak"])} color={netColor(row["Whale Net Hour Before Peak"])} />
-            <Stat label="Net at peak hour" value={fmtUsd(row["Net At Peak Hour"])} color={netColor(row["Net At Peak Hour"])} large />
-            <Stat label="Whale at peak hour" value={fmtUsd(row["Whale Net At Peak Hour"])} color={netColor(row["Whale Net At Peak Hour"])} large />
-            <Stat label="Vol at peak hour" value={fmtUsd(row["Vol At Peak Hour"])} />
-            <Stat label="Net after peak" value={fmtUsd(row["Net Hour After Peak"])} color={netColor(row["Net Hour After Peak"])} />
-            <Stat label="Whale after peak" value={fmtUsd(row["Whale Net Hour After Peak"])} color={netColor(row["Whale Net Hour After Peak"])} />
-            <Stat label="Worst hour net" value={fmtUsd(row["Worst Hour Net $"])} color={netColor(row["Worst Hour Net $"])} />
-            <Stat label="Whale at worst hour" value={fmtUsd(row["Whale Net At Worst Hour"])} color={netColor(row["Whale Net At Worst Hour"])} />
-            <Stat label="Best hour net" value={fmtUsd(row["Best Hour Net $"])} color={netColor(row["Best Hour Net $"])} />
-          </WindowBlock>
-
-          <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
-            <div style={{ marginBottom: "10px" }}>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "15px",
-                  fontWeight: 700,
-                  color: "var(--text)",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Hourly tape 24h
-              </h3>
-              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
-                UTC hour · net $ (k). Match the CG spike hour to the tape.
+            <Matrix columns={flowColumns} rows={flowRows} rowHeadLabel="Metric" />
+            <div style={{ marginTop: "10px" }}>
+              <StatStrip
+                items={[
+                  { label: "Heat % 1h", value: fmtPct(row["Heat % 1h"]), raw: row["Heat % 1h"] },
+                  { label: "Heat % 6h", value: fmtPct(row["Heat % 6h"]), raw: row["Heat % 6h"] },
+                  { label: "Trade heat % 1h", value: fmtPct(row["Trade Heat % 1h"]), raw: row["Trade Heat % 1h"] },
+                  { label: "Median trade $", value: fmtUsd(row["Median Trade 24h"]), raw: row["Median Trade 24h"] },
+                  { label: "P90 trade $", value: fmtUsd(row["P90 Trade 24h"]), raw: row["P90 Trade 24h"] },
+                ]}
+              />
+              <p style={{ margin: "7px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)" }}>
+                Heat = share of 24h volume inside the window. Flat-day baselines: {FLAT_HOUR_SHARE.toFixed(1)}% at 1h, 25% at 6h.
               </p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <Stat label="All flow" value={fmtText(row["Hourly Net Tape 24h"])} />
-              <Stat label="Whale flow" value={fmtText(row["Hourly Whale Tape 24h"])} />
+          </Section>
+
+          {/* ── 02 Whales ───────────────────────────────────────────────── */}
+          <Section
+            index="02"
+            title="Whales"
+            subtitle={`Who is on each side. Tiers are live 30d CLAWD percentiles — whale ≥ ${fmtUsd(row["Whale Min $"])}, hump ≥ ${fmtUsd(row["Hump Min $"])}, retail is everything below.`}
+            headline={`Whale net 24h ${fmtUsdSigned(whaleNet24h)}`}
+          >
+            <Matrix
+              rowHeadLabel="Tier"
+              columns={[
+                { key: "net24", label: "Net 24h" },
+                { key: "net7", label: "Net 7d" },
+                { key: "b24", label: "Buyers 24h" },
+                { key: "s24", label: "Sellers 24h" },
+                { key: "b7", label: "Buyers 7d" },
+                { key: "s7", label: "Sellers 7d" },
+              ]}
+              rows={cohortRows}
+            />
+            <div style={{ marginTop: "10px" }}>
+              <StatStrip
+                items={[
+                  { label: "Accum % 24h", value: fmtPct(row["Accum % 24h"]), raw: row["Accum % 24h"] },
+                  { label: "Accum % 7d", value: fmtPct(row["Accum %"]), raw: row["Accum %"] },
+                  { label: "Whale vol % 24h", value: fmtPct(row["Whale Vol % 24h"]), raw: row["Whale Vol % 24h"] },
+                  { label: "Whale vol % 7d", value: fmtPct(row["Whale Vol %"]), raw: row["Whale Vol %"] },
+                  {
+                    label: "W/R div bps 24h",
+                    value: fmtRatio(divergenceBps(row["Whale Net 24h"], row["Retail Net 24h"], marketCap)),
+                    raw: divergenceBps(row["Whale Net 24h"], row["Retail Net 24h"], marketCap),
+                    tone: netTone(divergenceBps(row["Whale Net 24h"], row["Retail Net 24h"], marketCap)),
+                  },
+                  {
+                    label: "W/R div bps 7d",
+                    value: fmtRatio(divergenceBps(row["Whale Net 7d"], row["Retail Net 7d"], marketCap)),
+                    raw: divergenceBps(row["Whale Net 7d"], row["Retail Net 7d"], marketCap),
+                    tone: netTone(divergenceBps(row["Whale Net 7d"], row["Retail Net 7d"], marketCap)),
+                  },
+                  { label: "Whale traders 7d", value: fmtInt(row["Whale Traders 7d"]), raw: row["Whale Traders 7d"] },
+                  { label: "Whale active 24h", value: fmtInt(row["Whale Active 24h"]), raw: row["Whale Active 24h"] },
+                  { label: "Whale persist %", value: fmtPct(row["Whale Persist %"]), raw: row["Whale Persist %"] },
+                  { label: "Flippers 24h", value: fmtInt(row["Flippers 24h"]), raw: row["Flippers 24h"] },
+                  { label: "Flipper % 24h", value: fmtPct(row["Flipper % 24h"]), raw: row["Flipper % 24h"] },
+                ]}
+              />
+              <p style={{ margin: "7px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)" }}>
+                Tiering is address-level. Batched exchange withdrawals and smart-contract wallets can land in the wrong tier.
+              </p>
             </div>
-          </section>
+          </Section>
 
-          <WindowBlock
-            title="Run-up window"
-            subtitle="Hour before peak + peak hour — who bought the rip"
+          {/* ── 03 People ───────────────────────────────────────────────── */}
+          <Section
+            index="03"
+            title="People"
+            subtitle="Who keeps showing up. Participation by window, week-over-week movement, and the wallets behind the day's biggest flows."
+            headline={`${fmtInt(row["Traders 24h"])} traders, 24h`}
           >
-            <Stat label="Run-up net $" value={fmtUsd(row["Run-up Net $"])} color={netColor(row["Run-up Net $"])} large />
-            <Stat label="Buy $" value={fmtUsd(row["Run-up Buy $"])} color="var(--read-teal-text)" />
-            <Stat label="Sell $" value={fmtUsd(row["Run-up Sell $"])} color="var(--read-coral-text)" />
-            <Stat label="Buyers" value={fmtInt(row["Run-up Buyers"])} />
-            <Stat label="Sellers" value={fmtInt(row["Run-up Sellers"])} />
-          </WindowBlock>
+            <Matrix rowHeadLabel="Metric" columns={PARTICIPATION_WINDOWS} rows={participationRows} />
 
-          <WalletLens
-            title="Run-up top buyers"
-            subtitle="Wallets that bought in the hour before peak + peak hour"
-            raw={row["Run-up Top Buyers"]}
-          />
-          <WalletLens
-            title="Run-up top sellers"
-            subtitle="Wallets that sold into the rip (same 2h window)"
-            raw={row["Run-up Top Sellers"]}
-          />
+            <div style={{ marginTop: "18px" }}>
+              <SubHead>Week over week</SubHead>
+              <StatStrip
+                items={[
+                  { label: "Vol grw %", value: fmtPctSigned(row["Vol Grw %"]), raw: row["Vol Grw %"], tone: netTone(row["Vol Grw %"]) },
+                  { label: "Tx grw %", value: fmtPctSigned(row["Tx Grw %"]), raw: row["Tx Grw %"], tone: netTone(row["Tx Grw %"]) },
+                  { label: "User grw %", value: fmtPctSigned(row["User Grw %"]), raw: row["User Grw %"], tone: netTone(row["User Grw %"]) },
+                  { label: "Retention %", value: fmtPct(row["Retention %"]), raw: row["Retention %"] },
+                  { label: "Retained traders", value: fmtInt(row["Retained Traders"]), raw: row["Retained Traders"] },
+                  { label: "New vs prev week", value: fmtInt(row["New vs Prev Week"]), raw: row["New vs Prev Week"] },
+                  { label: "New traders 7d", value: fmtInt(row["New Traders 7d"]), raw: row["New Traders 7d"] },
+                  { label: "Returning 7d", value: fmtInt(row["Returning Traders 7d"]), raw: row["Returning Traders 7d"] },
+                  { label: "Returning % 7d", value: fmtPct(row["Returning % 7d"]), raw: row["Returning % 7d"] },
+                  { label: "Vol prev 7d", value: fmtUsdCompact(row["Vol Prev 7d"]), raw: row["Vol Prev 7d"] },
+                  { label: "Txs prev 7d", value: fmtInt(row["Txs Prev 7d"]), raw: row["Txs Prev 7d"] },
+                  { label: "Traders prev 7d", value: fmtInt(row["Traders Prev 7d"]), raw: row["Traders Prev 7d"] },
+                ]}
+              />
+            </div>
 
-          <WindowBlock
-            title="Dump hour"
-            subtitle="Worst net hour in the last 24h — who sold the dump"
+            <Disclosure title="Wallet lens · 24h" note="top buyers, sellers, accumulators, prints">
+              <WalletLens title="Top buyers 24h" subtitle="wallet · buy $ · buy txs · net · biggest trade" raw={row["Top Buyers 24h"]} />
+              <WalletLens title="Top sellers 24h" subtitle="wallet · sell $ · sell txs · net · biggest trade" raw={row["Top Sellers 24h"]} />
+              <WalletLens title="Top net accumulators 24h" subtitle="largest buy − sell net, with total txs" raw={row["Top Net Accumulators 24h"]} />
+              <WalletLens title="Biggest prints 24h" subtitle="largest single DEX trades — side · $ · wallet · tx" raw={row["Biggest Prints 24h"]} />
+              <p style={{ margin: "4px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)", lineHeight: 1.5 }}>
+                One address is not one person. A single actor can split across wallets, and one wallet can be a
+                router, a market maker, or an exchange hot wallet moving for many users.
+              </p>
+            </Disclosure>
+          </Section>
+
+          {/* ── 04 Shape & conviction ───────────────────────────────────── */}
+          <Section
+            index="04"
+            title="Shape & conviction"
+            subtitle="Is the move real, and will it hold? Measured price efficiency is kept separate from inferred trade-shape signals, because only one of the two is a fact."
+            headline={`Round-trip ${fmtPct(roundTripVol(row))} · survive 1d ${fmtPct(row["Survive 1d %"])}`}
           >
-            <Stat label="Dump hour net $" value={fmtUsd(row["Dump Hour Net $"])} color={netColor(row["Dump Hour Net $"])} large />
-            <Stat label="Buy $" value={fmtUsd(row["Dump Hour Buy $"])} color="var(--read-teal-text)" />
-            <Stat label="Sell $" value={fmtUsd(row["Dump Hour Sell $"])} color="var(--read-coral-text)" />
-            <Stat label="Buyers" value={fmtInt(row["Dump Hour Buyers"])} />
-            <Stat label="Sellers" value={fmtInt(row["Dump Hour Sellers"])} />
-            <Stat label="Worst hour (UTC)" value={fmtText(row["Worst Net Hour"])} />
-          </WindowBlock>
+            <div className="cw-suspect-panel">
+              <p className="cw-suspect-note">
+                <SuspectBadge />
+                <span>
+                  Research heuristics from trade sizes and timing — not accusations, and not proof of intent.
+                  Uniform sizing, repeated round-trips and long one-sided streaks are shapes that automated
+                  strategies leave behind, and ordinary market making leaves the same ones.
+                </span>
+              </p>
+              <StatStrip
+                items={[
+                  {
+                    label: "Round-trip vol % 24h",
+                    value: fmtPct(roundTripVol(row)),
+                    raw: roundTripVol(row),
+                    tone: shape.tone === "caution" ? "caution" : undefined,
+                  },
+                  { label: "Round-trip wallets 24h", value: fmtInt(roundTripWallets(row)), raw: roundTripWallets(row) },
+                  { label: "Size uniformity %", value: fmtPct(row["Size Uniformity %"]), raw: row["Size Uniformity %"] },
+                  { label: "Size CV 24h", value: fmtRatio(row["Size CV 24h"]), raw: row["Size CV 24h"] },
+                  { label: "Longest buy streak", value: fmtInt(row["Longest Buy Streak"]), raw: row["Longest Buy Streak"] },
+                  { label: "Longest sell streak", value: fmtInt(row["Longest Sell Streak"]), raw: row["Longest Sell Streak"] },
+                ]}
+              />
+            </div>
 
-          <WalletLens
-            title="Dump hour top sellers"
-            subtitle="Wallets that sold in the worst net hour"
-            raw={row["Dump Hour Top Sellers"]}
-          />
-          <WalletLens
-            title="Dump hour top buyers"
-            subtitle="Wallets that bought the dip in that same hour"
-            raw={row["Dump Hour Top Buyers"]}
-          />
+            <div style={{ marginTop: "16px" }}>
+              <SubHead>Measured price efficiency</SubHead>
+              <StatStrip
+                items={[
+                  { label: "Vol per 1% move $", value: fmtUsd(row["Vol per 1% Move $"]), raw: row["Vol per 1% Move $"] },
+                  { label: "Abs move % 24h", value: fmtPct(row["Abs Move % 24h"]), raw: row["Abs Move % 24h"] },
+                  { label: "Impact % per $1k", value: fmtPctSmall(row["Impact % per $1k"]), raw: row["Impact % per $1k"] },
+                ]}
+              />
+              <p style={{ margin: "7px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)" }}>
+                Straight arithmetic on observed volume and price — no inference. High volume per 1% move means the
+                book absorbed size; read it next to the shape signals above.
+              </p>
+            </div>
 
-          <WindowBlock
-            title="Matched trade results (research)"
-            subtitle="Heuristic from on-chain swaps only: matched tokens = min(buy amt, sell amt) in-window · result $ = matched × (sell VWAP − buy VWAP). Not FIFO, not cost basis, not realized gain/loss for taxes, not accounting, not advice. Do not use for tax filing."
+            <div style={{ marginTop: "18px" }}>
+              <SubHead>Conviction</SubHead>
+              <div
+                style={{
+                  display: "grid",
+                  gap: "16px",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  alignItems: "start",
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid var(--border)",
+                    borderRadius: "10px",
+                    background: "var(--bg-subtle)",
+                    padding: "13px 14px",
+                  }}
+                >
+                  <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: "10px" }}>
+                    First buyers still holding after
+                  </div>
+                  <Ladder
+                    steps={[
+                      { key: "1h", pct: row["Survive 1h %"] },
+                      { key: "1d", pct: row["Survive 1d %"] },
+                      { key: "3d", pct: row["Survive 3d %"] },
+                      { key: "7d", pct: row["Survive 7d %"] },
+                    ]}
+                  />
+                  <p style={{ margin: "10px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)" }}>
+                    Cohort of {fmtInt(row["1st Buyer Cohort 30d"])} first-time buyers over the 30d scan.
+                  </p>
+                </div>
+                <StatStrip
+                  items={[
+                    { label: "Median flip", value: fmtMins(row["Median Flip Mins"]), raw: row["Median Flip Mins"] },
+                    { label: "Flip · new", value: fmtMins(row["Median Flip Mins New"]), raw: row["Median Flip Mins New"] },
+                    { label: "Flip · returning", value: fmtMins(row["Median Flip Mins Returning"]), raw: row["Median Flip Mins Returning"] },
+                    { label: "1st buyer cohort", value: fmtInt(row["1st Buyer Cohort 30d"]), raw: row["1st Buyer Cohort 30d"] },
+                  ]}
+                />
+              </div>
+            </div>
+          </Section>
+
+          {/* ── 05 Timing story ─────────────────────────────────────────── */}
+          <Section
+            index="05"
+            title="Timing story"
+            subtitle="On-chain flow lined up against the 24h trade-price peak (DEX implied). Match the peak hour here to the spike hour on your chart."
+            headline={`Peak ${fmtUtcHour(row["Peak Price Hour"])}`}
           >
-            <Stat label="Above-match % 24h" value={fmtPct(row["Winner % 24h"])} large />
-            <Stat label="Above-match wallets 24h" value={fmtInt(row["PnL Winners 24h"])} color="var(--read-teal-text)" />
-            <Stat label="Below-match wallets 24h" value={fmtInt(row["PnL Losers 24h"])} color="var(--read-coral-text)" />
-            <Stat label="Both-side wallets 24h" value={fmtInt(row["Closed Wallets 24h"])} />
-            <Stat label="Above-match $ 24h" value={fmtUsd(row["Closed Gains $ 24h"])} color="var(--read-teal-text)" large />
-            <Stat label="Below-match $ 24h" value={fmtUsd(row["Closed Losses $ 24h"])} color="var(--read-coral-text)" large />
-            <Stat label="Net match result $ 24h" value={fmtUsd(row["Net Closed PnL $ 24h"])} color={netColor(row["Net Closed PnL $ 24h"])} large />
-            <Stat label="Above-match % 30d" value={fmtPct(row["Winner % 30d"])} />
-            <Stat label="Above-match wallets 30d" value={fmtInt(row["PnL Winners 30d"])} />
-            <Stat label="Below-match wallets 30d" value={fmtInt(row["PnL Losers 30d"])} />
-            <Stat label="Net match result $ 30d" value={fmtUsd(row["Net Closed PnL $ 30d"])} color={netColor(row["Net Closed PnL $ 30d"])} />
-          </WindowBlock>
+            <Matrix
+              rowHeadLabel="Net $"
+              columns={[
+                { key: "before", label: "Hour before peak" },
+                { key: "at", label: "Peak hour", active: true },
+                { key: "after", label: "Hour after peak" },
+              ]}
+              rows={peakRows}
+            />
+            <div style={{ marginTop: "10px" }}>
+              <StatStrip
+                items={[
+                  { label: "Peak hour (UTC)", value: fmtUtcHour(row["Peak Price Hour"]) },
+                  { label: "Vol at peak hour", value: fmtUsd(row["Vol At Peak Hour"]), raw: row["Vol At Peak Hour"] },
+                  { label: "Best hour (UTC)", value: fmtUtcHour(row["Best Net Hour"]) },
+                  { label: "Best hour net", value: fmtUsdSigned(row["Best Hour Net $"]), raw: row["Best Hour Net $"], tone: netTone(row["Best Hour Net $"]) },
+                  { label: "Whale at best hour", value: fmtUsdSigned(row["Whale Net At Best Hour"]), raw: row["Whale Net At Best Hour"], tone: netTone(row["Whale Net At Best Hour"]) },
+                  { label: "Worst hour (UTC)", value: fmtUtcHour(row["Worst Net Hour"]) },
+                  { label: "Worst hour net", value: fmtUsdSigned(row["Worst Hour Net $"]), raw: row["Worst Hour Net $"], tone: netTone(row["Worst Hour Net $"]) },
+                  { label: "Whale at worst hour", value: fmtUsdSigned(row["Whale Net At Worst Hour"]), raw: row["Whale Net At Worst Hour"], tone: netTone(row["Whale Net At Worst Hour"]) },
+                  { label: "Vol at worst hour", value: fmtUsd(row["Vol At Worst Hour"]), raw: row["Vol At Worst Hour"] },
+                ]}
+              />
+            </div>
 
-          <p style={{ margin: "-8px 0 18px", fontSize: "11px", color: "var(--text-faint)", lineHeight: 1.45 }}>
-            Community research display only. Tripwire does not provide tax, legal, or financial advice.
-            These figures are incomplete swap heuristics and must not be treated as taxable income, capital gains, or reporting amounts.
-          </p>
+            {netTape.length ? (
+              <div style={{ marginTop: "20px" }}>
+                <SubHead>Hourly tape · all flow</SubHead>
+                <HourlyTape
+                  bars={netTape}
+                  peakHour={peakHourKey}
+                  worstHour={worstHourKey}
+                  label="Net dollar flow per UTC hour over the last 24 hours"
+                />
+              </div>
+            ) : null}
 
-          <WalletLens
-            title="Top above-match wallets 24h"
-            subtitle="Highest in-window matched VWAP result $ (research) — wallet · result · buyVWAP · sellVWAP. Not a tax form."
-            raw={row["Top Closed Winners 24h"]}
-          />
-          <WalletLens
-            title="Top below-match wallets 24h"
-            subtitle="Lowest in-window matched VWAP result $ (research). Not a tax form."
-            raw={row["Top Closed Losers 24h"]}
-          />
+            {whaleTape.length ? (
+              <div style={{ marginTop: "20px" }}>
+                <SubHead>Hourly tape · whale flow</SubHead>
+                <HourlyTape
+                  bars={whaleTape}
+                  peakHour={peakHourKey}
+                  worstHour={worstHourKey}
+                  label="Whale-tier net dollar flow per UTC hour over the last 24 hours"
+                />
+              </div>
+            ) : null}
+
+            <div style={{ marginTop: "20px" }}>
+              <SubHead>Run-up window · hour before peak + peak hour</SubHead>
+              <StatStrip
+                items={[
+                  { label: "Run-up net $", value: fmtUsdSigned(row["Run-up Net $"]), raw: row["Run-up Net $"], tone: netTone(row["Run-up Net $"]) },
+                  { label: "Buy $", value: fmtUsdCompact(row["Run-up Buy $"]), raw: row["Run-up Buy $"], tone: "pos" },
+                  { label: "Sell $", value: fmtUsdCompact(row["Run-up Sell $"]), raw: row["Run-up Sell $"], tone: "neg" },
+                  { label: "Buyers", value: fmtInt(row["Run-up Buyers"]), raw: row["Run-up Buyers"] },
+                  { label: "Sellers", value: fmtInt(row["Run-up Sellers"]), raw: row["Run-up Sellers"] },
+                ]}
+              />
+              <Disclosure title="Run-up wallets" note="who bought the rip, who sold into it">
+                <WalletLens title="Run-up top buyers" subtitle="bought in the hour before peak + peak hour" raw={row["Run-up Top Buyers"]} />
+                <WalletLens title="Run-up top sellers" subtitle="sold into the rip, same 2h window" raw={row["Run-up Top Sellers"]} />
+              </Disclosure>
+            </div>
+
+            <div style={{ marginTop: "20px" }}>
+              <SubHead>Dump hour · worst net hour in the last 24h</SubHead>
+              <StatStrip
+                items={[
+                  { label: "Dump hour net $", value: fmtUsdSigned(row["Dump Hour Net $"]), raw: row["Dump Hour Net $"], tone: netTone(row["Dump Hour Net $"]) },
+                  { label: "Buy $", value: fmtUsdCompact(row["Dump Hour Buy $"]), raw: row["Dump Hour Buy $"], tone: "pos" },
+                  { label: "Sell $", value: fmtUsdCompact(row["Dump Hour Sell $"]), raw: row["Dump Hour Sell $"], tone: "neg" },
+                  { label: "Buyers", value: fmtInt(row["Dump Hour Buyers"]), raw: row["Dump Hour Buyers"] },
+                  { label: "Sellers", value: fmtInt(row["Dump Hour Sellers"]), raw: row["Dump Hour Sellers"] },
+                  { label: "Worst hour (UTC)", value: fmtUtcHour(row["Worst Net Hour"]) },
+                ]}
+              />
+              <Disclosure title="Dump hour wallets" note="who sold it, who bought the dip">
+                <WalletLens title="Dump hour top sellers" subtitle="sold in the worst net hour" raw={row["Dump Hour Top Sellers"]} />
+                <WalletLens title="Dump hour top buyers" subtitle="bought the dip in that same hour" raw={row["Dump Hour Top Buyers"]} />
+              </Disclosure>
+            </div>
+          </Section>
+
+          {/* ── 06 Experiment ───────────────────────────────────────────── */}
+          <Section
+            index="06"
+            title="Experiment · matched trade results"
+            headline={`Above match ${fmtPct(row["Winner % 24h"])}, 24h`}
+          >
+            <div className="cw-suspect-panel">
+              <p className="cw-suspect-note">
+                <SuspectBadge title="Research heuristic — an experiment, not a settled measure" />
+                <span>
+                  An experiment, and honestly not the sharpest tool in the shed. For each wallet we match buys
+                  against sells inside the window — matched tokens = min(buy amount, sell amount), result =
+                  matched × (sell VWAP − buy VWAP) — using on-chain swaps on this pair only. It cannot see
+                  transfers, bridges, other venues, or anything a wallet did before the window opened, so plenty
+                  of real activity is invisible to it. Interesting to look at; don&apos;t take it to the bank.
+                </span>
+              </p>
+              <Matrix
+                rowHeadLabel="Metric"
+                columns={[
+                  { key: "24h", label: "24h" },
+                  { key: "30d", label: "30d" },
+                ]}
+                rows={matchRows}
+              />
+              <p style={{ margin: "10px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)", lineHeight: 1.5 }}>
+                &ldquo;Above match&rdquo; simply means a wallet&apos;s sell VWAP came in above its buy VWAP on the
+                tokens it round-tripped inside the window. Wallets that only bought, or only sold, never enter the count.
+              </p>
+            </div>
+
+            <p
+              style={{
+                margin: "12px 0 0",
+                fontSize: "11px",
+                color: "var(--text-muted)",
+                lineHeight: 1.55,
+                maxWidth: "820px",
+              }}
+            >
+              To be unambiguous about what this is not: it is not FIFO, not cost basis, not realized gain or
+              loss, and not a tax, accounting, legal, or financial figure of any kind. Do not use it for filing
+              or for any reporting purpose. Community research display only — Tripwire does not provide tax,
+              legal, or financial advice.
+            </p>
+
+            <Disclosure title="Top matched-result wallets · 24h" note="research heuristic, not a tax form">
+              <WalletLens
+                title="Top above-match wallets 24h"
+                subtitle="highest in-window matched VWAP result — wallet · result · buy VWAP · sell VWAP"
+                raw={row["Top Closed Winners 24h"]}
+              />
+              <WalletLens
+                title="Top below-match wallets 24h"
+                subtitle="lowest in-window matched VWAP result"
+                raw={row["Top Closed Losers 24h"]}
+              />
+            </Disclosure>
+          </Section>
         </>
       )}
+    </div>
+  );
+}
+
+function SubHead({ children }) {
+  return (
+    <div
+      style={{
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+        color: "var(--text-faint)",
+        marginBottom: "8px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function VerdictChip({ label, band, value, raw, note, suspect = false }) {
+  return (
+    <div className="cw-chip" data-suspect={suspect ? "true" : undefined}>
+      <div className="cw-chip-head">
+        <span className="cw-chip-label">{label}</span>
+        {suspect ? (
+          <SuspectBadge />
+        ) : (
+          <span className="cw-chip-band" style={{ color: toneColor(band.tone) }}>
+            <LiveDot tone={band.tone} />
+            {band.label}
+          </span>
+        )}
+      </div>
+      <div className="cw-chip-value cw-mono" style={{ color: raw == null ? "var(--text-faint)" : "var(--text)" }}>
+        <FlashNum raw={raw}>{value}</FlashNum>
+        {suspect ? (
+          <span className="cw-chip-band" style={{ color: toneColor(band.tone), marginLeft: "8px" }}>
+            {band.label}
+          </span>
+        ) : null}
+      </div>
+      <div className="cw-chip-note">{note}</div>
     </div>
   );
 }
