@@ -36,6 +36,17 @@ function fmtScore(v) {
   return n.toFixed(1);
 }
 
+function fmtRatio(v) {
+  const n = num(v);
+  if (n == null) return "—";
+  return n.toFixed(2);
+}
+
+function fmtText(v) {
+  if (v == null || v === "") return "—";
+  return String(v);
+}
+
 function netColor(v) {
   const n = num(v);
   if (n == null || n === 0) return "var(--text)";
@@ -583,6 +594,54 @@ export default function ClawdWirePanel({
               })()}
             />
           </WindowBlock>
+
+          <WindowBlock
+            title="Stickiness"
+            subtitle="New vs returning traders in the 30d CLAWD window (1st buy/sell = first seen in that window)"
+          >
+            <Stat label="Vol 24h" value={fmtUsd(row["Vol 24h"])} large />
+            <Stat label="Vol 7d" value={fmtUsd(row["Vol 7d"])} large />
+            <Stat label="Vol 30d" value={fmtUsd(row["Vol 30d"])} large />
+            <Stat label="Wallets 7d" value={fmtInt(row["Wallets 7d"])} />
+            <Stat label="Txs 7d" value={fmtInt(row["Txs 7d"])} />
+            <Stat label="Traders 24h" value={fmtInt(row["Traders 24h"])} />
+            <Stat label="Traders 7d" value={fmtInt(row["Traders 7d"])} />
+            <Stat label="Traders 30d" value={fmtInt(row["Traders 30d"])} />
+            <Stat label="New traders 7d" value={fmtInt(row["New Traders 7d"])} />
+            <Stat label="Returning 7d" value={fmtInt(row["Returning Traders 7d"])} />
+            <Stat label="Returning % 7d" value={fmtPct(row["Returning % 7d"])} />
+            <Stat label="Buy/sell ratio 24h" value={fmtRatio(row["Buy/Sell Ratio 24h"])} />
+            <Stat label="Buy/sell ratio 7d" value={fmtRatio(row["Buy/Sell Ratio 7d"])} />
+            <Stat label="Buyers 7d" value={fmtInt(row["Buyers 7d"])} />
+            <Stat label="Sellers 7d" value={fmtInt(row["Sellers 7d"])} />
+            <Stat label="1st buyers 24h" value={fmtInt(row["1st Buyers 24h"])} />
+            <Stat label="1st buyers 7d" value={fmtInt(row["1st Buyers 7d"])} />
+            <Stat label="1st sellers 24h" value={fmtInt(row["1st Sellers 24h"])} />
+            <Stat label="1st sellers 7d" value={fmtInt(row["1st Sellers 7d"])} />
+          </WindowBlock>
+
+          <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
+            <div style={{ marginBottom: "10px" }}>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: "var(--text)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Top takers 24h
+              </h3>
+              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
+                Top 3 wallets by buy/sell USD (truncated addresses)
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <Stat label="Top buyers" value={fmtText(row["Top Buyers 24h"])} />
+              <Stat label="Top sellers" value={fmtText(row["Top Sellers 24h"])} />
+            </div>
+          </section>
         </>
       )}
     </div>

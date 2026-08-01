@@ -1,7 +1,8 @@
 -- ClawdWire — paste into Dune query 8180604 (replace body)
--- CLAWD only: 24h txs + 30d dex.trades (one trade scan)
+-- CLAWD only: 7d txs + 30d dex.trades
 -- Pulse $: 15m / 1h / 6h / 24h
--- Chunk C: whale / hump / retail 24h + 7d (thresholds = 30d percentiles, same floors as main)
+-- Chunk C: whale / hump / retail 24h + 7d
+-- Chunk D: stickiness (new/returning traders, 1st buy/sell, vol, top takers 24h)
 
 WITH clawd AS (
     SELECT address, name FROM (
@@ -19,7 +20,7 @@ recent_tx AS (
     FROM base.transactions t
     INNER JOIN clawd c ON t."to" = c.address
     WHERE t.success = true
-      AND t.block_time >= now() - interval '24' hour
+      AND t.block_time >= now() - interval '7' day
 ),
 
 activity_pulse AS (
@@ -33,7 +34,9 @@ activity_pulse AS (
         COUNT(*)               FILTER (WHERE block_time >= now() - interval '6'  hour)   AS txs_6h,
         COUNT(DISTINCT wallet) FILTER (WHERE block_time >= now() - interval '6'  hour)   AS wallets_6h,
         COUNT(*)               FILTER (WHERE block_time >= now() - interval '24' hour)   AS txs_24h,
-        COUNT(DISTINCT wallet) FILTER (WHERE block_time >= now() - interval '24' hour)   AS wallets_24h
+        COUNT(DISTINCT wallet) FILTER (WHERE block_time >= now() - interval '24' hour)   AS wallets_24h,
+        COUNT(*)               FILTER (WHERE block_time >= now() - interval '7'  day)    AS txs_7d,
+        COUNT(DISTINCT wallet) FILTER (WHERE block_time >= now() - interval '7'  day)    AS wallets_7d
     FROM recent_tx
     GROUP BY 1, 2
 ),
@@ -171,6 +174,12 @@ flow_pulse AS (
         COALESCE(SUM(rt.amount_usd) FILTER (
             WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '7' day
         ), 0) AS total_sell_usd_7d,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy' AND rt.block_time >= now() - interval '7' day
+        ) AS buyers_7d,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '7' day
+        ) AS sellers_7d,
 
         COALESCE(SUM(rt.amount_usd) FILTER (
             WHERE rt.side = 'buy' AND rt.amount_usd >= wt.whale_min_usd
@@ -211,6 +220,167 @@ flow_pulse AS (
     FROM recent_trades rt
     INNER JOIN whale_thresholds wt ON wt.project = rt.project
     GROUP BY 1, 2
+),
+
+-- Chunk D: stickiness from the same 30d trade scan (first buy/sell = first in 30d window)
+trader_span AS (
+    SELECT
+        project,
+        address,
+        trader,
+        MIN(block_time) AS first_seen,
+        MAX(block_time) AS last_seen
+    FROM recent_trades
+    GROUP BY 1, 2, 3
+),
+
+stickiness AS (
+    SELECT
+        project,
+        address,
+        COUNT(*) FILTER (WHERE last_seen >= now() - interval '24' hour) AS traders_24h,
+        COUNT(*) FILTER (WHERE last_seen >= now() - interval '7' day) AS traders_7d,
+        COUNT(*) AS traders_30d,
+        COUNT(*) FILTER (WHERE first_seen >= now() - interval '7' day) AS new_traders_7d,
+        COUNT(*) FILTER (
+            WHERE first_seen < now() - interval '7' day
+              AND last_seen >= now() - interval '7' day
+        ) AS returning_traders_7d
+    FROM trader_span
+    GROUP BY 1, 2
+),
+
+buy_ranked AS (
+    SELECT
+        project,
+        address,
+        trader,
+        block_time,
+        ROW_NUMBER() OVER (PARTITION BY project, trader ORDER BY block_time) AS rn
+    FROM recent_trades
+    WHERE side = 'buy'
+),
+
+sell_ranked AS (
+    SELECT
+        project,
+        address,
+        trader,
+        block_time,
+        ROW_NUMBER() OVER (PARTITION BY project, trader ORDER BY block_time) AS rn
+    FROM recent_trades
+    WHERE side = 'sell'
+),
+
+first_side AS (
+    SELECT
+        COALESCE(b.project, s.project) AS project,
+        COALESCE(b.address, s.address) AS address,
+        COALESCE(b.first_buyers_24h, 0) AS first_buyers_24h,
+        COALESCE(b.first_buyers_7d, 0) AS first_buyers_7d,
+        COALESCE(s.first_sellers_24h, 0) AS first_sellers_24h,
+        COALESCE(s.first_sellers_7d, 0) AS first_sellers_7d
+    FROM (
+        SELECT
+            project,
+            address,
+            COUNT(*) FILTER (WHERE rn = 1 AND block_time >= now() - interval '24' hour) AS first_buyers_24h,
+            COUNT(*) FILTER (WHERE rn = 1 AND block_time >= now() - interval '7' day) AS first_buyers_7d
+        FROM buy_ranked
+        GROUP BY 1, 2
+    ) b
+    FULL OUTER JOIN (
+        SELECT
+            project,
+            address,
+            COUNT(*) FILTER (WHERE rn = 1 AND block_time >= now() - interval '24' hour) AS first_sellers_24h,
+            COUNT(*) FILTER (WHERE rn = 1 AND block_time >= now() - interval '7' day) AS first_sellers_7d
+        FROM sell_ranked
+        GROUP BY 1, 2
+    ) s ON b.project = s.project
+),
+
+vol_windows AS (
+    SELECT
+        project,
+        address,
+        COALESCE(SUM(amount_usd) FILTER (WHERE block_time >= now() - interval '24' hour), 0) AS vol_24h,
+        COALESCE(SUM(amount_usd) FILTER (WHERE block_time >= now() - interval '7' day), 0) AS vol_7d,
+        COALESCE(SUM(amount_usd), 0) AS vol_30d
+    FROM recent_trades
+    GROUP BY 1, 2
+),
+
+buyer_usd_24h AS (
+    SELECT
+        project,
+        address,
+        trader,
+        SUM(amount_usd) AS usd,
+        ROW_NUMBER() OVER (PARTITION BY project ORDER BY SUM(amount_usd) DESC) AS rn
+    FROM recent_trades
+    WHERE side = 'buy'
+      AND block_time >= now() - interval '24' hour
+    GROUP BY 1, 2, 3
+),
+
+seller_usd_24h AS (
+    SELECT
+        project,
+        address,
+        trader,
+        SUM(amount_usd) AS usd,
+        ROW_NUMBER() OVER (PARTITION BY project ORDER BY SUM(amount_usd) DESC) AS rn
+    FROM recent_trades
+    WHERE side = 'sell'
+      AND block_time >= now() - interval '24' hour
+    GROUP BY 1, 2, 3
+),
+
+top_flow AS (
+    SELECT
+        COALESCE(b.project, s.project) AS project,
+        COALESCE(b.address, s.address) AS address,
+        b.top_buyers_24h,
+        s.top_sellers_24h
+    FROM (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        SUBSTR(CAST(trader AS VARCHAR), 1, 6),
+                        '…$',
+                        CAST(CAST(ROUND(usd) AS BIGINT) AS VARCHAR)
+                    )
+                    ORDER BY rn
+                ),
+                ' · '
+            ) AS top_buyers_24h
+        FROM buyer_usd_24h
+        WHERE rn <= 3
+        GROUP BY 1, 2
+    ) b
+    FULL OUTER JOIN (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        SUBSTR(CAST(trader AS VARCHAR), 1, 6),
+                        '…$',
+                        CAST(CAST(ROUND(usd) AS BIGINT) AS VARCHAR)
+                    )
+                    ORDER BY rn
+                ),
+                ' · '
+            ) AS top_sellers_24h
+        FROM seller_usd_24h
+        WHERE rn <= 3
+        GROUP BY 1, 2
+    ) s ON b.project = s.project
 )
 
 SELECT
@@ -312,7 +482,47 @@ SELECT
     CASE
         WHEN COALESCE(fp.total_buy_usd_7d, 0) + COALESCE(fp.total_sell_usd_7d, 0) = 0 THEN NULL
         ELSE ROUND(100.0 * fp.total_buy_usd_7d / (fp.total_buy_usd_7d + fp.total_sell_usd_7d), 1)
-    END AS "Buy Vol % 7d"
+    END AS "Buy Vol % 7d",
+
+    -- Chunk D
+    COALESCE(ap.wallets_7d, 0) AS "Wallets 7d",
+    COALESCE(ap.txs_7d, 0)     AS "Txs 7d",
+    ROUND(COALESCE(vw.vol_24h, 0), 2) AS "Vol 24h",
+    ROUND(COALESCE(vw.vol_7d, 0), 2)  AS "Vol 7d",
+    ROUND(COALESCE(vw.vol_30d, 0), 2) AS "Vol 30d",
+    COALESCE(st.traders_24h, 0) AS "Traders 24h",
+    COALESCE(st.traders_7d, 0)  AS "Traders 7d",
+    COALESCE(st.traders_30d, 0) AS "Traders 30d",
+    COALESCE(st.new_traders_7d, 0) AS "New Traders 7d",
+    COALESCE(st.returning_traders_7d, 0) AS "Returning Traders 7d",
+    CASE
+        WHEN COALESCE(st.traders_7d, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * st.returning_traders_7d / st.traders_7d, 1)
+    END AS "Returning % 7d",
+    COALESCE(fs.first_buyers_24h, 0)  AS "1st Buyers 24h",
+    COALESCE(fs.first_buyers_7d, 0)   AS "1st Buyers 7d",
+    COALESCE(fs.first_sellers_24h, 0) AS "1st Sellers 24h",
+    COALESCE(fs.first_sellers_7d, 0)  AS "1st Sellers 7d",
+    ROUND(
+        CAST(COALESCE(fp.buyers_24h, 0) AS DOUBLE)
+        / NULLIF(COALESCE(fp.sellers_24h, 0), 0)
+    , 2) AS "Buy/Sell Ratio 24h",
+    ROUND(
+        CAST(COALESCE(fp.buyers_7d, 0) AS DOUBLE)
+        / NULLIF(COALESCE(fp.sellers_7d, 0), 0)
+    , 2) AS "Buy/Sell Ratio 7d",
+    COALESCE(fp.buyers_7d, 0)  AS "Buyers 7d",
+    COALESCE(fp.sellers_7d, 0) AS "Sellers 7d",
+    tf.top_buyers_24h  AS "Top Buyers 24h",
+    tf.top_sellers_24h AS "Top Sellers 24h"
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
-    ON ap.project = fp.project;
+    ON ap.project = fp.project
+LEFT JOIN stickiness st
+    ON COALESCE(ap.project, fp.project) = st.project
+LEFT JOIN first_side fs
+    ON COALESCE(ap.project, fp.project) = fs.project
+LEFT JOIN vol_windows vw
+    ON COALESCE(ap.project, fp.project) = vw.project
+LEFT JOIN top_flow tf
+    ON COALESCE(ap.project, fp.project) = tf.project;
