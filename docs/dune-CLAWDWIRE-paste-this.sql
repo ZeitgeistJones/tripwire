@@ -813,4 +813,5 @@ LEFT JOIN dist_heat dh
 LEFT JOIN flippers_24h fl
     ON COALESCE(ap.project, fp.project) = fl.project
 LEFT JOIN whale_persist wp
-    ON COALESCE(ap.project, fp.project) = wp.project;
+    ON COALESCE(ap.project, fp.project) = wp.project
+
