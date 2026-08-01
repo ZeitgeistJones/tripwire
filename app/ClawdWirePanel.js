@@ -628,7 +628,7 @@ export default function ClawdWirePanel({
           </div>
           <p style={{ margin: "0 0 28px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.45 }}>
             Net $ = buy dollars − sell dollars (flow). Red net means more sell $ than buy $ — not “more losers.”
-            Matched trade results below are a research heuristic only — not tax, accounting, or advice.
+            Matched trade results below are an experiment — fun research only, don’t take it to the bank.
           </p>
 
           <WindowBlock title="15 minutes" subtitle="Immediate heat">
@@ -932,8 +932,8 @@ export default function ClawdWirePanel({
           />
 
           <WindowBlock
-            title="Matched trade results (research)"
-            subtitle="Heuristic from on-chain swaps only: matched tokens = min(buy amt, sell amt) in-window · result $ = matched × (sell VWAP − buy VWAP). Not FIFO, not cost basis, not realized gain/loss for taxes, not accounting, not advice. Do not use for tax filing."
+            title="Matched trade results (experiment)"
+            subtitle="On-chain swap experiment: matched tokens = min(buy amt, sell amt) in-window · result $ = matched × (sell VWAP − buy VWAP). Rough vibe check, not the sharpest tool in the shed — not FIFO, not tax lots, not advice. Don’t take it to the bank."
           >
             <Stat label="Above-match % 24h" value={fmtPct(row["Winner % 24h"])} large />
             <Stat label="Above-match wallets 24h" value={fmtInt(row["PnL Winners 24h"])} color="var(--read-teal-text)" />
@@ -949,18 +949,18 @@ export default function ClawdWirePanel({
           </WindowBlock>
 
           <p style={{ margin: "-8px 0 18px", fontSize: "11px", color: "var(--text-faint)", lineHeight: 1.45 }}>
-            Community research display only. Tripwire does not provide tax, legal, or financial advice.
-            These figures are incomplete swap heuristics and must not be treated as taxable income, capital gains, or reporting amounts.
+            Experiment / community vibes only — we’re not claiming to be the sharpest tool in the shed.
+            Tripwire isn’t tax, legal, or financial advice. Incomplete swap heuristics; don’t treat as taxable income, gains, or anything you’d file.
           </p>
 
           <WalletLens
             title="Top above-match wallets 24h"
-            subtitle="Highest in-window matched VWAP result $ (research) — wallet · result · buyVWAP · sellVWAP. Not a tax form."
+            subtitle="Highest in-window matched VWAP result $ (experiment) — wallet · result · buyVWAP · sellVWAP. Don’t take it to the bank."
             raw={row["Top Closed Winners 24h"]}
           />
           <WalletLens
             title="Top below-match wallets 24h"
-            subtitle="Lowest in-window matched VWAP result $ (research). Not a tax form."
+            subtitle="Lowest in-window matched VWAP result $ (experiment). Don’t take it to the bank."
             raw={row["Top Closed Losers 24h"]}
           />
         </>
