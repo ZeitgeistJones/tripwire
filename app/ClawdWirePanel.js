@@ -748,6 +748,37 @@ export default function ClawdWirePanel({
             subtitle="Largest single DEX trades — side · $ · wallet · tx"
             raw={row["Biggest Prints 24h"]}
           />
+
+          <WindowBlock
+            title="WoW growth"
+            subtitle="This 7d vs prior 7d on the same 30d CLAWD trade scan"
+          >
+            <Stat label="Vol grw %" value={fmtPct(row["Vol Grw %"])} color={netColor(row["Vol Grw %"])} large />
+            <Stat label="Tx grw %" value={fmtPct(row["Tx Grw %"])} color={netColor(row["Tx Grw %"])} large />
+            <Stat label="User grw %" value={fmtPct(row["User Grw %"])} color={netColor(row["User Grw %"])} large />
+            <Stat label="Retention %" value={fmtPct(row["Retention %"])} large />
+            <Stat label="Retained traders" value={fmtInt(row["Retained Traders"])} />
+            <Stat label="New vs prev week" value={fmtInt(row["New vs Prev Week"])} />
+            <Stat label="Vol prev 7d" value={fmtUsd(row["Vol Prev 7d"])} />
+            <Stat label="Txs prev 7d" value={fmtInt(row["Txs Prev 7d"])} />
+            <Stat label="Traders prev 7d" value={fmtInt(row["Traders Prev 7d"])} />
+          </WindowBlock>
+
+          <WindowBlock
+            title="Heat & distribution"
+            subtitle="How concentrated the day is + who is flipping both sides"
+          >
+            <Stat label="Heat % 1h" value={fmtPct(row["Heat % 1h"])} large />
+            <Stat label="Heat % 6h" value={fmtPct(row["Heat % 6h"])} large />
+            <Stat label="Trade heat % 1h" value={fmtPct(row["Trade Heat % 1h"])} />
+            <Stat label="Median trade $" value={fmtUsd(row["Median Trade 24h"])} />
+            <Stat label="P90 trade $" value={fmtUsd(row["P90 Trade 24h"])} />
+            <Stat label="Flippers 24h" value={fmtInt(row["Flippers 24h"])} />
+            <Stat label="Flipper % 24h" value={fmtPct(row["Flipper % 24h"])} />
+            <Stat label="Whale traders 7d" value={fmtInt(row["Whale Traders 7d"])} />
+            <Stat label="Whale active 24h" value={fmtInt(row["Whale Active 24h"])} />
+            <Stat label="Whale persist %" value={fmtPct(row["Whale Persist %"])} />
+          </WindowBlock>
         </>
       )}
     </div>

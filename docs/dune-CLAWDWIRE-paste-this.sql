@@ -4,7 +4,7 @@
 -- Chunk C: whale / hump / retail 24h + 7d
 -- Chunk D: stickiness (new/returning traders, 1st buy/sell, vol)
 -- Chunk E: wallet lens (per-wallet $ + txs, top net, big prints) + intensity
--- Chunk E: wallet lens (per-wallet $ + txs, top net, biggest prints) + intensity
+-- Chunk F: WoW growth + retention + distribution / heat / flippers
 
 WITH clawd AS (
     SELECT address, name FROM (
@@ -468,6 +468,128 @@ top_flow AS (
         WHERE rn <= 5
         GROUP BY 1, 2
     ) p ON COALESCE(b.project, s.project, n.project) = p.project
+),
+
+-- Chunk F: WoW (this 7d vs prior 7d) + retention + size distribution / heat
+wow_windows AS (
+    SELECT
+        project,
+        address,
+        COALESCE(SUM(amount_usd) FILTER (
+            WHERE block_time >= now() - interval '7' day
+        ), 0) AS vol_this,
+        COALESCE(SUM(amount_usd) FILTER (
+            WHERE block_time >= now() - interval '14' day
+              AND block_time < now() - interval '7' day
+        ), 0) AS vol_prev,
+        COUNT(*) FILTER (
+            WHERE block_time >= now() - interval '7' day
+        ) AS txs_this,
+        COUNT(*) FILTER (
+            WHERE block_time >= now() - interval '14' day
+              AND block_time < now() - interval '7' day
+        ) AS txs_prev,
+        COUNT(DISTINCT trader) FILTER (
+            WHERE block_time >= now() - interval '7' day
+        ) AS users_this,
+        COUNT(DISTINCT trader) FILTER (
+            WHERE block_time >= now() - interval '14' day
+              AND block_time < now() - interval '7' day
+        ) AS users_prev
+    FROM recent_trades
+    GROUP BY 1, 2
+),
+
+trader_weeks AS (
+    SELECT
+        project,
+        address,
+        trader,
+        MAX(CASE WHEN block_time >= now() - interval '7' day THEN 1 ELSE 0 END) AS in_this,
+        MAX(CASE
+            WHEN block_time >= now() - interval '14' day
+             AND block_time < now() - interval '7' day THEN 1
+            ELSE 0
+        END) AS in_prev
+    FROM recent_trades
+    GROUP BY 1, 2, 3
+),
+
+retention_agg AS (
+    SELECT
+        project,
+        address,
+        COUNT(*) FILTER (WHERE in_prev = 1) AS traders_prev_week,
+        COUNT(*) FILTER (WHERE in_prev = 1 AND in_this = 1) AS retained_traders,
+        COUNT(*) FILTER (WHERE in_this = 1 AND in_prev = 0) AS new_vs_prev_week
+    FROM trader_weeks
+    GROUP BY 1, 2
+),
+
+dist_heat AS (
+    SELECT
+        project,
+        address,
+        approx_percentile(amount_usd, 0.5) AS median_trade_24h,
+        approx_percentile(amount_usd, 0.9) AS p90_trade_24h,
+        COALESCE(SUM(amount_usd) FILTER (
+            WHERE block_time >= now() - interval '1' hour
+        ), 0) AS vol_1h,
+        COALESCE(SUM(amount_usd) FILTER (
+            WHERE block_time >= now() - interval '6' hour
+        ), 0) AS vol_6h,
+        COALESCE(SUM(amount_usd), 0) AS vol_24h,
+        COUNT(*) FILTER (WHERE block_time >= now() - interval '1' hour) AS trades_1h,
+        COUNT(*) FILTER (WHERE block_time >= now() - interval '6' hour) AS trades_6h,
+        COUNT(*) AS trades_24h
+    FROM recent_trades
+    WHERE block_time >= now() - interval '24' hour
+    GROUP BY 1, 2
+),
+
+flippers_24h AS (
+    SELECT
+        project,
+        address,
+        COUNT(*) AS flippers_24h
+    FROM (
+        SELECT
+            project,
+            address,
+            trader
+        FROM recent_trades
+        WHERE block_time >= now() - interval '24' hour
+        GROUP BY 1, 2, 3
+        HAVING COUNT(*) FILTER (WHERE side = 'buy') > 0
+           AND COUNT(*) FILTER (WHERE side = 'sell') > 0
+    ) t
+    GROUP BY 1, 2
+),
+
+whale_persist AS (
+    SELECT
+        w.project,
+        w.address,
+        COUNT(*) AS whale_traders_7d,
+        COUNT(*) FILTER (WHERE a.trader IS NOT NULL) AS whale_traders_active_24h
+    FROM (
+        SELECT DISTINCT
+            rt.project,
+            rt.address,
+            rt.trader
+        FROM recent_trades rt
+        INNER JOIN whale_thresholds wt ON wt.project = rt.project
+        WHERE rt.amount_usd >= wt.whale_min_usd
+          AND rt.block_time >= now() - interval '7' day
+    ) w
+    LEFT JOIN (
+        SELECT DISTINCT project, address, trader
+        FROM recent_trades
+        WHERE block_time >= now() - interval '24' hour
+    ) a
+        ON w.project = a.project
+       AND w.trader = a.trader
+    GROUP BY 1, 2
 )
 
 SELECT
@@ -616,11 +738,61 @@ SELECT
     ROUND(CAST(COALESCE(vw.trades_7d, 0) AS DOUBLE) / NULLIF(st.traders_7d, 0), 1) AS "Txs/Trader 7d",
     ROUND(CAST(COALESCE(vw.trades_30d, 0) AS DOUBLE) / NULLIF(st.traders_30d, 0), 1) AS "Txs/Trader 30d",
 
-    -- Chunk E wallet lens (wallet · $ · txs · net · biggest-tx hint)
+    -- Chunk E wallet lens
     tf.top_buyers_24h  AS "Top Buyers 24h",
     tf.top_sellers_24h AS "Top Sellers 24h",
     tf.top_net_24h     AS "Top Net Accumulators 24h",
-    tf.big_prints_24h  AS "Biggest Prints 24h"
+    tf.big_prints_24h  AS "Biggest Prints 24h",
+
+    -- Chunk F WoW
+    CASE
+        WHEN COALESCE(ww.vol_prev, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * (ww.vol_this - ww.vol_prev) / ww.vol_prev, 1)
+    END AS "Vol Grw %",
+    CASE
+        WHEN COALESCE(ww.txs_prev, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * (ww.txs_this - ww.txs_prev) / ww.txs_prev, 1)
+    END AS "Tx Grw %",
+    CASE
+        WHEN COALESCE(ww.users_prev, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * (ww.users_this - ww.users_prev) / ww.users_prev, 1)
+    END AS "User Grw %",
+    CASE
+        WHEN COALESCE(ra.traders_prev_week, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * ra.retained_traders / ra.traders_prev_week, 1)
+    END AS "Retention %",
+    COALESCE(ra.retained_traders, 0) AS "Retained Traders",
+    COALESCE(ra.new_vs_prev_week, 0) AS "New vs Prev Week",
+    ROUND(COALESCE(ww.vol_prev, 0), 2) AS "Vol Prev 7d",
+    COALESCE(ww.txs_prev, 0) AS "Txs Prev 7d",
+    COALESCE(ww.users_prev, 0) AS "Traders Prev 7d",
+
+    -- Chunk F distribution / heat / flippers
+    ROUND(COALESCE(dh.median_trade_24h, 0), 2) AS "Median Trade 24h",
+    ROUND(COALESCE(dh.p90_trade_24h, 0), 2) AS "P90 Trade 24h",
+    CASE
+        WHEN COALESCE(dh.vol_24h, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * dh.vol_1h / dh.vol_24h, 1)
+    END AS "Heat % 1h",
+    CASE
+        WHEN COALESCE(dh.vol_24h, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * dh.vol_6h / dh.vol_24h, 1)
+    END AS "Heat % 6h",
+    CASE
+        WHEN COALESCE(dh.trades_24h, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * dh.trades_1h / dh.trades_24h, 1)
+    END AS "Trade Heat % 1h",
+    COALESCE(fl.flippers_24h, 0) AS "Flippers 24h",
+    CASE
+        WHEN COALESCE(st.traders_24h, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * fl.flippers_24h / st.traders_24h, 1)
+    END AS "Flipper % 24h",
+    COALESCE(wp.whale_traders_7d, 0) AS "Whale Traders 7d",
+    COALESCE(wp.whale_traders_active_24h, 0) AS "Whale Active 24h",
+    CASE
+        WHEN COALESCE(wp.whale_traders_7d, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * wp.whale_traders_active_24h / wp.whale_traders_7d, 1)
+    END AS "Whale Persist %"
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project
@@ -631,4 +803,14 @@ LEFT JOIN first_side fs
 LEFT JOIN vol_windows vw
     ON COALESCE(ap.project, fp.project) = vw.project
 LEFT JOIN top_flow tf
-    ON COALESCE(ap.project, fp.project) = tf.project;
+    ON COALESCE(ap.project, fp.project) = tf.project
+LEFT JOIN wow_windows ww
+    ON COALESCE(ap.project, fp.project) = ww.project
+LEFT JOIN retention_agg ra
+    ON COALESCE(ap.project, fp.project) = ra.project
+LEFT JOIN dist_heat dh
+    ON COALESCE(ap.project, fp.project) = dh.project
+LEFT JOIN flippers_24h fl
+    ON COALESCE(ap.project, fp.project) = fl.project
+LEFT JOIN whale_persist wp
+    ON COALESCE(ap.project, fp.project) = wp.project;
