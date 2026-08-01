@@ -6,23 +6,35 @@ const COLUMNS = [
   { key: "marketCapUsd", label: "Market Cap", format: "usd" },
   { key: "Wallets 15m", label: "Wallets 15m" },
   { key: "Txs 15m", label: "Txs 15m" },
+  { key: "Buy USD 15m", label: "Buy $ 15m", format: "usd" },
+  { key: "Sell USD 15m", label: "Sell $ 15m", format: "usd" },
+  { key: "Net USD 15m", label: "Net $ 15m", format: "usd" },
+  { key: "Max Trade USD 15m", label: "Max trade $ 15m", format: "usd" },
   { key: "Wallets 1h", label: "Wallets 1h" },
   { key: "Txs 1h", label: "Txs 1h" },
   { key: "Buy USD 1h", label: "Buy $ 1h", format: "usd" },
   { key: "Sell USD 1h", label: "Sell $ 1h", format: "usd" },
   { key: "Net USD 1h", label: "Net $ 1h", format: "usd" },
+  { key: "Max Trade USD 1h", label: "Max trade $ 1h", format: "usd" },
+  { key: "Buyers 1h", label: "Buyers 1h" },
+  { key: "Sellers 1h", label: "Sellers 1h" },
   { key: "Wallets 6h", label: "Wallets 6h" },
   { key: "Txs 6h", label: "Txs 6h" },
   { key: "Buy USD 6h", label: "Buy $ 6h", format: "usd" },
   { key: "Sell USD 6h", label: "Sell $ 6h", format: "usd" },
   { key: "Net USD 6h", label: "Net $ 6h", format: "usd" },
+  { key: "Max Trade USD 6h", label: "Max trade $ 6h", format: "usd" },
+  { key: "Buyers 6h", label: "Buyers 6h" },
+  { key: "Sellers 6h", label: "Sellers 6h" },
   { key: "Wallets 24h", label: "Wallets 24h" },
   { key: "Txs 24h", label: "Txs 24h" },
 ];
 
 const KEY_METRICS = [
-  { name: "Wallets / Txs", desc: "Same pulse windows as The Wire, but CLAWD only" },
-  { name: "Buy / Sell / Net $ 1h & 6h", desc: "DEX dollar inflow vs outflow — the expensive bit under test at 1-token scale" },
+  { name: "Wallets / Txs", desc: "Contract activity pulse — CLAWD only" },
+  { name: "Buy / Sell / Net $", desc: "DEX dollar inflow vs outflow for 15m / 1h / 6h (same 6h trade scan)" },
+  { name: "Buyers / Sellers", desc: "Unique DEX traders in 1h and 6h — breadth vs one wallet" },
+  { name: "Max trade $", desc: "Largest single DEX print in the window — quick whale poke" },
   { name: "Market Cap", desc: "CoinGecko at result time" },
 ];
 
@@ -159,9 +171,8 @@ export default function ClawdWirePanel({ hasAccess, walletAddress = null }) {
       lineHeight: "1.6",
       maxWidth: "680px",
     }}>
-      ClawdWire is a lab: live Dune for <strong style={{ color: "var(--text)" }}>CLAWD only</strong> —
-      wallets/txs plus buy/sell/net dollars for 1h and 6h. Use it to see how much credits flow metrics cost
-      before adding them to the full Wire.
+      ClawdWire is your CLAWD pulse: wallets/txs, buy/sell/net $, unique buyers/sellers, and largest trade
+      across 15m / 1h / 6h (24h activity still shown). One token — cheap to trip often.
     </div>
   );
 

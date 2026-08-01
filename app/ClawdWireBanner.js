@@ -53,7 +53,7 @@ export default function ClawdWireBanner() {
             maxWidth: "520px",
           }}
         >
-          One token — wallets/txs plus 1h/6h buy &amp; sell USD. Cheap place to test Wire features before rolling them out to all projects.
+          CLAWD pulse: wallets/txs, buy/sell/net $, buyers/sellers, max trade — 15m / 1h / 6h. Cheap to run often.
         </div>
       </div>
       <div
