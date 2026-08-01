@@ -150,14 +150,16 @@ export default function ClawdWirePanel({
           return;
         }
         applyPayload(json, { quiet });
-        if (!quiet && status === "idle") setStatus("done");
+        // Functional update — do not close over `status` (that recreated this
+        // callback on every Trip state change and remounted the auto-sync effect).
+        if (!quiet) setStatus((s) => (s === "idle" ? "done" : s));
       } catch (err) {
         if (!quiet) setErrorMsg(String(err.message || err));
         publishMeta(lastRunRef.current, false);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [applyPayload, publishMeta, status, walletAddress]
+    [applyPayload, publishMeta, walletAddress]
   );
 
   useEffect(() => {
@@ -172,9 +174,15 @@ export default function ClawdWirePanel({
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
-      stopExecPoll();
+      // Do NOT stopExecPoll here. pullLatest/hasAccess churn used to clear the
+      // Trip interval while status stayed "running" (stuck forever).
     };
   }, [hasAccess, pullLatest]);
+
+  // Clear Trip poll only on unmount.
+  useEffect(() => {
+    return () => stopExecPoll();
+  }, []);
 
   useEffect(() => {
     if (!syncHint) return undefined;
