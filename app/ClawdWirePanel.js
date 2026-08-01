@@ -42,6 +42,14 @@ function fmtRatio(v) {
   return n.toFixed(2);
 }
 
+function fmtMins(v) {
+  const n = num(v);
+  if (n == null) return "—";
+  if (n < 60) return `${Math.round(n)}m`;
+  if (n < 60 * 24) return `${(n / 60).toFixed(1)}h`;
+  return `${(n / (60 * 24)).toFixed(1)}d`;
+}
+
 function shortAddr(addr) {
   if (!addr || addr.length < 12) return addr || "—";
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -778,6 +786,35 @@ export default function ClawdWirePanel({
             <Stat label="Whale traders 7d" value={fmtInt(row["Whale Traders 7d"])} />
             <Stat label="Whale active 24h" value={fmtInt(row["Whale Active 24h"])} />
             <Stat label="Whale persist %" value={fmtPct(row["Whale Persist %"])} />
+          </WindowBlock>
+
+          <WindowBlock
+            title="Fingerprints"
+            subtitle="Suspected patterns from trade shapes — not proof of intent or wash trading"
+          >
+            <Stat label="Size uniformity %" value={fmtPct(row["Size Uniformity %"])} large />
+            <Stat label="Size CV 24h" value={fmtRatio(row["Size CV 24h"])} />
+            <Stat label="Vol per 1% move $" value={fmtUsd(row["Vol per 1% Move $"])} large />
+            <Stat label="Abs move % 24h" value={fmtPct(row["Abs Move % 24h"])} />
+            <Stat label="Impact % / $1k" value={fmtPct(row["Impact % per $1k"])} />
+            <Stat label="Wash vol % 24h" value={fmtPct(row["Wash Vol % 24h"])} large />
+            <Stat label="Wash wallets 24h" value={fmtInt(row["Wash Wallets 24h"])} />
+            <Stat label="Longest buy streak" value={fmtInt(row["Longest Buy Streak"])} />
+            <Stat label="Longest sell streak" value={fmtInt(row["Longest Sell Streak"])} />
+          </WindowBlock>
+
+          <WindowBlock
+            title="Conviction"
+            subtitle="Diamond-hand survival of first buyers (30d window) + how fast sellers flip"
+          >
+            <Stat label="Survive 1h %" value={fmtPct(row["Survive 1h %"])} large />
+            <Stat label="Survive 1d %" value={fmtPct(row["Survive 1d %"])} large />
+            <Stat label="Survive 3d %" value={fmtPct(row["Survive 3d %"])} />
+            <Stat label="Survive 7d %" value={fmtPct(row["Survive 7d %"])} />
+            <Stat label="1st buyer cohort" value={fmtInt(row["1st Buyer Cohort 30d"])} />
+            <Stat label="Median flip" value={fmtMins(row["Median Flip Mins"])} />
+            <Stat label="Flip · new" value={fmtMins(row["Median Flip Mins New"])} />
+            <Stat label="Flip · returning" value={fmtMins(row["Median Flip Mins Returning"])} />
           </WindowBlock>
         </>
       )}

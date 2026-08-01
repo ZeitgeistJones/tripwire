@@ -5,6 +5,7 @@
 -- Chunk D: stickiness (new/returning traders, 1st buy/sell, vol)
 -- Chunk E: wallet lens (per-wallet $ + txs, top net, big prints) + intensity
 -- Chunk F: WoW growth + retention + distribution / heat / flippers
+-- Chunk G: uniformity, wash pressure, streaks, flip speed, wash rate, diamond hands
 
 WITH clawd AS (
     SELECT address, name FROM (
@@ -55,7 +56,18 @@ recent_trades AS (
         CASE
             WHEN dt.token_bought_address = c.address THEN 'buy'
             ELSE 'sell'
-        END AS side
+        END AS side,
+        CASE
+            WHEN dt.token_bought_address = c.address THEN dt.token_bought_amount
+            ELSE dt.token_sold_amount
+        END AS clawd_amt,
+        CASE
+            WHEN dt.token_bought_address = c.address AND dt.token_bought_amount > 0
+                THEN dt.amount_usd / dt.token_bought_amount
+            WHEN dt.token_sold_amount > 0
+                THEN dt.amount_usd / dt.token_sold_amount
+            ELSE NULL
+        END AS price_usd
     FROM dex.trades dt
     INNER JOIN clawd c
         ON dt.token_bought_address = c.address
@@ -590,6 +602,280 @@ whale_persist AS (
         ON w.project = a.project
        AND w.trader = a.trader
     GROUP BY 1, 2
+),
+
+-- Chunk G: bot/wash fingerprints + conviction storytelling
+uniformity_24h AS (
+    SELECT
+        project,
+        address,
+        ROUND(100.0 * MAX(bucket_n) / NULLIF(SUM(bucket_n), 0), 1) AS size_uniformity_pct
+    FROM (
+        SELECT
+            project,
+            address,
+            ROUND(amount_usd, 0) AS size_bucket,
+            COUNT(*) AS bucket_n
+        FROM recent_trades
+        WHERE block_time >= now() - interval '24' hour
+          AND amount_usd >= 1
+        GROUP BY 1, 2, 3
+    ) t
+    GROUP BY 1, 2
+),
+
+size_cv_24h AS (
+    SELECT
+        project,
+        address,
+        ROUND(
+            STDDEV_SAMP(amount_usd) / NULLIF(AVG(amount_usd), 0)
+        , 3) AS size_cv
+    FROM recent_trades
+    WHERE block_time >= now() - interval '24' hour
+      AND amount_usd > 0
+    GROUP BY 1, 2
+),
+
+wash_pressure_24h AS (
+    SELECT
+        project,
+        address,
+        ROUND(COALESCE(SUM(amount_usd), 0), 2) AS vol_24h,
+        ROUND(MIN_BY(price_usd, block_time), 8) AS price_open,
+        ROUND(MAX_BY(price_usd, block_time), 8) AS price_close,
+        ROUND(
+            100.0 * ABS(MAX_BY(price_usd, block_time) - MIN_BY(price_usd, block_time))
+            / NULLIF(MIN_BY(price_usd, block_time), 0)
+        , 3) AS abs_move_pct,
+        ROUND(
+            COALESCE(SUM(amount_usd), 0) / NULLIF(
+                100.0 * ABS(MAX_BY(price_usd, block_time) - MIN_BY(price_usd, block_time))
+                / NULLIF(MIN_BY(price_usd, block_time), 0)
+            , 0)
+        , 0) AS vol_per_1pct_move
+    FROM recent_trades
+    WHERE block_time >= now() - interval '24' hour
+      AND price_usd IS NOT NULL
+      AND price_usd > 0
+    GROUP BY 1, 2
+),
+
+impact_24h AS (
+    SELECT
+        project,
+        address,
+        ROUND(AVG(impact_per_1k), 4) AS impact_pct_per_1k
+    FROM (
+        SELECT
+            project,
+            address,
+            ABS(price_usd - prev_price) / NULLIF(prev_price, 0) * 100.0
+                / NULLIF(amount_usd / 1000.0, 0) AS impact_per_1k
+        FROM (
+            SELECT
+                project,
+                address,
+                amount_usd,
+                price_usd,
+                LAG(price_usd) OVER (
+                    PARTITION BY project ORDER BY block_time, tx_hash
+                ) AS prev_price
+            FROM recent_trades
+            WHERE block_time >= now() - interval '24' hour
+              AND price_usd IS NOT NULL
+              AND price_usd > 0
+              AND amount_usd > 0
+        ) o
+        WHERE prev_price IS NOT NULL
+          AND prev_price > 0
+    ) i
+    GROUP BY 1, 2
+),
+
+bucket_5m AS (
+    SELECT
+        project,
+        address,
+        from_unixtime(FLOOR(to_unixtime(block_time) / 300) * 300) AS bucket_start,
+        SUM(CASE WHEN side = 'buy' THEN amount_usd ELSE -amount_usd END) AS net_usd
+    FROM recent_trades
+    GROUP BY 1, 2, 3
+),
+
+bucket_flags AS (
+    SELECT
+        project,
+        address,
+        bucket_start,
+        CASE WHEN net_usd > 0 THEN 1 ELSE 0 END AS buy_dom,
+        ROW_NUMBER() OVER (PARTITION BY project ORDER BY bucket_start) AS rn,
+        ROW_NUMBER() OVER (
+            PARTITION BY project, CASE WHEN net_usd > 0 THEN 1 ELSE 0 END
+            ORDER BY bucket_start
+        ) AS rn_dom
+    FROM bucket_5m
+),
+
+streak_stats AS (
+    SELECT
+        project,
+        address,
+        MAX(CASE WHEN buy_dom = 1 THEN streak_len END) AS longest_buy_streak,
+        MAX(CASE WHEN buy_dom = 0 THEN streak_len END) AS longest_sell_streak
+    FROM (
+        SELECT
+            project,
+            address,
+            buy_dom,
+            COUNT(*) AS streak_len
+        FROM (
+            SELECT
+                project,
+                address,
+                buy_dom,
+                rn - rn_dom AS grp
+            FROM bucket_flags
+        ) g
+        GROUP BY project, address, buy_dom, grp
+    ) s
+    GROUP BY 1, 2
+),
+
+flip_speed AS (
+    SELECT
+        project,
+        address,
+        approx_percentile(mins_to_flip, 0.5) AS median_flip_mins,
+        approx_percentile(
+            CASE WHEN cohort = 'new' THEN mins_to_flip END, 0.5
+        ) AS median_flip_mins_new,
+        approx_percentile(
+            CASE WHEN cohort = 'returning' THEN mins_to_flip END, 0.5
+        ) AS median_flip_mins_returning
+    FROM (
+        SELECT
+            b.project,
+            b.address,
+            date_diff('minute', b.first_buy, s.first_sell) AS mins_to_flip,
+            CASE
+                WHEN ts.first_seen >= now() - interval '7' day THEN 'new'
+                ELSE 'returning'
+            END AS cohort
+        FROM (
+            SELECT project, address, trader, MIN(block_time) AS first_buy
+            FROM recent_trades
+            WHERE side = 'buy'
+            GROUP BY 1, 2, 3
+        ) b
+        INNER JOIN (
+            SELECT project, address, trader, MIN(block_time) AS first_sell
+            FROM recent_trades
+            WHERE side = 'sell'
+            GROUP BY 1, 2, 3
+        ) s
+            ON b.project = s.project
+           AND b.trader = s.trader
+           AND s.first_sell > b.first_buy
+        LEFT JOIN trader_span ts
+            ON b.project = ts.project
+           AND b.trader = ts.trader
+    ) f
+    GROUP BY 1, 2
+),
+
+wash_pairs AS (
+    SELECT
+        b.project,
+        b.address,
+        b.trader
+    FROM recent_trades b
+    INNER JOIN recent_trades s
+        ON b.project = s.project
+       AND b.trader = s.trader
+       AND b.side = 'buy'
+       AND s.side = 'sell'
+       AND s.block_time > b.block_time
+       AND s.block_time <= b.block_time + interval '5' minute
+       AND ABS(b.amount_usd - s.amount_usd) / NULLIF(b.amount_usd, 0) < 0.01
+    WHERE b.block_time >= now() - interval '24' hour
+    GROUP BY 1, 2, 3
+    HAVING COUNT(*) >= 3
+),
+
+wash_rate_24h AS (
+    SELECT
+        v.project,
+        v.address,
+        COALESCE(COUNT(DISTINCT w.trader), 0) AS wash_wallets_24h,
+        ROUND(COALESCE(SUM(rt.amount_usd), 0), 2) AS wash_touched_vol,
+        ROUND(
+            100.0 * COALESCE(SUM(rt.amount_usd), 0) / NULLIF(v.vol_24h, 0)
+        , 1) AS wash_vol_pct
+    FROM (
+        SELECT project, address, COALESCE(SUM(amount_usd), 0) AS vol_24h
+        FROM recent_trades
+        WHERE block_time >= now() - interval '24' hour
+        GROUP BY 1, 2
+    ) v
+    LEFT JOIN wash_pairs w
+        ON v.project = w.project
+    LEFT JOIN recent_trades rt
+        ON w.project = rt.project
+       AND w.trader = rt.trader
+       AND rt.block_time >= now() - interval '24' hour
+    GROUP BY v.project, v.address, v.vol_24h
+),
+
+diamond_hands AS (
+    SELECT
+        project,
+        address,
+        ROUND(100.0 * SUM(CASE
+            WHEN first_buy <= now() - interval '1' hour
+             AND (first_sell IS NULL OR first_sell > first_buy + interval '1' hour)
+            THEN 1 ELSE 0 END)
+            / NULLIF(SUM(CASE WHEN first_buy <= now() - interval '1' hour THEN 1 ELSE 0 END), 0)
+        , 1) AS survive_1h_pct,
+        ROUND(100.0 * SUM(CASE
+            WHEN first_buy <= now() - interval '1' day
+             AND (first_sell IS NULL OR first_sell > first_buy + interval '1' day)
+            THEN 1 ELSE 0 END)
+            / NULLIF(SUM(CASE WHEN first_buy <= now() - interval '1' day THEN 1 ELSE 0 END), 0)
+        , 1) AS survive_1d_pct,
+        ROUND(100.0 * SUM(CASE
+            WHEN first_buy <= now() - interval '3' day
+             AND (first_sell IS NULL OR first_sell > first_buy + interval '3' day)
+            THEN 1 ELSE 0 END)
+            / NULLIF(SUM(CASE WHEN first_buy <= now() - interval '3' day THEN 1 ELSE 0 END), 0)
+        , 1) AS survive_3d_pct,
+        ROUND(100.0 * SUM(CASE
+            WHEN first_buy <= now() - interval '7' day
+             AND (first_sell IS NULL OR first_sell > first_buy + interval '7' day)
+            THEN 1 ELSE 0 END)
+            / NULLIF(SUM(CASE WHEN first_buy <= now() - interval '7' day THEN 1 ELSE 0 END), 0)
+        , 1) AS survive_7d_pct,
+        COUNT(*) AS first_buyers_30d
+    FROM (
+        SELECT
+            fb.project,
+            fb.address,
+            fb.trader,
+            fb.first_buy,
+            MIN(rt.block_time) FILTER (
+                WHERE rt.side = 'sell' AND rt.block_time > fb.first_buy
+            ) AS first_sell
+        FROM (
+            SELECT project, address, trader, block_time AS first_buy
+            FROM buy_ranked
+            WHERE rn = 1
+        ) fb
+        LEFT JOIN recent_trades rt
+            ON fb.project = rt.project
+           AND fb.trader = rt.trader
+        GROUP BY fb.project, fb.address, fb.trader, fb.first_buy
+    ) c
+    GROUP BY 1, 2
 )
 
 SELECT
@@ -792,7 +1078,26 @@ SELECT
     CASE
         WHEN COALESCE(wp.whale_traders_7d, 0) = 0 THEN NULL
         ELSE ROUND(100.0 * wp.whale_traders_active_24h / wp.whale_traders_7d, 1)
-    END AS "Whale Persist %"
+    END AS "Whale Persist %",
+
+    -- Chunk G (suspected / estimated fingerprints — not proof of intent)
+    COALESCE(u.size_uniformity_pct, 0) AS "Size Uniformity %",
+    sc.size_cv AS "Size CV 24h",
+    wpr.vol_per_1pct_move AS "Vol per 1% Move $",
+    wpr.abs_move_pct AS "Abs Move % 24h",
+    imp.impact_pct_per_1k AS "Impact % per $1k",
+    COALESCE(ss.longest_buy_streak, 0) AS "Longest Buy Streak",
+    COALESCE(ss.longest_sell_streak, 0) AS "Longest Sell Streak",
+    ROUND(fspeed.median_flip_mins, 0) AS "Median Flip Mins",
+    ROUND(fspeed.median_flip_mins_new, 0) AS "Median Flip Mins New",
+    ROUND(fspeed.median_flip_mins_returning, 0) AS "Median Flip Mins Returning",
+    COALESCE(wr.wash_wallets_24h, 0) AS "Wash Wallets 24h",
+    wr.wash_vol_pct AS "Wash Vol % 24h",
+    dhnd.survive_1h_pct AS "Survive 1h %",
+    dhnd.survive_1d_pct AS "Survive 1d %",
+    dhnd.survive_3d_pct AS "Survive 3d %",
+    dhnd.survive_7d_pct AS "Survive 7d %",
+    COALESCE(dhnd.first_buyers_30d, 0) AS "1st Buyer Cohort 30d"
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project
@@ -814,4 +1119,20 @@ LEFT JOIN flippers_24h fl
     ON COALESCE(ap.project, fp.project) = fl.project
 LEFT JOIN whale_persist wp
     ON COALESCE(ap.project, fp.project) = wp.project
+LEFT JOIN uniformity_24h u
+    ON COALESCE(ap.project, fp.project) = u.project
+LEFT JOIN size_cv_24h sc
+    ON COALESCE(ap.project, fp.project) = sc.project
+LEFT JOIN wash_pressure_24h wpr
+    ON COALESCE(ap.project, fp.project) = wpr.project
+LEFT JOIN impact_24h imp
+    ON COALESCE(ap.project, fp.project) = imp.project
+LEFT JOIN streak_stats ss
+    ON COALESCE(ap.project, fp.project) = ss.project
+LEFT JOIN flip_speed fspeed
+    ON COALESCE(ap.project, fp.project) = fspeed.project
+LEFT JOIN wash_rate_24h wr
+    ON COALESCE(ap.project, fp.project) = wr.project
+LEFT JOIN diamond_hands dhnd
+    ON COALESCE(ap.project, fp.project) = dhnd.project
 
