@@ -1,6 +1,7 @@
 -- ClawdWire — paste into Dune query 8180604 (replace body)
--- CLAWD only: 24h txs + 24h dex.trades
--- Windows: 15m / 1h / 6h / 24h $ flow, buyers/sellers, max trade, buy-vol %, $1k+ prints
+-- CLAWD only: 24h txs + 30d dex.trades (one trade scan)
+-- Pulse $: 15m / 1h / 6h / 24h
+-- Chunk C: whale / hump / retail 24h + 7d (thresholds = 30d percentiles, same floors as main)
 
 WITH clawd AS (
     SELECT address, name FROM (
@@ -37,7 +38,7 @@ activity_pulse AS (
     GROUP BY 1, 2
 ),
 
--- 24h covers 15m / 1h / 6h / 24h dollar windows (still 1 token — no 90d / first-time)
+-- Single 30d CLAWD trade scan: short pulse windows + whale thresholds + 7d/24h tiers
 recent_trades AS (
     SELECT
         c.name    AS project,
@@ -54,90 +55,161 @@ recent_trades AS (
         ON dt.token_bought_address = c.address
         OR dt.token_sold_address   = c.address
     WHERE dt.blockchain = 'base'
-      AND dt.block_time >= now() - interval '24' hour
+      AND dt.block_time >= now() - interval '30' day
+),
+
+whale_thresholds AS (
+    SELECT
+        project,
+        GREATEST(approx_percentile(amount_usd, 0.9), 100)  AS whale_min_usd,
+        GREATEST(approx_percentile(amount_usd, 0.99), 1000) AS hump_min_usd
+    FROM recent_trades
+    GROUP BY 1
 ),
 
 flow_pulse AS (
     SELECT
-        project,
-        address,
+        rt.project,
+        rt.address,
 
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'buy'  AND block_time >= now() - interval '15' minute
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy'  AND rt.block_time >= now() - interval '15' minute
         ), 0) AS buy_usd_15m,
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'sell' AND block_time >= now() - interval '15' minute
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '15' minute
         ), 0) AS sell_usd_15m,
-        MAX(amount_usd) FILTER (
-            WHERE block_time >= now() - interval '15' minute
+        MAX(rt.amount_usd) FILTER (
+            WHERE rt.block_time >= now() - interval '15' minute
         ) AS max_trade_usd_15m,
 
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'buy'  AND block_time >= now() - interval '1' hour
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy'  AND rt.block_time >= now() - interval '1' hour
         ), 0) AS buy_usd_1h,
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'sell' AND block_time >= now() - interval '1' hour
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '1' hour
         ), 0) AS sell_usd_1h,
-        MAX(amount_usd) FILTER (
-            WHERE block_time >= now() - interval '1' hour
+        MAX(rt.amount_usd) FILTER (
+            WHERE rt.block_time >= now() - interval '1' hour
         ) AS max_trade_usd_1h,
-        COUNT(DISTINCT trader) FILTER (
-            WHERE side = 'buy'  AND block_time >= now() - interval '1' hour
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy'  AND rt.block_time >= now() - interval '1' hour
         ) AS buyers_1h,
-        COUNT(DISTINCT trader) FILTER (
-            WHERE side = 'sell' AND block_time >= now() - interval '1' hour
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '1' hour
         ) AS sellers_1h,
 
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'buy'  AND block_time >= now() - interval '6' hour
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy'  AND rt.block_time >= now() - interval '6' hour
         ), 0) AS buy_usd_6h,
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'sell' AND block_time >= now() - interval '6' hour
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '6' hour
         ), 0) AS sell_usd_6h,
-        MAX(amount_usd) FILTER (
-            WHERE block_time >= now() - interval '6' hour
+        MAX(rt.amount_usd) FILTER (
+            WHERE rt.block_time >= now() - interval '6' hour
         ) AS max_trade_usd_6h,
-        COUNT(DISTINCT trader) FILTER (
-            WHERE side = 'buy'  AND block_time >= now() - interval '6' hour
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy'  AND rt.block_time >= now() - interval '6' hour
         ) AS buyers_6h,
-        COUNT(DISTINCT trader) FILTER (
-            WHERE side = 'sell' AND block_time >= now() - interval '6' hour
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '6' hour
         ) AS sellers_6h,
 
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'buy'  AND block_time >= now() - interval '24' hour
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy'  AND rt.block_time >= now() - interval '24' hour
         ), 0) AS buy_usd_24h,
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'sell' AND block_time >= now() - interval '24' hour
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '24' hour
         ), 0) AS sell_usd_24h,
-        MAX(amount_usd) FILTER (
-            WHERE block_time >= now() - interval '24' hour
+        MAX(rt.amount_usd) FILTER (
+            WHERE rt.block_time >= now() - interval '24' hour
         ) AS max_trade_usd_24h,
-        COUNT(DISTINCT trader) FILTER (
-            WHERE side = 'buy'  AND block_time >= now() - interval '24' hour
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy'  AND rt.block_time >= now() - interval '24' hour
         ) AS buyers_24h,
-        COUNT(DISTINCT trader) FILTER (
-            WHERE side = 'sell' AND block_time >= now() - interval '24' hour
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '24' hour
         ) AS sellers_24h,
 
-        -- Fixed $1k "size" prints (cheap stand-in for whale tiers on a live pulse)
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'buy'  AND amount_usd >= 1000
-              AND block_time >= now() - interval '24' hour
-        ), 0) AS big_buy_usd_24h,
-        COALESCE(SUM(amount_usd) FILTER (
-            WHERE side = 'sell' AND amount_usd >= 1000
-              AND block_time >= now() - interval '24' hour
-        ), 0) AS big_sell_usd_24h,
-        COUNT(*) FILTER (
-            WHERE side = 'buy'  AND amount_usd >= 1000
-              AND block_time >= now() - interval '24' hour
-        ) AS big_buys_24h,
-        COUNT(*) FILTER (
-            WHERE side = 'sell' AND amount_usd >= 1000
-              AND block_time >= now() - interval '24' hour
-        ) AS big_sells_24h
-    FROM recent_trades
+        -- Whale / hump / retail (7d + 24h) — same tier logic as main dashboard
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ), 0) AS whale_buy_usd_7d,
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ), 0) AS whale_sell_usd_7d,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ) AS whale_buyers_7d,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ) AS whale_sellers_7d,
+
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ), 0) AS hump_buy_usd_7d,
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ), 0) AS hump_sell_usd_7d,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ) AS hump_buyers_7d,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '7' day
+        ) AS hump_sellers_7d,
+
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy' AND rt.block_time >= now() - interval '7' day
+        ), 0) AS total_buy_usd_7d,
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '7' day
+        ), 0) AS total_sell_usd_7d,
+
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ), 0) AS whale_buy_usd_24h,
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ), 0) AS whale_sell_usd_24h,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ) AS whale_buyers_24h,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.whale_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ) AS whale_sellers_24h,
+
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ), 0) AS hump_buy_usd_24h,
+        COALESCE(SUM(rt.amount_usd) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ), 0) AS hump_sell_usd_24h,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'buy' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ) AS hump_buyers_24h,
+        COUNT(DISTINCT rt.trader) FILTER (
+            WHERE rt.side = 'sell' AND rt.amount_usd >= wt.hump_min_usd
+              AND rt.block_time >= now() - interval '24' hour
+        ) AS hump_sellers_24h,
+
+        MAX(wt.whale_min_usd) AS whale_min_usd,
+        MAX(wt.hump_min_usd)  AS hump_min_usd
+    FROM recent_trades rt
+    INNER JOIN whale_thresholds wt ON wt.project = rt.project
     GROUP BY 1, 2
 )
 
@@ -190,11 +262,57 @@ SELECT
         WHEN COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0) = 0 THEN NULL
         ELSE ROUND(100.0 * fp.buy_usd_24h / (fp.buy_usd_24h + fp.sell_usd_24h), 1)
     END AS "Buy Vol % 24h",
-    ROUND(COALESCE(fp.big_buy_usd_24h, 0), 2)  AS "Big Buy USD 24h",
-    ROUND(COALESCE(fp.big_sell_usd_24h, 0), 2) AS "Big Sell USD 24h",
-    ROUND(COALESCE(fp.big_buy_usd_24h, 0) - COALESCE(fp.big_sell_usd_24h, 0), 2) AS "Big Net USD 24h",
-    COALESCE(fp.big_buys_24h, 0)  AS "Big Buys 24h",
-    COALESCE(fp.big_sells_24h, 0) AS "Big Sells 24h"
+
+    ROUND(COALESCE(fp.whale_min_usd, 0), 2) AS "Whale Min $",
+    ROUND(COALESCE(fp.hump_min_usd, 0), 2)  AS "Hump Min $",
+
+    ROUND(COALESCE(fp.whale_buy_usd_24h, 0) - COALESCE(fp.whale_sell_usd_24h, 0), 2) AS "Whale Net 24h",
+    CASE
+        WHEN COALESCE(fp.whale_buy_usd_24h, 0) + COALESCE(fp.whale_sell_usd_24h, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * fp.whale_buy_usd_24h / (fp.whale_buy_usd_24h + fp.whale_sell_usd_24h), 1)
+    END AS "Accum % 24h",
+    COALESCE(fp.whale_buyers_24h, 0)  AS "Whale Buyers 24h",
+    COALESCE(fp.whale_sellers_24h, 0) AS "Whale Sellers 24h",
+    ROUND(COALESCE(fp.hump_buy_usd_24h, 0) - COALESCE(fp.hump_sell_usd_24h, 0), 2) AS "Hump Net 24h",
+    COALESCE(fp.hump_buyers_24h, 0)  AS "Hump Buyers 24h",
+    COALESCE(fp.hump_sellers_24h, 0) AS "Hump Sellers 24h",
+    ROUND(
+        (COALESCE(fp.buy_usd_24h, 0) - COALESCE(fp.sell_usd_24h, 0))
+        - (COALESCE(fp.whale_buy_usd_24h, 0) - COALESCE(fp.whale_sell_usd_24h, 0))
+    , 2) AS "Retail Net 24h",
+    CASE
+        WHEN COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0) = 0 THEN NULL
+        ELSE ROUND(
+            100.0 * (COALESCE(fp.whale_buy_usd_24h, 0) + COALESCE(fp.whale_sell_usd_24h, 0))
+            / (fp.buy_usd_24h + fp.sell_usd_24h)
+        , 1)
+    END AS "Whale Vol % 24h",
+
+    ROUND(COALESCE(fp.whale_buy_usd_7d, 0) - COALESCE(fp.whale_sell_usd_7d, 0), 2) AS "Whale Net 7d",
+    CASE
+        WHEN COALESCE(fp.whale_buy_usd_7d, 0) + COALESCE(fp.whale_sell_usd_7d, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * fp.whale_buy_usd_7d / (fp.whale_buy_usd_7d + fp.whale_sell_usd_7d), 1)
+    END AS "Accum %",
+    COALESCE(fp.whale_buyers_7d, 0)  AS "Whale Buyers 7d",
+    COALESCE(fp.whale_sellers_7d, 0) AS "Whale Sellers 7d",
+    ROUND(COALESCE(fp.hump_buy_usd_7d, 0) - COALESCE(fp.hump_sell_usd_7d, 0), 2) AS "Hump Net 7d",
+    COALESCE(fp.hump_buyers_7d, 0)  AS "Hump Buyers 7d",
+    COALESCE(fp.hump_sellers_7d, 0) AS "Hump Sellers 7d",
+    ROUND(
+        (COALESCE(fp.total_buy_usd_7d, 0) - COALESCE(fp.total_sell_usd_7d, 0))
+        - (COALESCE(fp.whale_buy_usd_7d, 0) - COALESCE(fp.whale_sell_usd_7d, 0))
+    , 2) AS "Retail Net 7d",
+    CASE
+        WHEN COALESCE(fp.total_buy_usd_7d, 0) + COALESCE(fp.total_sell_usd_7d, 0) = 0 THEN NULL
+        ELSE ROUND(
+            100.0 * (COALESCE(fp.whale_buy_usd_7d, 0) + COALESCE(fp.whale_sell_usd_7d, 0))
+            / (fp.total_buy_usd_7d + fp.total_sell_usd_7d)
+        , 1)
+    END AS "Whale Vol %",
+    CASE
+        WHEN COALESCE(fp.total_buy_usd_7d, 0) + COALESCE(fp.total_sell_usd_7d, 0) = 0 THEN NULL
+        ELSE ROUND(100.0 * fp.total_buy_usd_7d / (fp.total_buy_usd_7d + fp.total_sell_usd_7d), 1)
+    END AS "Buy Vol % 7d"
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project;

@@ -468,12 +468,9 @@ export default function ClawdWirePanel({
             <Stat label="Risk %" value={fmtPct(clawdRow["Risk %"])} />
             <Stat label="Price 24h" value={fmtPct(clawdRow.priceChange7d)} color={netColor(clawdRow.priceChange7d)} />
           </div>
-          {(clawdRow.signalNote || clawdRow["Whale Net 7d"] != null) && (
+          {clawdRow.signalNote && (
             <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.45 }}>
-              {clawdRow.signalNote ? <span>Signal note: {clawdRow.signalNote}. </span> : null}
-              {clawdRow["Whale Net 7d"] != null && (
-                <span>Whale net 7d {fmtUsd(clawdRow["Whale Net 7d"])} · Retail net 7d {fmtUsd(clawdRow["Retail Net 7d"])}</span>
-              )}
+              Signal note: {clawdRow.signalNote}
             </div>
           )}
         </section>
@@ -525,7 +522,7 @@ export default function ClawdWirePanel({
             <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 6h"])} />
           </WindowBlock>
 
-          <WindowBlock title="24 hours" subtitle="Full-day money + activity (Chunk B)">
+          <WindowBlock title="24 hours" subtitle="Full-day money + activity">
             <Stat label="Wallets" value={fmtInt(row["Wallets 24h"])} />
             <Stat label="Txs" value={fmtInt(row["Txs 24h"])} />
             <Stat label="Buy $" value={fmtUsd(row["Buy USD 24h"])} color="var(--read-teal-text)" />
@@ -536,12 +533,55 @@ export default function ClawdWirePanel({
             <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 24h"])} />
           </WindowBlock>
 
-          <WindowBlock title="Size prints ≥ $1k (24h)" subtitle="Fixed floor — live stand-in before full whale tiers">
-            <Stat label="Big buy $" value={fmtUsd(row["Big Buy USD 24h"])} color="var(--read-teal-text)" />
-            <Stat label="Big sell $" value={fmtUsd(row["Big Sell USD 24h"])} color="var(--read-coral-text)" />
-            <Stat label="Big net $" value={fmtUsd(row["Big Net USD 24h"])} color={netColor(row["Big Net USD 24h"])} />
-            <Stat label="Big buys #" value={fmtInt(row["Big Buys 24h"])} />
-            <Stat label="Big sells #" value={fmtInt(row["Big Sells 24h"])} />
+          <WindowBlock
+            title="Whales 24h"
+            subtitle={`Live tiers · whale ≥ ${fmtUsd(row["Whale Min $"])} · hump ≥ ${fmtUsd(row["Hump Min $"])} (30d CLAWD percentiles)`}
+          >
+            <Stat label="Whale net $" value={fmtUsd(row["Whale Net 24h"])} color={netColor(row["Whale Net 24h"])} large />
+            <Stat label="Hump net $" value={fmtUsd(row["Hump Net 24h"])} color={netColor(row["Hump Net 24h"])} large />
+            <Stat label="Retail net $" value={fmtUsd(row["Retail Net 24h"])} color={netColor(row["Retail Net 24h"])} large />
+            <Stat label="Accum %" value={fmtPct(row["Accum % 24h"])} />
+            <Stat label="Whale vol %" value={fmtPct(row["Whale Vol % 24h"])} />
+            <Stat label="Whale buyers" value={fmtInt(row["Whale Buyers 24h"])} />
+            <Stat label="Whale sellers" value={fmtInt(row["Whale Sellers 24h"])} />
+            <Stat label="Hump buyers" value={fmtInt(row["Hump Buyers 24h"])} />
+            <Stat label="Hump sellers" value={fmtInt(row["Hump Sellers 24h"])} />
+            <Stat
+              label="W/R div (bps)"
+              value={(() => {
+                const mcap = num(row?.marketCapUsd ?? clawdRow?.marketCapUsd);
+                const w = num(row["Whale Net 24h"]);
+                const r = num(row["Retail Net 24h"]);
+                if (mcap == null || mcap <= 0 || w == null || r == null) return "—";
+                return ((w - r) / mcap * 10000).toFixed(1);
+              })()}
+            />
+          </WindowBlock>
+
+          <WindowBlock
+            title="Whales 7d"
+            subtitle="Same tier logic as the CLAWD tab / main dashboard"
+          >
+            <Stat label="Whale net $" value={fmtUsd(row["Whale Net 7d"])} color={netColor(row["Whale Net 7d"])} large />
+            <Stat label="Hump net $" value={fmtUsd(row["Hump Net 7d"])} color={netColor(row["Hump Net 7d"])} large />
+            <Stat label="Retail net $" value={fmtUsd(row["Retail Net 7d"])} color={netColor(row["Retail Net 7d"])} large />
+            <Stat label="Accum %" value={fmtPct(row["Accum %"])} />
+            <Stat label="Whale vol %" value={fmtPct(row["Whale Vol %"])} />
+            <Stat label="Buy vol % 7d" value={fmtPct(row["Buy Vol % 7d"])} />
+            <Stat label="Whale buyers" value={fmtInt(row["Whale Buyers 7d"])} />
+            <Stat label="Whale sellers" value={fmtInt(row["Whale Sellers 7d"])} />
+            <Stat label="Hump buyers" value={fmtInt(row["Hump Buyers 7d"])} />
+            <Stat label="Hump sellers" value={fmtInt(row["Hump Sellers 7d"])} />
+            <Stat
+              label="W/R div (bps)"
+              value={(() => {
+                const mcap = num(row?.marketCapUsd ?? clawdRow?.marketCapUsd);
+                const w = num(row["Whale Net 7d"]);
+                const r = num(row["Retail Net 7d"]);
+                if (mcap == null || mcap <= 0 || w == null || r == null) return "—";
+                return ((w - r) / mcap * 10000).toFixed(1);
+              })()}
+            />
           </WindowBlock>
         </>
       )}
