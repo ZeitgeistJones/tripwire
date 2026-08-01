@@ -802,16 +802,23 @@ export default function ClawdWirePanel({
           </WindowBlock>
 
           <WindowBlock
-            title="Fingerprints"
-            subtitle="Suspected patterns from trade shapes — not proof of intent or wash trading"
+            title="Trade-shape signals"
+            subtitle="Research heuristics from trade sizes/timing — not accusations, not proof of intent"
           >
             <Stat label="Size uniformity %" value={fmtPct(row["Size Uniformity %"])} large />
             <Stat label="Size CV 24h" value={fmtRatio(row["Size CV 24h"])} />
             <Stat label="Vol per 1% move $" value={fmtUsd(row["Vol per 1% Move $"])} large />
             <Stat label="Abs move % 24h" value={fmtPct(row["Abs Move % 24h"])} />
             <Stat label="Impact % / $1k" value={fmtPct(row["Impact % per $1k"])} />
-            <Stat label="Wash vol % 24h" value={fmtPct(row["Wash Vol % 24h"])} large />
-            <Stat label="Wash wallets 24h" value={fmtInt(row["Wash Wallets 24h"])} />
+            <Stat
+              label="Round-trip vol % 24h"
+              value={fmtPct(row["Round-trip Vol % 24h"] ?? row["Wash Vol % 24h"])}
+              large
+            />
+            <Stat
+              label="Round-trip wallets 24h"
+              value={fmtInt(row["Round-trip Wallets 24h"] ?? row["Wash Wallets 24h"])}
+            />
             <Stat label="Longest buy streak" value={fmtInt(row["Longest Buy Streak"])} />
             <Stat label="Longest sell streak" value={fmtInt(row["Longest Sell Streak"])} />
           </WindowBlock>

@@ -6,6 +6,7 @@ import {
   SHARE_PROMPT_KINDS,
   SHARE_PROMPT_WINDOWS,
   buildShareCardPrompt,
+  buildClawdWireCardPrompt,
   sharePromptTokenOptions,
 } from "@/lib/shareCardPrompts";
 import { moversHighlightForToken } from "@/lib/moversRank";
@@ -113,6 +114,8 @@ export default function AdminPanel({
   const [promptWindow, setPromptWindow] = useState("7d");
   const [promptKind, setPromptKind] = useState("whale");
   const [promptCopied, setPromptCopied] = useState(false);
+  const [clawdWirePromptCopied, setClawdWirePromptCopied] = useState(false);
+  const [clawdWirePromptBusy, setClawdWirePromptBusy] = useState(false);
   const [textCopied, setTextCopied] = useState(null);
   const [behHistory, setBehHistory] = useState([]);
   const [rows, setRows] = useState(initialRows);
@@ -367,6 +370,56 @@ export default function AdminPanel({
     }
   };
 
+  const copyClawdWirePrompt = async () => {
+    setClawdWirePromptBusy(true);
+    setStatus(null);
+    try {
+      const [wireRes, snapRes] = await Promise.all([
+        fetch("/api/admin/clawdwire-latest", {
+          headers: { "x-admin-secret": secret },
+          cache: "no-store",
+        }),
+        fetch("/api/admin/dashboard-snapshot?read=1", {
+          headers: { "x-admin-secret": secret },
+          cache: "no-store",
+        }),
+      ]);
+      if (wireRes.status === 401 || snapRes.status === 401) {
+        lock();
+        return;
+      }
+      const wireJson = await wireRes.json().catch(() => ({}));
+      if (!wireRes.ok) throw new Error(wireJson.error || "ClawdWire latest failed");
+      const wireRow = Array.isArray(wireJson.rows) ? wireJson.rows[0] : null;
+      if (!wireRow) throw new Error("No ClawdWire row yet — run query 8180604 first");
+
+      const snapJson = await snapRes.json().catch(() => ({}));
+      const nextRows = Array.isArray(snapJson.rows) ? snapJson.rows : rows;
+      if (Array.isArray(snapJson.rows)) setRows(snapJson.rows);
+      const dashRow =
+        nextRows.find((r) => (r.Project || "").toUpperCase() === "CLAWD") ||
+        nextRows.find(
+          (r) =>
+            (r.Address || "").toLowerCase() ===
+            "0x9f86db9fc6f7c9408e8fda3ff8ce4e78ac7a6b07"
+        ) ||
+        null;
+
+      const text = buildClawdWireCardPrompt(wireRow, dashRow, {
+        clawdWireLastRunAt: wireJson.lastRunAt || null,
+        scoresLastUpdated: snapJson.lastUpdated ?? scoresLastUpdated,
+      });
+      if (!text) throw new Error("Prompt empty");
+      await navigator.clipboard.writeText(text);
+      setClawdWirePromptCopied(true);
+      setTimeout(() => setClawdWirePromptCopied(false), 2000);
+    } catch (e) {
+      setStatus(String(e.message || "ClawdWire prompt copy failed"));
+    } finally {
+      setClawdWirePromptBusy(false);
+    }
+  };
+
   const copyText = async (text, label) => {
     if (!text) return;
     try {
@@ -487,6 +540,28 @@ export default function AdminPanel({
               </button>
             </div>
           </div>
+
+          <section style={cardStyle}>
+            <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              ClawdWire pulse card
+            </h2>
+            <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+              CLAWD-only live pulse for social images — pulls latest Dune result for query 8180604 (Result Read, no Trip).
+              Soft language only (no wash / manipulation wording). Paste into ChatGPT / Claude / Gemini (image-capable).
+            </p>
+            <button
+              type="button"
+              onClick={copyClawdWirePrompt}
+              disabled={clawdWirePromptBusy}
+              style={{ ...primaryBtn, alignSelf: "flex-start", opacity: clawdWirePromptBusy ? 0.6 : 1 }}
+            >
+              {clawdWirePromptBusy
+                ? "Loading…"
+                : clawdWirePromptCopied
+                  ? "✓ Copied"
+                  : "Copy ClawdWire prompt"}
+            </button>
+          </section>
 
           <section style={cardStyle}>
             <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>

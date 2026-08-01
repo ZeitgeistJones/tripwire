@@ -5,7 +5,7 @@
 -- Chunk D: stickiness (new/returning traders, 1st buy/sell, vol)
 -- Chunk E: wallet lens (per-wallet $ + txs, top net, big prints) + intensity
 -- Chunk F: WoW growth + retention + distribution / heat / flippers
--- Chunk G: uniformity, wash pressure, streaks, flip speed, wash rate, diamond hands
+-- Chunk G: uniformity, vol/move, streaks, flip speed, round-trip rate, diamond hands
 -- Chunk H: timing tape — peak-price hour, nets around peak, worst hour, hourly net strip
 -- Chunk H2: who bought/sold in run-up (hour before+peak) and dump (worst net hour)
 
@@ -606,7 +606,7 @@ whale_persist AS (
     GROUP BY 1, 2
 ),
 
--- Chunk G: bot/wash fingerprints + conviction storytelling
+-- Chunk G: trade-shape signals + conviction storytelling (research heuristics, not accusations)
 uniformity_24h AS (
     SELECT
         project,
@@ -809,11 +809,11 @@ wash_rate_24h AS (
     SELECT
         v.project,
         v.address,
-        COALESCE(COUNT(DISTINCT w.trader), 0) AS wash_wallets_24h,
-        ROUND(COALESCE(SUM(rt.amount_usd), 0), 2) AS wash_touched_vol,
+        COALESCE(COUNT(DISTINCT w.trader), 0) AS roundtrip_wallets_24h,
+        ROUND(COALESCE(SUM(rt.amount_usd), 0), 2) AS roundtrip_touched_vol,
         ROUND(
             100.0 * COALESCE(SUM(rt.amount_usd), 0) / NULLIF(v.vol_24h, 0)
-        , 1) AS wash_vol_pct
+        , 1) AS roundtrip_vol_pct
     FROM (
         SELECT project, address, COALESCE(SUM(amount_usd), 0) AS vol_24h
         FROM recent_trades
@@ -1375,8 +1375,8 @@ SELECT
     ROUND(fspeed.median_flip_mins, 0) AS "Median Flip Mins",
     ROUND(fspeed.median_flip_mins_new, 0) AS "Median Flip Mins New",
     ROUND(fspeed.median_flip_mins_returning, 0) AS "Median Flip Mins Returning",
-    COALESCE(wr.wash_wallets_24h, 0) AS "Wash Wallets 24h",
-    wr.wash_vol_pct AS "Wash Vol % 24h",
+    COALESCE(wr.roundtrip_wallets_24h, 0) AS "Round-trip Wallets 24h",
+    wr.roundtrip_vol_pct AS "Round-trip Vol % 24h",
     dhnd.survive_1h_pct AS "Survive 1h %",
     dhnd.survive_1d_pct AS "Survive 1d %",
     dhnd.survive_3d_pct AS "Survive 3d %",
