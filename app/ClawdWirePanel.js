@@ -623,7 +623,7 @@ export default function ClawdWirePanel({
           </div>
           <p style={{ margin: "0 0 28px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.45 }}>
             Net $ = buy dollars − sell dollars (flow). Red net means more sell $ than buy $ — not “more losers.”
-            Winners/losers use closed matched-token PnL below (separate meter).
+            Estimated winners/losers use closed matched-token PnL below (separate meter, clear formula).
           </p>
 
           <WindowBlock title="15 minutes" subtitle="Immediate heat">
@@ -927,8 +927,8 @@ export default function ClawdWirePanel({
           />
 
           <WindowBlock
-            title="Closed PnL (matched VWAP)"
-            subtitle="Data formula: matched tokens = min(buy amt, sell amt) in-window · PnL = matched × (sell VWAP − buy VWAP) from DEX trade $ and token amounts. Only wallets that both bought and sold in the window. Not FIFO / not tax lots / not the same as net flow."
+            title="Closed PnL (estimated)"
+            subtitle="Estimated from clear trade numbers: matched tokens = min(buy amt, sell amt) in-window · PnL = matched × (sell VWAP − buy VWAP) using DEX trade $ and token amounts. Only wallets that both bought and sold in the window. Not FIFO / tax lots — and not the same as net flow."
           >
             <Stat label="Winner % 24h" value={fmtPct(row["Winner % 24h"])} large />
             <Stat label="Winners 24h" value={fmtInt(row["PnL Winners 24h"])} color="var(--read-teal-text)" />
@@ -945,12 +945,12 @@ export default function ClawdWirePanel({
 
           <WalletLens
             title="Top closed winners 24h"
-            subtitle="Highest matched VWAP PnL (bought + sold in 24h) — shows wallet · PnL · buyVWAP · sellVWAP"
+            subtitle="Highest estimated matched VWAP PnL (bought + sold in 24h) — wallet · PnL · buyVWAP · sellVWAP"
             raw={row["Top Closed Winners 24h"]}
           />
           <WalletLens
             title="Top closed losers 24h"
-            subtitle="Lowest matched VWAP PnL (bought + sold in 24h)"
+            subtitle="Lowest estimated matched VWAP PnL (bought + sold in 24h)"
             raw={row["Top Closed Losers 24h"]}
           />
         </>
