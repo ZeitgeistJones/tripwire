@@ -25,6 +25,7 @@ const DASH_TABS = [
   "Discover",
   "Watchlist",
   "CLAWD",
+  "ClawdWire",
   "The Wire",
   "About",
 ];

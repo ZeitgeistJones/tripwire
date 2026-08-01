@@ -7,8 +7,10 @@ import AboutPanel from "./AboutPanel";
 import ClawdPanel from "./ClawdPanel";
 import WatchlistPanel from "./WatchlistPanel";
 import TripwirePanel from "./TripwirePanel";
+import ClawdWirePanel from "./ClawdWirePanel";
 import StatusBanner from "./StatusBanner";
 import WireBanner from "./WireBanner";
+import ClawdWireBanner from "./ClawdWireBanner";
 import DefSheet from "./DefSheet";
 import { DashboardMobileNav } from "./MobileTabNav";
 import { isWireTester } from "@/lib/wireAccess";
@@ -371,7 +373,7 @@ function SegmentedControl({ options, value, onChange, ariaLabel }) {
   );
 }
 
-const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Growth", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "The Wire", "About"];
+const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Growth", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "ClawdWire", "The Wire", "About"];
 
 const GATE_ADDRESS = "0xc22B7b983EC81523c969753c2385106835E8CfCE";
 const GATE_ABI = [
@@ -903,7 +905,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
       const tab = new URLSearchParams(window.location.search).get("tab");
       if (tab && TAB_ORDER.includes(tab)) {
         setActiveTab(tab);
-        if (!["The Wire", "About", "CLAWD", "Watchlist"].includes(tab)) {
+        if (!["The Wire", "ClawdWire", "About", "CLAWD", "Watchlist"].includes(tab)) {
           const filtered = filterColumnsForView(TABS[tab] || [], {
             activeTab: tab,
             period: loadPeriod(),
@@ -1001,11 +1003,12 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   }
 
   const isTripwire = activeTab === "The Wire";
+  const isClawdWire = activeTab === "ClawdWire";
   const isAbout    = activeTab === "About";
   const isClawd    = activeTab === "CLAWD";
   const isDiscover = activeTab === "Discover";
   const isWatchlist = activeTab === "Watchlist";
-  const isSpecialTab = isTripwire || isAbout || isClawd || isWatchlist;
+  const isSpecialTab = isTripwire || isClawdWire || isAbout || isClawd || isWatchlist;
   const rawColumns = isSpecialTab ? [] : (TABS[activeTab] || []);
   const columns = filterColumnsForView(rawColumns, { activeTab, period, whalesView });
   const windowLegend = tabWindowLegend(columns);
@@ -1102,7 +1105,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
 
   function handleTabChange(tab) {
     setActiveTab(tab);
-    if (["The Wire", "About", "CLAWD", "Watchlist"].includes(tab)) return;
+    if (["The Wire", "ClawdWire", "About", "CLAWD", "Watchlist"].includes(tab)) return;
     const filtered = filterColumnsForView(TABS[tab] || [], {
       activeTab: tab,
       period,
@@ -1489,7 +1492,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     </div>
   );
 
-  const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "The Wire"];
+  const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "ClawdWire", "The Wire"];
   // About is rendered after core tabs (separate button below)
   const hybridClass = showHybrid
     ? (tableMode === "full" ? "tw-hybrid-full" : "tw-hybrid-summary")
@@ -1499,6 +1502,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     <div ref={rootRef}>
       {isTripwire ? (
         <WireBanner />
+      ) : isClawdWire ? (
+        <ClawdWireBanner />
       ) : (
         <StatusBanner
           lastUpdated={lastUpdated}
@@ -1737,6 +1742,70 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
               </p>
               <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)", maxWidth: "440px", marginLeft: "auto", marginRight: "auto" }}>
                 Team is testing a rebuild. Public access is paused — check back soon.
+              </p>
+            </div>
+          )
+        )}
+        {isClawdWire && (
+          wireTester ? (
+            <div>
+              <div style={{
+                marginBottom: "16px",
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                background: "var(--bg-subtle)",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px",
+                alignItems: "center",
+              }}>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "var(--read-amber-text)",
+                  background: "var(--read-amber-bg)",
+                  padding: "4px 10px",
+                  borderRadius: "999px",
+                }}>
+                  Lab
+                </span>
+                <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+                  CLAWD-only credit lab — tester wallet. Set CLAWD_WIRE_QUERY_ID after creating the Dune query.
+                </span>
+              </div>
+              <ClawdWirePanel hasAccess={true} walletAddress={address} />
+            </div>
+          ) : (
+            <div style={{
+              marginTop: "24px",
+              padding: "40px 24px",
+              border: "1px solid var(--border)",
+              borderRadius: "10px",
+              background: "var(--bg-subtle)",
+              textAlign: "center",
+            }}>
+              <div style={{
+                display: "inline-block",
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: "var(--read-amber-text)",
+                background: "var(--read-amber-bg)",
+                padding: "4px 10px",
+                borderRadius: "999px",
+                marginBottom: "12px",
+              }}>
+                Lab
+              </div>
+              <p style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--text)" }}>
+                ClawdWire is tester-only
+              </p>
+              <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)", maxWidth: "440px", marginLeft: "auto", marginRight: "auto" }}>
+                One-token Wire lab while we measure credit cost of flow metrics.
               </p>
             </div>
           )
