@@ -378,6 +378,11 @@ export default function ClawdWirePanel({
   }, [syncHint]);
 
   async function runClawdWire() {
+    if (!walletAddress) {
+      setStatus("error");
+      setErrorMsg("Connect your Tripwire wallet first.");
+      return;
+    }
     executingRef.current = true;
     setStatus("starting");
     setErrorMsg("");
@@ -390,9 +395,9 @@ export default function ClawdWirePanel({
         method: "POST",
         headers: wireHeaders(),
       });
-      const startJson = await startRes.json();
+      const startJson = await startRes.json().catch(() => ({}));
       if (!startRes.ok || !startJson.executionId) {
-        throw new Error(startJson.error || "Failed to start ClawdWire run");
+        throw new Error(startJson.error || `Failed to start ClawdWire run (${startRes.status})`);
       }
 
       setStatus("running");
@@ -445,7 +450,7 @@ export default function ClawdWirePanel({
   if (!hasAccess) {
     return (
       <div style={{ paddingTop: "24px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
-        Tester wallet only while under construction.
+        Connect a Tripwire-eligible wallet to use ClawdWire.
       </div>
     );
   }

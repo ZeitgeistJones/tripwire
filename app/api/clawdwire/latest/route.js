@@ -1,4 +1,4 @@
-import { isWireTester } from "@/lib/wireAccess";
+import { canUseClawdWire } from "@/lib/gateAccess";
 import { fetchClawdWireLatestFromDune } from "@/lib/clawdWireFetch";
 
 /**
@@ -7,9 +7,9 @@ import { fetchClawdWireLatestFromDune } from "@/lib/clawdWireFetch";
  */
 export async function GET(request) {
   const wallet = request.headers.get("x-wallet-address") || "";
-  if (!isWireTester(wallet)) {
+  if (!(await canUseClawdWire(wallet))) {
     return Response.json(
-      { error: "ClawdWire is under construction — tester access only." },
+      { error: "Connect a Tripwire-eligible wallet (CLAWD holder access) to use ClawdWire." },
       { status: 403 }
     );
   }

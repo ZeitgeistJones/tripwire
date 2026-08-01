@@ -1751,10 +1751,10 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
           )
         )}
         {isClawdWire && (
-          wireTester ? (
+          (hasAccess || wireTester) ? (
             <div>
               <ClawdWirePanel
-                hasAccess={true}
+                hasAccess={hasAccess || wireTester}
                 walletAddress={address}
                 onMeta={setClawdWireMeta}
                 clawdRow={clawdRow}
@@ -1785,13 +1785,13 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
                 borderRadius: "999px",
                 marginBottom: "12px",
               }}>
-                Lab
+                Holders
               </div>
               <p style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--text)" }}>
-                ClawdWire is tester-only
+                ClawdWire needs Tripwire access
               </p>
               <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)", maxWidth: "440px", marginLeft: "auto", marginRight: "auto" }}>
-                One-token Wire lab while we measure credit cost of flow metrics.
+                Connect the same CLAWD-holder wallet that unlocks Tripwire scores to trip or sync the CLAWD pulse.
               </p>
             </div>
           )
