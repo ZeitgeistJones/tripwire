@@ -897,7 +897,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   const [watchlistColumnConfig, setWatchlistColumnConfig] = useState(null);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
   const [compact, setCompact] = useState(() => loadCompact());
-  const [compactPrefSet, setCompactPrefSet] = useState(true);
+  // false until mount if no stored choice — lets ClawdWire default to comfort without a wrong first paint
+  const [compactPrefSet, setCompactPrefSet] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return hasCompactPreference();
+  });
   const [tableMode, setTableMode] = useState("summary"); // mobile hybrid: summary | full
   const [defSheet, setDefSheet] = useState(null); // { title, body, windowLabel }
   const [rankExpand, setRankExpand] = useState(null); // { rowKey, colKey }
@@ -1593,6 +1597,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         </p>
       )}
 
+      {/* ClawdWire is a cockpit — no table tip / Compact chrome (density defaults to comfort). */}
+      {!isClawdWire && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
         <p className="tw-tip-desktop" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
           Tip: press <strong>[</strong> or <strong>]</strong> to switch tabs. Use <strong>←</strong> <strong>→</strong> to scroll wide tables. Hover a column header for its definition. Hover any number to see its rank among peers. Click ⭐ to watch, 📍 to pin to top.
@@ -1672,6 +1678,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
           </button>
         </div>
       </div>
+      )}
 
       {!isSpecialTab && !isDiscover && (
         <>
