@@ -42,9 +42,107 @@ function fmtRatio(v) {
   return n.toFixed(2);
 }
 
-function fmtText(v) {
-  if (v == null || v === "") return "—";
-  return String(v);
+function shortAddr(addr) {
+  if (!addr || addr.length < 12) return addr || "—";
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function parseWalletLines(raw) {
+  if (raw == null || raw === "") return [];
+  return String(raw)
+    .split(" | ")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split(" · ").map((p) => p.trim());
+      const wallet = parts.find((p) => /^0x[a-fA-F0-9]{40}$/.test(p)) || null;
+      const txPart = parts.find((p) => /^tx0x[a-fA-F0-9]+$/i.test(p));
+      const tx = txPart ? txPart.replace(/^tx/i, "") : null;
+      const rest = parts.filter((p) => p !== wallet && p !== txPart);
+      return { wallet, tx, detail: rest.join(" · ") || line };
+    });
+}
+
+function WalletLens({ title, subtitle, raw }) {
+  const lines = parseWalletLines(raw);
+  return (
+    <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
+      <div style={{ marginBottom: "10px" }}>
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "15px",
+            fontWeight: 700,
+            color: "var(--text)",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {title}
+        </h3>
+        {subtitle && (
+          <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {lines.length === 0 ? (
+        <Stat label="—" value="—" />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {lines.map((line, i) => (
+            <div
+              key={`${title}-${i}`}
+              style={{
+                background: "var(--bg-subtle)",
+                border: "1px solid var(--border)",
+                borderRadius: "10px",
+                padding: "12px 14px",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px 14px",
+                alignItems: "baseline",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-faint)", minWidth: 18 }}>
+                {i + 1}
+              </span>
+              {line.wallet ? (
+                <a
+                  href={`https://basescan.org/address/${line.wallet}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "var(--text)",
+                    textDecoration: "none",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  }}
+                  title={line.wallet}
+                >
+                  {shortAddr(line.wallet)}
+                </a>
+              ) : null}
+              <span style={{ fontSize: "13px", color: "var(--text-muted)", flex: "1 1 160px" }}>
+                {line.detail}
+              </span>
+              {line.tx ? (
+                <a
+                  href={`https://basescan.org/tx/${line.tx}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: "12px", color: "var(--text-faint)", textDecoration: "underline" }}
+                >
+                  tx {shortAddr(line.tx)}
+                </a>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function netColor(v) {
@@ -616,32 +714,40 @@ export default function ClawdWirePanel({
             <Stat label="Sellers 7d" value={fmtInt(row["Sellers 7d"])} />
             <Stat label="1st buyers 24h" value={fmtInt(row["1st Buyers 24h"])} />
             <Stat label="1st buyers 7d" value={fmtInt(row["1st Buyers 7d"])} />
+            <Stat label="1st buyers 30d" value={fmtInt(row["1st Buyers 30d"])} />
             <Stat label="1st sellers 24h" value={fmtInt(row["1st Sellers 24h"])} />
             <Stat label="1st sellers 7d" value={fmtInt(row["1st Sellers 7d"])} />
+            <Stat label="1st sellers 30d" value={fmtInt(row["1st Sellers 30d"])} />
+            <Stat label="Buyers 30d" value={fmtInt(row["Buyers 30d"])} />
+            <Stat label="Sellers 30d" value={fmtInt(row["Sellers 30d"])} />
+            <Stat label="Vol/tx 24h" value={fmtUsd(row["Vol/Tx 24h"])} />
+            <Stat label="Vol/tx 7d" value={fmtUsd(row["Vol/Tx 7d"])} />
+            <Stat label="Vol/tx 30d" value={fmtUsd(row["Vol/Tx 30d"])} />
+            <Stat label="Txs/trader 24h" value={fmtRatio(row["Txs/Trader 24h"])} />
+            <Stat label="Txs/trader 7d" value={fmtRatio(row["Txs/Trader 7d"])} />
+            <Stat label="Txs/trader 30d" value={fmtRatio(row["Txs/Trader 30d"])} />
           </WindowBlock>
 
-          <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
-            <div style={{ marginBottom: "10px" }}>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "15px",
-                  fontWeight: 700,
-                  color: "var(--text)",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Top takers 24h
-              </h3>
-              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
-                Top 3 wallets by buy/sell USD (truncated addresses)
-              </p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Stat label="Top buyers" value={fmtText(row["Top Buyers 24h"])} />
-              <Stat label="Top sellers" value={fmtText(row["Top Sellers 24h"])} />
-            </div>
-          </section>
+          <WalletLens
+            title="Top buyers 24h"
+            subtitle="Wallet · buy $ · buy txs · net · biggest trade tx (Basescan links)"
+            raw={row["Top Buyers 24h"]}
+          />
+          <WalletLens
+            title="Top sellers 24h"
+            subtitle="Wallet · sell $ · sell txs · net · biggest trade tx"
+            raw={row["Top Sellers 24h"]}
+          />
+          <WalletLens
+            title="Top net accumulators 24h"
+            subtitle="Wallets with the largest buy−sell net (includes total txs)"
+            raw={row["Top Net Accumulators 24h"]}
+          />
+          <WalletLens
+            title="Biggest prints 24h"
+            subtitle="Largest single DEX trades — side · $ · wallet · tx"
+            raw={row["Biggest Prints 24h"]}
+          />
         </>
       )}
     </div>
