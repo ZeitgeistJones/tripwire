@@ -284,6 +284,15 @@ function saveCompact(on) {
     else localStorage.setItem("zdash-compact", on ? "1" : "0");
   } catch {}
 }
+/** Has the user actually chosen a density, or are they still on the default? */
+function hasCompactPreference() {
+  try {
+    const key = isNarrowViewport() ? "zdash-compact-mobile" : "zdash-compact";
+    return localStorage.getItem(key) !== null;
+  } catch {
+    return false;
+  }
+}
 
 const PERIOD_TABS = new Set(["Activity", "Wallets", "Buyers"]);
 const PERIOD_ALWAYS = new Set([null, undefined, "live"]); // Project (no window) + Market Cap
@@ -888,6 +897,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   const [watchlistColumnConfig, setWatchlistColumnConfig] = useState(null);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
   const [compact, setCompact] = useState(() => loadCompact());
+  const [compactPrefSet, setCompactPrefSet] = useState(true);
   const [tableMode, setTableMode] = useState("summary"); // mobile hybrid: summary | full
   const [defSheet, setDefSheet] = useState(null); // { title, body, windowLabel }
   const [rankExpand, setRankExpand] = useState(null); // { rowKey, colKey }
@@ -902,6 +912,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   useEffect(() => {
     setPinnedKeys(loadPins());
     setCompact(loadCompact());
+    setCompactPrefSet(hasCompactPreference());
     try {
       const tab = new URLSearchParams(window.location.search).get("tab");
       if (tab && TAB_ORDER.includes(tab)) {
@@ -920,17 +931,22 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     } catch {}
   }, []);
 
+  // ClawdWire is a composed cockpit rather than a wide table, so squeezing it to
+  // 0.85 buys no extra columns and only costs legibility — it defaults to
+  // comfortable. An explicit Compact choice still wins everywhere.
+  const effectiveCompact =
+    activeTab === "ClawdWire" && !compactPrefSet ? false : compact;
+
   // Layout body zoom (0.85 on desktop) is the main "compact" — toggle comfort-view to go full size.
   useEffect(() => {
-    document.documentElement.classList.toggle("comfort-view", !compact);
-  }, [compact]);
+    document.documentElement.classList.toggle("comfort-view", !effectiveCompact);
+  }, [effectiveCompact]);
 
   function toggleCompact() {
-    setCompact((prev) => {
-      const next = !prev;
-      saveCompact(next);
-      return next;
-    });
+    const next = !effectiveCompact;
+    saveCompact(next);
+    setCompactPrefSet(true);
+    setCompact(next);
   }
 
   const { address } = useAccount();
@@ -1638,21 +1654,21 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
             type="button"
             className="tw-compact-btn"
             onClick={toggleCompact}
-            title={compact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
+            title={effectiveCompact ? "Switch to comfortable size" : "Shrink table so more columns fit"}
             style={{
               padding: "5px 12px",
               borderRadius: "6px",
-              border: compact ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
-              background: compact ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
-              color: compact ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+              border: effectiveCompact ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+              background: effectiveCompact ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+              color: effectiveCompact ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
               cursor: "pointer",
               fontSize: "12px",
-              fontWeight: compact ? 600 : 400,
+              fontWeight: effectiveCompact ? 600 : 400,
               whiteSpace: "nowrap",
               flexShrink: 0,
             }}
           >
-            {compact ? "Compact ✓" : "Compact"}
+            {effectiveCompact ? "Compact ✓" : "Compact"}
           </button>
         </div>
       </div>

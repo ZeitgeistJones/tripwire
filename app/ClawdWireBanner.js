@@ -1,7 +1,12 @@
 "use client";
 
 /**
- * ClawdWire identity + live pulse clock (updated from ClawdWirePanel).
+ * Tab-level identity strip for ClawdWire.
+ *
+ * The pulse clock, sync state and controls all live in the panel's command
+ * rail now, so this is deliberately a single quiet line: it says which
+ * instrument you are looking at and nothing that competes with the cockpit
+ * directly below it.
  */
 export default function ClawdWireBanner({ lastRunAt = null, syncing = false }) {
   const formatted = lastRunAt
@@ -14,82 +19,42 @@ export default function ClawdWireBanner({ lastRunAt = null, syncing = false }) {
   return (
     <div
       style={{
-        background:
-          "linear-gradient(135deg, rgba(122,184,74,0.12) 0%, var(--bg-subtle) 48%, var(--bg-muted) 100%)",
-        border: "1px solid var(--clawd-row-border)",
-        borderLeft: "3px solid var(--clawd-row-border)",
-        borderRadius: "8px",
-        padding: "12px 16px",
-        marginBottom: "16px",
         display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        gap: "16px",
+        alignItems: "center",
         flexWrap: "wrap",
+        gap: "6px 14px",
+        borderLeft: "3px solid var(--clawd-row-border)",
+        borderBottom: "1px solid var(--border)",
+        padding: "7px 0 8px 11px",
+        marginBottom: "14px",
       }}
     >
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--clawd-row-border)",
-            marginBottom: "4px",
-          }}
-        >
-          ClawdWire
-        </div>
-        <div
-          style={{
-            fontSize: "11px",
-            color: "var(--text-faint)",
-            marginBottom: "2px",
-          }}
-        >
-          Pulse last run{syncing ? " · syncing…" : ""}
-        </div>
-        <div
-          style={{
-            fontSize: "18px",
-            fontWeight: 700,
-            color: "var(--text)",
-            letterSpacing: "-0.01em",
-            lineHeight: 1.25,
-          }}
-        >
-          {formatted}
-        </div>
-        <div
-          style={{
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            marginTop: "4px",
-            lineHeight: 1.45,
-            maxWidth: "520px",
-          }}
-        >
-          Auto-loads when you run the Dune query — or trip below for a fresh execute.
-        </div>
-      </div>
-      <div
+      <span
         style={{
           fontSize: "11px",
           fontWeight: 700,
-          letterSpacing: "0.06em",
+          letterSpacing: "0.11em",
           textTransform: "uppercase",
           color: "var(--clawd-row-border)",
-          background: "var(--clawd-row-bg)",
-          border: "1px solid var(--clawd-row-border)",
-          borderRadius: "6px",
-          padding: "6px 10px",
-          whiteSpace: "nowrap",
-          alignSelf: "center",
         }}
       >
-        CLAWD
-      </div>
+        ClawdWire
+      </span>
+      <span style={{ fontSize: "11.5px", color: "var(--text-faint)" }}>
+        Live on-chain pulse for CLAWD on Base
+      </span>
+      <span style={{ flex: "1 1 12px" }} />
+      <span
+        style={{
+          fontSize: "11px",
+          color: "var(--text-faint)",
+          fontVariantNumeric: "tabular-nums",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {syncing ? "syncing… · " : ""}
+        last pulse {formatted}
+      </span>
     </div>
   );
 }
