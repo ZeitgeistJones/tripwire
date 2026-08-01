@@ -50,6 +50,19 @@ function fmtMins(v) {
   return `${(n / (60 * 24)).toFixed(1)}d`;
 }
 
+function fmtText(v) {
+  if (v == null || v === "") return "—";
+  const s = String(v);
+  // Peak hour timestamps from Dune — show compact UTC
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = new Date(s.endsWith("Z") || s.includes("+") ? s : `${s}Z`);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toISOString().slice(0, 16).replace("T", " ") + "Z";
+    }
+  }
+  return s;
+}
+
 function shortAddr(addr) {
   if (!addr || addr.length < 12) return addr || "—";
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -816,6 +829,46 @@ export default function ClawdWirePanel({
             <Stat label="Flip · new" value={fmtMins(row["Median Flip Mins New"])} />
             <Stat label="Flip · returning" value={fmtMins(row["Median Flip Mins Returning"])} />
           </WindowBlock>
+
+          <WindowBlock
+            title="Timing vs peak"
+            subtitle="Aligns on-chain flow to the 24h trade-price peak (DEX implied) — match to the CG spike hour"
+          >
+            <Stat label="Peak hour (UTC)" value={fmtText(row["Peak Price Hour"])} large />
+            <Stat label="Net before peak" value={fmtUsd(row["Net Hour Before Peak"])} color={netColor(row["Net Hour Before Peak"])} />
+            <Stat label="Whale before peak" value={fmtUsd(row["Whale Net Hour Before Peak"])} color={netColor(row["Whale Net Hour Before Peak"])} />
+            <Stat label="Net at peak hour" value={fmtUsd(row["Net At Peak Hour"])} color={netColor(row["Net At Peak Hour"])} large />
+            <Stat label="Whale at peak hour" value={fmtUsd(row["Whale Net At Peak Hour"])} color={netColor(row["Whale Net At Peak Hour"])} large />
+            <Stat label="Vol at peak hour" value={fmtUsd(row["Vol At Peak Hour"])} />
+            <Stat label="Net after peak" value={fmtUsd(row["Net Hour After Peak"])} color={netColor(row["Net Hour After Peak"])} />
+            <Stat label="Whale after peak" value={fmtUsd(row["Whale Net Hour After Peak"])} color={netColor(row["Whale Net Hour After Peak"])} />
+            <Stat label="Worst hour net" value={fmtUsd(row["Worst Hour Net $"])} color={netColor(row["Worst Hour Net $"])} />
+            <Stat label="Whale at worst hour" value={fmtUsd(row["Whale Net At Worst Hour"])} color={netColor(row["Whale Net At Worst Hour"])} />
+            <Stat label="Best hour net" value={fmtUsd(row["Best Hour Net $"])} color={netColor(row["Best Hour Net $"])} />
+          </WindowBlock>
+
+          <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
+            <div style={{ marginBottom: "10px" }}>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: "var(--text)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Hourly tape 24h
+              </h3>
+              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
+                UTC hour · net $ (k). Match the CG spike hour to the tape.
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <Stat label="All flow" value={fmtText(row["Hourly Net Tape 24h"])} />
+              <Stat label="Whale flow" value={fmtText(row["Hourly Whale Tape 24h"])} />
+            </div>
+          </section>
         </>
       )}
     </div>

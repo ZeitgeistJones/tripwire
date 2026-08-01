@@ -6,6 +6,7 @@
 -- Chunk E: wallet lens (per-wallet $ + txs, top net, big prints) + intensity
 -- Chunk F: WoW growth + retention + distribution / heat / flippers
 -- Chunk G: uniformity, wash pressure, streaks, flip speed, wash rate, diamond hands
+-- Chunk H: timing tape — peak-price hour, nets around peak, worst hour, hourly net strip
 
 WITH clawd AS (
     SELECT address, name FROM (
@@ -876,6 +877,125 @@ diamond_hands AS (
         GROUP BY fb.project, fb.address, fb.trader, fb.first_buy
     ) c
     GROUP BY 1, 2
+),
+
+-- Chunk H: when did flow hit relative to the trade-price peak (same 24h trades)
+hourly_flow_24h AS (
+    SELECT
+        rt.project,
+        rt.address,
+        date_trunc('hour', rt.block_time) AS hour_start,
+        SUM(CASE WHEN rt.side = 'buy' THEN rt.amount_usd ELSE -rt.amount_usd END) AS net_usd,
+        SUM(CASE
+            WHEN rt.amount_usd >= wt.whale_min_usd AND rt.side = 'buy' THEN rt.amount_usd
+            WHEN rt.amount_usd >= wt.whale_min_usd AND rt.side = 'sell' THEN -rt.amount_usd
+            ELSE 0
+        END) AS whale_net_usd,
+        SUM(rt.amount_usd) AS vol_usd,
+        MAX(rt.price_usd) AS high_price,
+        MIN(rt.price_usd) AS low_price
+    FROM recent_trades rt
+    INNER JOIN whale_thresholds wt ON wt.project = rt.project
+    WHERE rt.block_time >= now() - interval '24' hour
+    GROUP BY 1, 2, 3
+),
+
+peak_hour AS (
+    SELECT
+        project,
+        address,
+        MAX_BY(hour_start, high_price) AS peak_hour,
+        MAX(high_price) AS peak_price
+    FROM hourly_flow_24h
+    WHERE high_price IS NOT NULL
+    GROUP BY 1, 2
+),
+
+timing_around_peak AS (
+    SELECT
+        p.project,
+        p.address,
+        p.peak_hour,
+        p.peak_price,
+        ROUND(COALESCE(h0.net_usd, 0), 2) AS net_at_peak_hour,
+        ROUND(COALESCE(h0.whale_net_usd, 0), 2) AS whale_net_at_peak_hour,
+        ROUND(COALESCE(h0.vol_usd, 0), 2) AS vol_at_peak_hour,
+        ROUND(COALESCE(h1.net_usd, 0), 2) AS net_hour_after_peak,
+        ROUND(COALESCE(h1.whale_net_usd, 0), 2) AS whale_net_hour_after_peak,
+        ROUND(COALESCE(hm1.net_usd, 0), 2) AS net_hour_before_peak,
+        ROUND(COALESCE(hm1.whale_net_usd, 0), 2) AS whale_net_hour_before_peak
+    FROM peak_hour p
+    LEFT JOIN hourly_flow_24h h0
+        ON p.project = h0.project AND p.peak_hour = h0.hour_start
+    LEFT JOIN hourly_flow_24h h1
+        ON p.project = h1.project
+       AND h1.hour_start = p.peak_hour + interval '1' hour
+    LEFT JOIN hourly_flow_24h hm1
+        ON p.project = hm1.project
+       AND hm1.hour_start = p.peak_hour - interval '1' hour
+),
+
+worst_hour AS (
+    SELECT
+        project,
+        address,
+        MIN_BY(hour_start, net_usd) AS worst_net_hour,
+        ROUND(MIN(net_usd), 2) AS worst_hour_net,
+        ROUND(MIN_BY(whale_net_usd, net_usd), 2) AS whale_net_at_worst_hour,
+        ROUND(MIN_BY(vol_usd, net_usd), 2) AS vol_at_worst_hour
+    FROM hourly_flow_24h
+    GROUP BY 1, 2
+),
+
+best_hour AS (
+    SELECT
+        project,
+        address,
+        MAX_BY(hour_start, net_usd) AS best_net_hour,
+        ROUND(MAX(net_usd), 2) AS best_hour_net,
+        ROUND(MAX_BY(whale_net_usd, net_usd), 2) AS whale_net_at_best_hour
+    FROM hourly_flow_24h
+    GROUP BY 1, 2
+),
+
+hourly_tape AS (
+    SELECT
+        project,
+        address,
+        array_join(
+            array_agg(
+                CONCAT(
+                    format_datetime(hour_start, 'HH'),
+                    ':',
+                    CASE
+                        WHEN net_usd >= 0 THEN '+'
+                        ELSE ''
+                    END,
+                    CAST(ROUND(net_usd / 1000.0, 1) AS VARCHAR),
+                    'k'
+                )
+                ORDER BY hour_start
+            ),
+            ' · '
+        ) AS hourly_net_tape_24h,
+        array_join(
+            array_agg(
+                CONCAT(
+                    format_datetime(hour_start, 'HH'),
+                    ':',
+                    CASE
+                        WHEN whale_net_usd >= 0 THEN '+'
+                        ELSE ''
+                    END,
+                    CAST(ROUND(whale_net_usd / 1000.0, 1) AS VARCHAR),
+                    'k'
+                )
+                ORDER BY hour_start
+            ),
+            ' · '
+        ) AS hourly_whale_tape_24h
+    FROM hourly_flow_24h
+    GROUP BY 1, 2
 )
 
 SELECT
@@ -1097,7 +1217,27 @@ SELECT
     dhnd.survive_1d_pct AS "Survive 1d %",
     dhnd.survive_3d_pct AS "Survive 3d %",
     dhnd.survive_7d_pct AS "Survive 7d %",
-    COALESCE(dhnd.first_buyers_30d, 0) AS "1st Buyer Cohort 30d"
+    COALESCE(dhnd.first_buyers_30d, 0) AS "1st Buyer Cohort 30d",
+
+    -- Chunk H timing (trade-price peak from dex.trades — align to CG spike hour)
+    CAST(tap.peak_hour AS VARCHAR) AS "Peak Price Hour",
+    ROUND(tap.peak_price, 10) AS "Peak Trade Price",
+    tap.net_hour_before_peak AS "Net Hour Before Peak",
+    tap.whale_net_hour_before_peak AS "Whale Net Hour Before Peak",
+    tap.net_at_peak_hour AS "Net At Peak Hour",
+    tap.whale_net_at_peak_hour AS "Whale Net At Peak Hour",
+    tap.vol_at_peak_hour AS "Vol At Peak Hour",
+    tap.net_hour_after_peak AS "Net Hour After Peak",
+    tap.whale_net_hour_after_peak AS "Whale Net Hour After Peak",
+    CAST(wh.worst_net_hour AS VARCHAR) AS "Worst Net Hour",
+    wh.worst_hour_net AS "Worst Hour Net $",
+    wh.whale_net_at_worst_hour AS "Whale Net At Worst Hour",
+    wh.vol_at_worst_hour AS "Vol At Worst Hour",
+    CAST(bh.best_net_hour AS VARCHAR) AS "Best Net Hour",
+    bh.best_hour_net AS "Best Hour Net $",
+    bh.whale_net_at_best_hour AS "Whale Net At Best Hour",
+    ht.hourly_net_tape_24h AS "Hourly Net Tape 24h",
+    ht.hourly_whale_tape_24h AS "Hourly Whale Tape 24h"
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project
@@ -1135,4 +1275,12 @@ LEFT JOIN wash_rate_24h wr
     ON COALESCE(ap.project, fp.project) = wr.project
 LEFT JOIN diamond_hands dhnd
     ON COALESCE(ap.project, fp.project) = dhnd.project
+LEFT JOIN timing_around_peak tap
+    ON COALESCE(ap.project, fp.project) = tap.project
+LEFT JOIN worst_hour wh
+    ON COALESCE(ap.project, fp.project) = wh.project
+LEFT JOIN best_hour bh
+    ON COALESCE(ap.project, fp.project) = bh.project
+LEFT JOIN hourly_tape ht
+    ON COALESCE(ap.project, fp.project) = ht.project
 
