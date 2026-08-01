@@ -417,6 +417,7 @@ export default function ClawdWirePanel({
           <span className="cw-mono" style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>
             <FlashNum raw={clawdRow?.priceUsd}>{fmtPrice(clawdRow?.priceUsd)}</FlashNum>
           </span>
+          {/* Snapshot stores CG 24h change on the legacy key priceChange7d. */}
           <span
             className="cw-mono"
             style={{ fontSize: "13px", fontWeight: 700, color: toneColor(netTone(clawdRow?.priceChange7d)) }}
@@ -471,6 +472,9 @@ export default function ClawdWirePanel({
                 </span>
                 <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
               </div>
+              <p style={{ margin: "10px 0 0", fontSize: "11.5px", color: "var(--text-faint)", lineHeight: 1.45 }}>
+                Net flow = buy $ − sell $ on DEX. Price can rise while net is red (and the reverse).
+              </p>
             </div>
           </div>
 
@@ -505,6 +509,33 @@ export default function ClawdWirePanel({
               shared snapshot · not recomputed per pulse
             </div>
           </div>
+        </div>
+
+        <div style={{ marginTop: "14px", maxWidth: "640px" }}>
+          <Disclosure title="Why don’t they match?" note="price vs net flow">
+            <ul
+              style={{
+                margin: "0 0 4px",
+                paddingLeft: "18px",
+                fontSize: "12px",
+                color: "var(--text-muted)",
+                lineHeight: 1.55,
+              }}
+            >
+              <li>
+                Net is <strong style={{ color: "var(--text)" }}>dollar flow</strong> in the window (buy $ minus
+                sell $) — not whether the chart went up or down.
+              </li>
+              <li>
+                Price is the last print from the price feed. Sellers can unload into buyers and price can still
+                hold or climb.
+              </li>
+              <li>
+                Red net ≠ “more losers.” Matched trade results below are a rough winner/loser vibe check —
+                experiment, not tax.
+              </li>
+            </ul>
+          </Disclosure>
         </div>
 
         {/* The questions a visitor actually asks, in order. Each chip names the
