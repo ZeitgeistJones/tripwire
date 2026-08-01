@@ -1,15 +1,23 @@
 "use client";
 
 /**
- * Lab banner for ClawdWire — distinct from scores + The Wire.
+ * ClawdWire identity + live pulse clock (updated from ClawdWirePanel).
  */
-export default function ClawdWireBanner() {
+export default function ClawdWireBanner({ lastRunAt = null, syncing = false }) {
+  const formatted = lastRunAt
+    ? new Date(lastRunAt).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "—";
+
   return (
     <div
       style={{
-        background: "var(--bg-subtle)",
-        border: "1px solid var(--border-strong)",
-        borderLeft: "3px solid var(--read-amber-text)",
+        background:
+          "linear-gradient(135deg, rgba(122,184,74,0.12) 0%, var(--bg-subtle) 48%, var(--bg-muted) 100%)",
+        border: "1px solid var(--clawd-row-border)",
+        borderLeft: "3px solid var(--clawd-row-border)",
         borderRadius: "8px",
         padding: "12px 16px",
         marginBottom: "16px",
@@ -27,11 +35,20 @@ export default function ClawdWireBanner() {
             fontWeight: 700,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            color: "var(--read-amber-text)",
+            color: "var(--clawd-row-border)",
             marginBottom: "4px",
           }}
         >
           ClawdWire
+        </div>
+        <div
+          style={{
+            fontSize: "11px",
+            color: "var(--text-faint)",
+            marginBottom: "2px",
+          }}
+        >
+          Pulse last run{syncing ? " · syncing…" : ""}
         </div>
         <div
           style={{
@@ -42,7 +59,7 @@ export default function ClawdWireBanner() {
             lineHeight: 1.25,
           }}
         >
-          CLAWD-only lab pulse
+          {formatted}
         </div>
         <div
           style={{
@@ -53,7 +70,7 @@ export default function ClawdWireBanner() {
             maxWidth: "520px",
           }}
         >
-          CLAWD pulse: wallets/txs, buy/sell/net $, buyers/sellers, max trade — 15m / 1h / 6h. Cheap to run often.
+          Auto-loads when you run the Dune query — or trip below for a fresh execute.
         </div>
       </div>
       <div
@@ -62,16 +79,16 @@ export default function ClawdWireBanner() {
           fontWeight: 700,
           letterSpacing: "0.06em",
           textTransform: "uppercase",
-          color: "var(--read-amber-text)",
-          background: "var(--read-amber-bg)",
-          border: "1px solid var(--read-amber-text)",
+          color: "var(--clawd-row-border)",
+          background: "var(--clawd-row-bg)",
+          border: "1px solid var(--clawd-row-border)",
           borderRadius: "6px",
           padding: "6px 10px",
           whiteSpace: "nowrap",
           alignSelf: "center",
         }}
       >
-        Lab
+        CLAWD
       </div>
     </div>
   );

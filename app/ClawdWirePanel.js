@@ -1,80 +1,125 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
-const COLUMNS = [
-  { key: "Project", label: "Project" },
-  { key: "marketCapUsd", label: "Market Cap", format: "usd" },
-  { key: "Wallets 15m", label: "Wallets 15m" },
-  { key: "Txs 15m", label: "Txs 15m" },
-  { key: "Buy USD 15m", label: "Buy $ 15m", format: "usd" },
-  { key: "Sell USD 15m", label: "Sell $ 15m", format: "usd" },
-  { key: "Net USD 15m", label: "Net $ 15m", format: "usd" },
-  { key: "Max Trade USD 15m", label: "Max trade $ 15m", format: "usd" },
-  { key: "Wallets 1h", label: "Wallets 1h" },
-  { key: "Txs 1h", label: "Txs 1h" },
-  { key: "Buy USD 1h", label: "Buy $ 1h", format: "usd" },
-  { key: "Sell USD 1h", label: "Sell $ 1h", format: "usd" },
-  { key: "Net USD 1h", label: "Net $ 1h", format: "usd" },
-  { key: "Max Trade USD 1h", label: "Max trade $ 1h", format: "usd" },
-  { key: "Buyers 1h", label: "Buyers 1h" },
-  { key: "Sellers 1h", label: "Sellers 1h" },
-  { key: "Wallets 6h", label: "Wallets 6h" },
-  { key: "Txs 6h", label: "Txs 6h" },
-  { key: "Buy USD 6h", label: "Buy $ 6h", format: "usd" },
-  { key: "Sell USD 6h", label: "Sell $ 6h", format: "usd" },
-  { key: "Net USD 6h", label: "Net $ 6h", format: "usd" },
-  { key: "Max Trade USD 6h", label: "Max trade $ 6h", format: "usd" },
-  { key: "Buyers 6h", label: "Buyers 6h" },
-  { key: "Sellers 6h", label: "Sellers 6h" },
-  { key: "Wallets 24h", label: "Wallets 24h" },
-  { key: "Txs 24h", label: "Txs 24h" },
-];
+const SYNC_MS = 45_000;
 
-const KEY_METRICS = [
-  { name: "Wallets / Txs", desc: "Contract activity pulse — CLAWD only" },
-  { name: "Buy / Sell / Net $", desc: "DEX dollar inflow vs outflow for 15m / 1h / 6h (same 6h trade scan)" },
-  { name: "Buyers / Sellers", desc: "Unique DEX traders in 1h and 6h — breadth vs one wallet" },
-  { name: "Max trade $", desc: "Largest single DEX print in the window — quick whale poke" },
-  { name: "Market Cap", desc: "CoinGecko at result time" },
-];
+function num(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
+}
 
-function MetricPill({ name, desc }) {
+function fmtUsd(v, digits = 0) {
+  const n = num(v);
+  if (n == null) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `$${n.toLocaleString(undefined, { maximumFractionDigits: digits })}`;
+  return `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function fmtInt(v) {
+  const n = num(v);
+  if (n == null) return "—";
+  return Math.round(n).toLocaleString();
+}
+
+function netColor(v) {
+  const n = num(v);
+  if (n == null || n === 0) return "var(--text)";
+  return n > 0 ? "var(--read-teal-text)" : "var(--read-coral-text)";
+}
+
+function Stat({ label, value, color, large }) {
   return (
-    <div style={{
-      background: "var(--bg-muted)",
-      border: "1px solid var(--border)",
-      borderRadius: "8px",
-      padding: "8px 14px",
-      minWidth: "180px",
-      maxWidth: "240px",
-      flex: "1 1 180px",
-    }}>
-      <div style={{ fontWeight: 700, fontSize: "12px", color: "var(--text)", marginBottom: "3px" }}>{name}</div>
-      <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4" }}>{desc}</div>
+    <div
+      style={{
+        background: "var(--bg-subtle)",
+        border: "1px solid var(--border)",
+        borderRadius: "10px",
+        padding: large ? "16px 18px" : "12px 14px",
+        minWidth: 0,
+        animation: "cwFadeIn 0.45s ease both",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+          color: "var(--text-faint)",
+          marginBottom: "6px",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: large ? "28px" : "18px",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          color: color || "var(--text)",
+          lineHeight: 1.15,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
 
-function formatValue(val, format) {
-  if (val == null || val === "") return "—";
-  if (format === "usd") {
-    const n = Number(val);
-    if (Number.isNaN(n)) return "—";
-    return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-  }
-  return val;
+function WindowBlock({ title, subtitle, children }) {
+  return (
+    <section style={{ marginBottom: "22px", animation: "cwFadeIn 0.5s ease both" }}>
+      <div style={{ marginBottom: "10px" }}>
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "15px",
+            fontWeight: 700,
+            color: "var(--text)",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {title}
+        </h3>
+        {subtitle && (
+          <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+          gap: "10px",
+        }}
+      >
+        {children}
+      </div>
+    </section>
+  );
 }
 
-export default function ClawdWirePanel({ hasAccess, walletAddress = null }) {
+export default function ClawdWirePanel({
+  hasAccess,
+  walletAddress = null,
+  onMeta = null,
+}) {
   const [status, setStatus] = useState("idle");
-  const [rows, setRows] = useState([]);
+  const [row, setRow] = useState(null);
+  const [lastRunAt, setLastRunAt] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const [sortKey, setSortKey] = useState("Net USD 1h");
-  const [sortDir, setSortDir] = useState("desc");
+  const [syncHint, setSyncHint] = useState("");
   const pollRef = useRef(null);
   const attemptsRef = useRef(0);
+  const lastRunRef = useRef(null);
+  const executingRef = useRef(false);
 
-  function stopPolling() {
+  function stopExecPoll() {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = null;
   }
@@ -85,11 +130,89 @@ export default function ClawdWirePanel({ hasAccess, walletAddress = null }) {
     return h;
   }
 
+  const publishMeta = useCallback(
+    (runAt, syncing) => {
+      onMeta?.({ lastRunAt: runAt, syncing: !!syncing });
+    },
+    [onMeta]
+  );
+
+  const applyPayload = useCallback(
+    (json, { quiet } = {}) => {
+      const nextRun = json.lastRunAt || null;
+      const nextRow = (json.rows && json.rows[0]) || null;
+      const prev = lastRunRef.current;
+      const newer =
+        nextRun && (!prev || new Date(nextRun).getTime() > new Date(prev).getTime());
+
+      if (nextRow) setRow(nextRow);
+      if (nextRun && (newer || !prev)) {
+        lastRunRef.current = nextRun;
+        setLastRunAt(nextRun);
+        publishMeta(nextRun, false);
+        if (!quiet && prev && newer) setSyncHint("Picked up a newer Dune run");
+      } else {
+        publishMeta(lastRunRef.current || nextRun, false);
+      }
+    },
+    [publishMeta]
+  );
+
+  const pullLatest = useCallback(
+    async ({ quiet = true } = {}) => {
+      if (executingRef.current) return;
+      try {
+        if (!quiet) publishMeta(lastRunRef.current, true);
+        const res = await fetch("/api/clawdwire/latest", {
+          headers: wireHeaders(),
+          cache: "no-store",
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          if (!quiet) setErrorMsg(json.error || "Failed to load latest results");
+          publishMeta(lastRunRef.current, false);
+          return;
+        }
+        applyPayload(json, { quiet });
+        if (!quiet && status === "idle") setStatus("done");
+      } catch (err) {
+        if (!quiet) setErrorMsg(String(err.message || err));
+        publishMeta(lastRunRef.current, false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [applyPayload, publishMeta, status, walletAddress]
+  );
+
+  useEffect(() => {
+    if (!hasAccess) return undefined;
+    pullLatest({ quiet: true });
+    const id = setInterval(() => pullLatest({ quiet: true }), SYNC_MS);
+
+    function onVis() {
+      if (document.visibilityState === "visible") pullLatest({ quiet: true });
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+      stopExecPoll();
+    };
+  }, [hasAccess, pullLatest]);
+
+  useEffect(() => {
+    if (!syncHint) return undefined;
+    const t = setTimeout(() => setSyncHint(""), 4000);
+    return () => clearTimeout(t);
+  }, [syncHint]);
+
   async function runClawdWire() {
+    executingRef.current = true;
     setStatus("starting");
     setErrorMsg("");
-    setRows([]);
+    setSyncHint("");
     attemptsRef.current = 0;
+    publishMeta(lastRunRef.current, true);
 
     try {
       const startRes = await fetch("/api/clawdwire/start", {
@@ -105,9 +228,11 @@ export default function ClawdWirePanel({ hasAccess, walletAddress = null }) {
       pollRef.current = setInterval(async () => {
         attemptsRef.current += 1;
         if (attemptsRef.current > 90) {
-          stopPolling();
+          stopExecPoll();
+          executingRef.current = false;
           setStatus("error");
           setErrorMsg("Taking longer than expected. Try again in a moment.");
+          publishMeta(lastRunRef.current, false);
           return;
         }
         try {
@@ -117,181 +242,206 @@ export default function ClawdWirePanel({ hasAccess, walletAddress = null }) {
           );
           const statusJson = await statusRes.json();
           if (statusJson.state === "QUERY_STATE_COMPLETED") {
-            stopPolling();
-            setRows(statusJson.rows || []);
+            stopExecPoll();
+            executingRef.current = false;
+            applyPayload(statusJson, { quiet: false });
             setStatus("done");
-          } else if (statusJson.state === "QUERY_STATE_FAILED" || statusJson.state === "QUERY_STATE_CANCELLED") {
-            stopPolling();
+            setSyncHint("Fresh execute complete");
+          } else if (
+            statusJson.state === "QUERY_STATE_FAILED" ||
+            statusJson.state === "QUERY_STATE_CANCELLED"
+          ) {
+            stopExecPoll();
+            executingRef.current = false;
             setStatus("error");
             setErrorMsg("Dune query failed or was cancelled.");
+            publishMeta(lastRunRef.current, false);
           }
         } catch {
           // keep polling
         }
       }, 2000);
     } catch (err) {
+      executingRef.current = false;
       setStatus("error");
       setErrorMsg(String(err.message || err));
+      publishMeta(lastRunRef.current, false);
     }
   }
-
-  function handleSort(key) {
-    if (sortKey === key) {
-      setSortDir(sortDir === "desc" ? "asc" : "desc");
-    } else {
-      setSortKey(key);
-      setSortDir("desc");
-    }
-  }
-
-  const sorted = [...rows].sort((a, b) => {
-    let aVal = a[sortKey];
-    let bVal = b[sortKey];
-    if (sortKey === "Project") {
-      aVal = aVal == null ? "" : String(aVal);
-      bVal = bVal == null ? "" : String(bVal);
-      return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
-    }
-    aVal = aVal == null || aVal === "" ? -Infinity : Number(aVal);
-    bVal = bVal == null || bVal === "" ? -Infinity : Number(bVal);
-    return sortDir === "desc" ? bVal - aVal : aVal - bVal;
-  });
 
   const isRunning = status === "starting" || status === "running";
 
-  const explanationBlock = (
-    <div style={{
-      background: "var(--bg-subtle)",
-      border: "1px solid var(--border)",
-      borderRadius: "8px",
-      padding: "12px 16px",
-      marginBottom: "20px",
-      fontSize: "13px",
-      color: "var(--text-muted)",
-      lineHeight: "1.6",
-      maxWidth: "680px",
-    }}>
-      ClawdWire is your CLAWD pulse: wallets/txs, buy/sell/net $, unique buyers/sellers, and largest trade
-      across 15m / 1h / 6h (24h activity still shown). One token — cheap to trip often.
-    </div>
-  );
-
   if (!hasAccess) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "24px" }}>
-        {explanationBlock}
-        <button
-          disabled
-          style={{
-            padding: "16px 40px",
-            borderRadius: "8px",
-            border: "1px solid var(--border-strong)",
-            background: "var(--bg-muted)",
-            color: "var(--text-faint)",
-            cursor: "not-allowed",
-            fontWeight: 700,
-            fontSize: "16px",
-          }}
-        >
-          🔒 Run ClawdWire
-        </button>
-        <span style={{ color: "var(--text-faint)", fontSize: "13px", marginTop: "10px" }}>
-          Tester wallet only while under construction.
-        </span>
+      <div style={{ paddingTop: "24px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
+        Tester wallet only while under construction.
       </div>
     );
   }
 
   return (
-    <div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "28px" }}>
-        {explanationBlock}
-        <button
-          onClick={runClawdWire}
-          disabled={isRunning}
-          style={{
-            padding: "16px 40px",
-            borderRadius: "8px",
-            border: isRunning ? "1px solid var(--border-strong)" : "1px solid var(--btn-active-bg)",
-            background: isRunning ? "var(--text-faint)" : "var(--btn-active-bg)",
-            color: "var(--btn-active-text)",
-            cursor: isRunning ? "not-allowed" : "pointer",
-            fontWeight: 700,
-            fontSize: "16px",
-          }}
-        >
-          {status === "starting" && "Starting…"}
-          {status === "running" && "Running on Dune…"}
-          {(status === "idle" || status === "done" || status === "error") && "Trip ClawdWire"}
-        </button>
+    <div style={{ maxWidth: "920px" }}>
+      <style>{`
+        @keyframes cwFadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
-        {status === "running" && (
-          <span style={{ marginTop: "10px", color: "var(--text-muted)", fontSize: "13px", textAlign: "center" }}>
-            CLAWD-only query — check Dune execution credits after the first run.
-          </span>
-        )}
-        {status === "error" && (
-          <span style={{ marginTop: "10px", color: "#c0392b", fontSize: "13px", textAlign: "center", maxWidth: "520px" }}>
-            {errorMsg}
-          </span>
-        )}
+      {/* Hero */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: "16px",
+          marginBottom: "22px",
+          padding: "20px 22px",
+          borderRadius: "12px",
+          border: "1px solid var(--clawd-row-border)",
+          background:
+            "linear-gradient(145deg, rgba(122,184,74,0.14) 0%, var(--bg-subtle) 42%, var(--bg) 100%)",
+          animation: "cwFadeIn 0.4s ease both",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--clawd-row-border)",
+              marginBottom: "6px",
+            }}
+          >
+            On-chain pulse
+          </div>
+          <div
+            style={{
+              fontSize: "42px",
+              fontWeight: 800,
+              letterSpacing: "-0.03em",
+              color: "var(--text)",
+              lineHeight: 1,
+            }}
+          >
+            CLAWD
+          </div>
+          <div style={{ marginTop: "8px", fontSize: "14px", color: "var(--text-muted)" }}>
+            Market cap {fmtUsd(row?.marketCapUsd)}
+            {lastRunAt
+              ? ` · run ${new Date(lastRunAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
+              : " · waiting for first Dune run"}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+          <button
+            type="button"
+            onClick={runClawdWire}
+            disabled={isRunning}
+            style={{
+              padding: "12px 22px",
+              borderRadius: "8px",
+              border: isRunning ? "1px solid var(--border-strong)" : "1px solid var(--clawd-row-border)",
+              background: isRunning ? "var(--text-faint)" : "var(--clawd-row-border)",
+              color: isRunning ? "var(--btn-active-text)" : "#0f140c",
+              cursor: isRunning ? "not-allowed" : "pointer",
+              fontWeight: 700,
+              fontSize: "14px",
+            }}
+          >
+            {status === "starting" && "Starting…"}
+            {status === "running" && "Running on Dune…"}
+            {!isRunning && "Trip ClawdWire"}
+          </button>
+          <button
+            type="button"
+            onClick={() => pullLatest({ quiet: false })}
+            disabled={isRunning}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "6px",
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--text-muted)",
+              cursor: isRunning ? "not-allowed" : "pointer",
+              fontSize: "12px",
+              fontWeight: 600,
+            }}
+          >
+            Sync latest (no re-run)
+          </button>
+        </div>
       </div>
 
-      {rows.length > 0 && (
-        <details style={{ marginBottom: "16px" }}>
-          <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "14px", color: "var(--text)", marginBottom: "8px" }}>
-            Key: what am I looking at?
-          </summary>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
-            {KEY_METRICS.map((m) => (
-              <MetricPill key={m.name} name={m.name} desc={m.desc} />
-            ))}
+      {syncHint && (
+        <p style={{ margin: "0 0 12px", fontSize: "12px", color: "var(--read-teal-text)" }}>{syncHint}</p>
+      )}
+      {status === "error" && errorMsg && (
+        <p style={{ margin: "0 0 12px", fontSize: "13px", color: "var(--read-coral-text)" }}>{errorMsg}</p>
+      )}
+      {isRunning && (
+        <p style={{ margin: "0 0 12px", fontSize: "13px", color: "var(--text-muted)" }}>
+          Executing on Dune — results will land here automatically.
+        </p>
+      )}
+
+      {!row && !isRunning && (
+        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
+          No results yet. Run the query on Dune or hit Trip ClawdWire — this page auto-syncs every ~45s.
+        </p>
+      )}
+
+      {row && (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "12px",
+              marginBottom: "28px",
+            }}
+          >
+            <Stat label="Net $ 15m" value={fmtUsd(row["Net USD 15m"])} color={netColor(row["Net USD 15m"])} large />
+            <Stat label="Net $ 1h" value={fmtUsd(row["Net USD 1h"])} color={netColor(row["Net USD 1h"])} large />
+            <Stat label="Net $ 6h" value={fmtUsd(row["Net USD 6h"])} color={netColor(row["Net USD 6h"])} large />
           </div>
-        </details>
-      )}
 
-      {status === "done" && rows.length === 0 && (
-        <p style={{ color: "var(--text-muted)", textAlign: "center" }}>No CLAWD activity in the windows.</p>
-      )}
+          <WindowBlock title="15 minutes" subtitle="Immediate heat">
+            <Stat label="Wallets" value={fmtInt(row["Wallets 15m"])} />
+            <Stat label="Txs" value={fmtInt(row["Txs 15m"])} />
+            <Stat label="Buy $" value={fmtUsd(row["Buy USD 15m"])} color="var(--read-teal-text)" />
+            <Stat label="Sell $" value={fmtUsd(row["Sell USD 15m"])} color="var(--read-coral-text)" />
+            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 15m"])} />
+          </WindowBlock>
 
-      {rows.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ borderCollapse: "collapse", width: "100%" }}>
-            <thead>
-              <tr>
-                {COLUMNS.map((col) => (
-                  <th
-                    key={col.key}
-                    onClick={() => handleSort(col.key)}
-                    style={{
-                      textAlign: "left",
-                      borderBottom: "1px solid var(--border-strong)",
-                      padding: "6px 12px",
-                      cursor: "pointer",
-                      userSelect: "none",
-                      whiteSpace: "nowrap",
-                      color: "var(--text)",
-                    }}
-                  >
-                    {col.label}
-                    {sortKey === col.key ? (sortDir === "desc" ? " ▼" : " ▲") : ""}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((r) => (
-                <tr key={r["Address"] || r["Project"]}>
-                  {COLUMNS.map((col) => (
-                    <td key={col.key} style={{ padding: "6px 12px", whiteSpace: "nowrap", color: "var(--text)" }}>
-                      {col.format ? formatValue(r[col.key], col.format) : r[col.key] ?? "—"}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <WindowBlock title="1 hour" subtitle="Short pulse">
+            <Stat label="Wallets" value={fmtInt(row["Wallets 1h"])} />
+            <Stat label="Txs" value={fmtInt(row["Txs 1h"])} />
+            <Stat label="Buy $" value={fmtUsd(row["Buy USD 1h"])} color="var(--read-teal-text)" />
+            <Stat label="Sell $" value={fmtUsd(row["Sell USD 1h"])} color="var(--read-coral-text)" />
+            <Stat label="Buyers" value={fmtInt(row["Buyers 1h"])} />
+            <Stat label="Sellers" value={fmtInt(row["Sellers 1h"])} />
+            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 1h"])} />
+          </WindowBlock>
+
+          <WindowBlock title="6 hours" subtitle="Session flow">
+            <Stat label="Wallets" value={fmtInt(row["Wallets 6h"])} />
+            <Stat label="Txs" value={fmtInt(row["Txs 6h"])} />
+            <Stat label="Buy $" value={fmtUsd(row["Buy USD 6h"])} color="var(--read-teal-text)" />
+            <Stat label="Sell $" value={fmtUsd(row["Sell USD 6h"])} color="var(--read-coral-text)" />
+            <Stat label="Buyers" value={fmtInt(row["Buyers 6h"])} />
+            <Stat label="Sellers" value={fmtInt(row["Sellers 6h"])} />
+            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 6h"])} />
+          </WindowBlock>
+
+          <WindowBlock title="24 hours" subtitle="Activity only (no DEX $ window)">
+            <Stat label="Wallets" value={fmtInt(row["Wallets 24h"])} />
+            <Stat label="Txs" value={fmtInt(row["Txs 24h"])} />
+          </WindowBlock>
+        </>
       )}
     </div>
   );

@@ -1,22 +1,5 @@
 import { isWireTester } from "@/lib/wireAccess";
-import { CLAWD_TOKEN_ADDRESS } from "@/lib/clawdWire";
-
-async function fetchCoinGeckoMarketCap(address) {
-  try {
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/coins/base/contract/${address}`,
-      {
-        headers: { "x-cg-demo-api-key": process.env.COINGECKO_API_KEY },
-        cache: "no-store",
-      }
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.market_data?.market_cap?.usd || null;
-  } catch {
-    return null;
-  }
-}
+import { enrichClawdWireRows, fetchClawdMarketCap } from "@/lib/clawdWireFetch";
 
 export async function GET(request) {
   const wallet = request.headers.get("x-wallet-address") || "";
@@ -49,16 +32,18 @@ export async function GET(request) {
       { headers: { "X-Dune-API-Key": process.env.DUNE_API_KEY } }
     );
     const resultsJson = await resultsRes.json();
-    const rows = resultsJson.result?.rows || [];
+    const marketCapUsd = await fetchClawdMarketCap();
+    const rows = enrichClawdWireRows(resultsJson.result?.rows || [], marketCapUsd);
+    const lastRunAt =
+      resultsJson.execution_ended_at ||
+      statusJson.execution_ended_at ||
+      new Date().toISOString();
 
-    const marketCapUsd = await fetchCoinGeckoMarketCap(CLAWD_TOKEN_ADDRESS);
-    const enriched = rows.map((row) => ({
-      ...row,
-      Address: row["Address"] || CLAWD_TOKEN_ADDRESS,
-      marketCapUsd,
-    }));
-
-    return Response.json({ state: "QUERY_STATE_COMPLETED", rows: enriched });
+    return Response.json({
+      state: "QUERY_STATE_COMPLETED",
+      rows,
+      lastRunAt,
+    });
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 });
   }

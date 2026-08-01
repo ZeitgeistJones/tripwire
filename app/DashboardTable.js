@@ -894,6 +894,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   const headerLongPressRef = useRef({ timer: null, fired: false });
   const [period, setPeriod] = useState(() => loadPeriod());
   const [whalesView, setWhalesView] = useState(() => loadWhalesView());
+  const [clawdWireMeta, setClawdWireMeta] = useState({ lastRunAt: null, syncing: false });
   const dragKeyRef = useRef(null);
   const rootRef = useRef(null);
   const { tooltip, show: showTooltip, move: moveTooltip, hide: hideTooltip, toggle: toggleTooltip, dismiss: dismissTooltip } = useDelayedTooltip();
@@ -1503,7 +1504,10 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
       {isTripwire ? (
         <WireBanner />
       ) : isClawdWire ? (
-        <ClawdWireBanner />
+        <ClawdWireBanner
+          lastRunAt={clawdWireMeta.lastRunAt}
+          syncing={clawdWireMeta.syncing}
+        />
       ) : (
         <StatusBanner
           lastUpdated={lastUpdated}
@@ -1749,34 +1753,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         {isClawdWire && (
           wireTester ? (
             <div>
-              <div style={{
-                marginBottom: "16px",
-                padding: "10px 14px",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                background: "var(--bg-subtle)",
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px",
-                alignItems: "center",
-              }}>
-                <span style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: "var(--read-amber-text)",
-                  background: "var(--read-amber-bg)",
-                  padding: "4px 10px",
-                  borderRadius: "999px",
-                }}>
-                  Lab
-                </span>
-                <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                  CLAWD-only credit lab — tester wallet. Set CLAWD_WIRE_QUERY_ID after creating the Dune query.
-                </span>
-              </div>
-              <ClawdWirePanel hasAccess={true} walletAddress={address} />
+              <ClawdWirePanel
+                hasAccess={true}
+                walletAddress={address}
+                onMeta={setClawdWireMeta}
+              />
             </div>
           ) : (
             <div style={{
