@@ -24,10 +24,46 @@ function fmtInt(v) {
   return Math.round(n).toLocaleString();
 }
 
+function fmtPct(v) {
+  const n = num(v);
+  if (n == null) return "—";
+  return `${n.toFixed(1)}%`;
+}
+
+function fmtScore(v) {
+  const n = num(v);
+  if (n == null) return "—";
+  return n.toFixed(1);
+}
+
 function netColor(v) {
   const n = num(v);
   if (n == null || n === 0) return "var(--text)";
   return n > 0 ? "var(--read-teal-text)" : "var(--read-coral-text)";
+}
+
+function RankChip({ label, score, rank, total }) {
+  return (
+    <div
+      style={{
+        background: "var(--bg)",
+        border: "1px solid var(--border)",
+        borderRadius: "10px",
+        padding: "12px 14px",
+        minWidth: 0,
+      }}
+    >
+      <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-faint)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--text)", marginTop: "4px", fontVariantNumeric: "tabular-nums" }}>
+        {fmtScore(score)}
+      </div>
+      <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+        {rank != null && total ? `Rank ${rank} / ${total}` : "—"}
+      </div>
+    </div>
+  );
 }
 
 function Stat({ label, value, color, large }) {
@@ -108,6 +144,11 @@ export default function ClawdWirePanel({
   hasAccess,
   walletAddress = null,
   onMeta = null,
+  clawdRow = null,
+  opportunityRank = null,
+  momentumRank = null,
+  sustainabilityRank = null,
+  totalProjects = null,
 }) {
   const [status, setStatus] = useState("idle");
   const [row, setRow] = useState(null);
@@ -330,10 +371,17 @@ export default function ClawdWirePanel({
             CLAWD
           </div>
           <div style={{ marginTop: "8px", fontSize: "14px", color: "var(--text-muted)" }}>
-            Market cap {fmtUsd(row?.marketCapUsd)}
+            Market cap {fmtUsd(row?.marketCapUsd ?? clawdRow?.marketCapUsd)}
+            {clawdRow?.Prof ? ` · ${clawdRow.Prof}` : ""}
+            {clawdRow?.signal ? ` · ${clawdRow.signal}` : ""}
+            {clawdRow?.read ? ` · ${clawdRow.read}` : ""}
+          </div>
+          <div style={{ marginTop: "4px", fontSize: "12px", color: "var(--text-faint)" }}>
             {lastRunAt
-              ? ` · run ${new Date(lastRunAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
-              : " · waiting for first Dune run"}
+              ? `Pulse run ${new Date(lastRunAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
+              : "Waiting for first Dune pulse run"}
+            {" · "}
+            Scores from shared snapshot (Pull Dune / Refresh prices)
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
@@ -394,12 +442,49 @@ export default function ClawdWirePanel({
         </p>
       )}
 
+      {/* Chunk A — scored snapshot (no Dune cost) */}
+      {clawdRow && (
+        <section style={{ marginBottom: "26px", animation: "cwFadeIn 0.45s ease both" }}>
+          <div style={{ marginBottom: "10px" }}>
+            <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>
+              Tripwire scores
+            </h3>
+            <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-faint)" }}>
+              From the shared dashboard snapshot — not recomputed on each pulse
+            </p>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gap: "10px",
+              marginBottom: "10px",
+            }}
+          >
+            <RankChip label="Opportunity" score={clawdRow.Opp} rank={opportunityRank} total={totalProjects} />
+            <RankChip label="Momentum" score={clawdRow.Mom} rank={momentumRank} total={totalProjects} />
+            <RankChip label="Sustainability" score={clawdRow.Sus} rank={sustainabilityRank} total={totalProjects} />
+            <Stat label="Quality %" value={fmtPct(clawdRow["Qlty %"])} />
+            <Stat label="Risk %" value={fmtPct(clawdRow["Risk %"])} />
+            <Stat label="Price 24h" value={fmtPct(clawdRow.priceChange7d)} color={netColor(clawdRow.priceChange7d)} />
+          </div>
+          {(clawdRow.signalNote || clawdRow["Whale Net 7d"] != null) && (
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.45 }}>
+              {clawdRow.signalNote ? <span>Signal note: {clawdRow.signalNote}. </span> : null}
+              {clawdRow["Whale Net 7d"] != null && (
+                <span>Whale net 7d {fmtUsd(clawdRow["Whale Net 7d"])} · Retail net 7d {fmtUsd(clawdRow["Retail Net 7d"])}</span>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       {row && (
         <>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               gap: "12px",
               marginBottom: "28px",
             }}
@@ -407,6 +492,7 @@ export default function ClawdWirePanel({
             <Stat label="Net $ 15m" value={fmtUsd(row["Net USD 15m"])} color={netColor(row["Net USD 15m"])} large />
             <Stat label="Net $ 1h" value={fmtUsd(row["Net USD 1h"])} color={netColor(row["Net USD 1h"])} large />
             <Stat label="Net $ 6h" value={fmtUsd(row["Net USD 6h"])} color={netColor(row["Net USD 6h"])} large />
+            <Stat label="Net $ 24h" value={fmtUsd(row["Net USD 24h"])} color={netColor(row["Net USD 24h"])} large />
           </div>
 
           <WindowBlock title="15 minutes" subtitle="Immediate heat">
@@ -424,6 +510,7 @@ export default function ClawdWirePanel({
             <Stat label="Sell $" value={fmtUsd(row["Sell USD 1h"])} color="var(--read-coral-text)" />
             <Stat label="Buyers" value={fmtInt(row["Buyers 1h"])} />
             <Stat label="Sellers" value={fmtInt(row["Sellers 1h"])} />
+            <Stat label="Buy vol %" value={fmtPct(row["Buy Vol % 1h"])} />
             <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 1h"])} />
           </WindowBlock>
 
@@ -434,12 +521,27 @@ export default function ClawdWirePanel({
             <Stat label="Sell $" value={fmtUsd(row["Sell USD 6h"])} color="var(--read-coral-text)" />
             <Stat label="Buyers" value={fmtInt(row["Buyers 6h"])} />
             <Stat label="Sellers" value={fmtInt(row["Sellers 6h"])} />
+            <Stat label="Buy vol %" value={fmtPct(row["Buy Vol % 6h"])} />
             <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 6h"])} />
           </WindowBlock>
 
-          <WindowBlock title="24 hours" subtitle="Activity only (no DEX $ window)">
+          <WindowBlock title="24 hours" subtitle="Full-day money + activity (Chunk B)">
             <Stat label="Wallets" value={fmtInt(row["Wallets 24h"])} />
             <Stat label="Txs" value={fmtInt(row["Txs 24h"])} />
+            <Stat label="Buy $" value={fmtUsd(row["Buy USD 24h"])} color="var(--read-teal-text)" />
+            <Stat label="Sell $" value={fmtUsd(row["Sell USD 24h"])} color="var(--read-coral-text)" />
+            <Stat label="Buyers" value={fmtInt(row["Buyers 24h"])} />
+            <Stat label="Sellers" value={fmtInt(row["Sellers 24h"])} />
+            <Stat label="Buy vol %" value={fmtPct(row["Buy Vol % 24h"])} />
+            <Stat label="Max trade $" value={fmtUsd(row["Max Trade USD 24h"])} />
+          </WindowBlock>
+
+          <WindowBlock title="Size prints ≥ $1k (24h)" subtitle="Fixed floor — live stand-in before full whale tiers">
+            <Stat label="Big buy $" value={fmtUsd(row["Big Buy USD 24h"])} color="var(--read-teal-text)" />
+            <Stat label="Big sell $" value={fmtUsd(row["Big Sell USD 24h"])} color="var(--read-coral-text)" />
+            <Stat label="Big net $" value={fmtUsd(row["Big Net USD 24h"])} color={netColor(row["Big Net USD 24h"])} />
+            <Stat label="Big buys #" value={fmtInt(row["Big Buys 24h"])} />
+            <Stat label="Big sells #" value={fmtInt(row["Big Sells 24h"])} />
           </WindowBlock>
         </>
       )}
