@@ -623,7 +623,7 @@ export default function ClawdWirePanel({
           </div>
           <p style={{ margin: "0 0 28px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.45 }}>
             Net $ = buy dollars − sell dollars (flow). Red net means more sell $ than buy $ — not “more losers.”
-            Estimated winners/losers use closed matched-token PnL below (separate meter, clear formula).
+            Matched trade results below are a research heuristic only — not tax, accounting, or advice.
           </p>
 
           <WindowBlock title="15 minutes" subtitle="Immediate heat">
@@ -927,30 +927,35 @@ export default function ClawdWirePanel({
           />
 
           <WindowBlock
-            title="Closed PnL (estimated)"
-            subtitle="Estimated from clear trade numbers: matched tokens = min(buy amt, sell amt) in-window · PnL = matched × (sell VWAP − buy VWAP) using DEX trade $ and token amounts. Only wallets that both bought and sold in the window. Not FIFO / tax lots — and not the same as net flow."
+            title="Matched trade results (research)"
+            subtitle="Heuristic from on-chain swaps only: matched tokens = min(buy amt, sell amt) in-window · result $ = matched × (sell VWAP − buy VWAP). Not FIFO, not cost basis, not realized gain/loss for taxes, not accounting, not advice. Do not use for tax filing."
           >
-            <Stat label="Winner % 24h" value={fmtPct(row["Winner % 24h"])} large />
-            <Stat label="Winners 24h" value={fmtInt(row["PnL Winners 24h"])} color="var(--read-teal-text)" />
-            <Stat label="Losers 24h" value={fmtInt(row["PnL Losers 24h"])} color="var(--read-coral-text)" />
-            <Stat label="Closed wallets 24h" value={fmtInt(row["Closed Wallets 24h"])} />
-            <Stat label="Closed gains $ 24h" value={fmtUsd(row["Closed Gains $ 24h"])} color="var(--read-teal-text)" large />
-            <Stat label="Closed losses $ 24h" value={fmtUsd(row["Closed Losses $ 24h"])} color="var(--read-coral-text)" large />
-            <Stat label="Net closed PnL $ 24h" value={fmtUsd(row["Net Closed PnL $ 24h"])} color={netColor(row["Net Closed PnL $ 24h"])} large />
-            <Stat label="Winner % 30d" value={fmtPct(row["Winner % 30d"])} />
-            <Stat label="Winners 30d" value={fmtInt(row["PnL Winners 30d"])} />
-            <Stat label="Losers 30d" value={fmtInt(row["PnL Losers 30d"])} />
-            <Stat label="Net closed PnL $ 30d" value={fmtUsd(row["Net Closed PnL $ 30d"])} color={netColor(row["Net Closed PnL $ 30d"])} />
+            <Stat label="Above-match % 24h" value={fmtPct(row["Winner % 24h"])} large />
+            <Stat label="Above-match wallets 24h" value={fmtInt(row["PnL Winners 24h"])} color="var(--read-teal-text)" />
+            <Stat label="Below-match wallets 24h" value={fmtInt(row["PnL Losers 24h"])} color="var(--read-coral-text)" />
+            <Stat label="Both-side wallets 24h" value={fmtInt(row["Closed Wallets 24h"])} />
+            <Stat label="Above-match $ 24h" value={fmtUsd(row["Closed Gains $ 24h"])} color="var(--read-teal-text)" large />
+            <Stat label="Below-match $ 24h" value={fmtUsd(row["Closed Losses $ 24h"])} color="var(--read-coral-text)" large />
+            <Stat label="Net match result $ 24h" value={fmtUsd(row["Net Closed PnL $ 24h"])} color={netColor(row["Net Closed PnL $ 24h"])} large />
+            <Stat label="Above-match % 30d" value={fmtPct(row["Winner % 30d"])} />
+            <Stat label="Above-match wallets 30d" value={fmtInt(row["PnL Winners 30d"])} />
+            <Stat label="Below-match wallets 30d" value={fmtInt(row["PnL Losers 30d"])} />
+            <Stat label="Net match result $ 30d" value={fmtUsd(row["Net Closed PnL $ 30d"])} color={netColor(row["Net Closed PnL $ 30d"])} />
           </WindowBlock>
 
+          <p style={{ margin: "-8px 0 18px", fontSize: "11px", color: "var(--text-faint)", lineHeight: 1.45 }}>
+            Community research display only. Tripwire does not provide tax, legal, or financial advice.
+            These figures are incomplete swap heuristics and must not be treated as taxable income, capital gains, or reporting amounts.
+          </p>
+
           <WalletLens
-            title="Top closed winners 24h"
-            subtitle="Highest estimated matched VWAP PnL (bought + sold in 24h) — wallet · PnL · buyVWAP · sellVWAP"
+            title="Top above-match wallets 24h"
+            subtitle="Highest in-window matched VWAP result $ (research) — wallet · result · buyVWAP · sellVWAP. Not a tax form."
             raw={row["Top Closed Winners 24h"]}
           />
           <WalletLens
-            title="Top closed losers 24h"
-            subtitle="Lowest estimated matched VWAP PnL (bought + sold in 24h)"
+            title="Top below-match wallets 24h"
+            subtitle="Lowest in-window matched VWAP result $ (research). Not a tax form."
             raw={row["Top Closed Losers 24h"]}
           />
         </>
