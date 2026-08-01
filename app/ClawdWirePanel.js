@@ -613,7 +613,7 @@ export default function ClawdWirePanel({
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               gap: "12px",
-              marginBottom: "28px",
+              marginBottom: "10px",
             }}
           >
             <Stat label="Net $ 15m" value={fmtUsd(row["Net USD 15m"])} color={netColor(row["Net USD 15m"])} large />
@@ -621,6 +621,10 @@ export default function ClawdWirePanel({
             <Stat label="Net $ 6h" value={fmtUsd(row["Net USD 6h"])} color={netColor(row["Net USD 6h"])} large />
             <Stat label="Net $ 24h" value={fmtUsd(row["Net USD 24h"])} color={netColor(row["Net USD 24h"])} large />
           </div>
+          <p style={{ margin: "0 0 28px", fontSize: "12px", color: "var(--text-faint)", lineHeight: 1.45 }}>
+            Net $ = buy dollars − sell dollars (flow). Red net means more sell $ than buy $ — not “more losers.”
+            Winners/losers use closed matched-token PnL below (separate meter).
+          </p>
 
           <WindowBlock title="15 minutes" subtitle="Immediate heat">
             <Stat label="Wallets" value={fmtInt(row["Wallets 15m"])} />
@@ -920,6 +924,34 @@ export default function ClawdWirePanel({
             title="Dump hour top buyers"
             subtitle="Wallets that bought the dip in that same hour"
             raw={row["Dump Hour Top Buyers"]}
+          />
+
+          <WindowBlock
+            title="Closed PnL (matched VWAP)"
+            subtitle="Data formula: matched tokens = min(buy amt, sell amt) in-window · PnL = matched × (sell VWAP − buy VWAP) from DEX trade $ and token amounts. Only wallets that both bought and sold in the window. Not FIFO / not tax lots / not the same as net flow."
+          >
+            <Stat label="Winner % 24h" value={fmtPct(row["Winner % 24h"])} large />
+            <Stat label="Winners 24h" value={fmtInt(row["PnL Winners 24h"])} color="var(--read-teal-text)" />
+            <Stat label="Losers 24h" value={fmtInt(row["PnL Losers 24h"])} color="var(--read-coral-text)" />
+            <Stat label="Closed wallets 24h" value={fmtInt(row["Closed Wallets 24h"])} />
+            <Stat label="Closed gains $ 24h" value={fmtUsd(row["Closed Gains $ 24h"])} color="var(--read-teal-text)" large />
+            <Stat label="Closed losses $ 24h" value={fmtUsd(row["Closed Losses $ 24h"])} color="var(--read-coral-text)" large />
+            <Stat label="Net closed PnL $ 24h" value={fmtUsd(row["Net Closed PnL $ 24h"])} color={netColor(row["Net Closed PnL $ 24h"])} large />
+            <Stat label="Winner % 30d" value={fmtPct(row["Winner % 30d"])} />
+            <Stat label="Winners 30d" value={fmtInt(row["PnL Winners 30d"])} />
+            <Stat label="Losers 30d" value={fmtInt(row["PnL Losers 30d"])} />
+            <Stat label="Net closed PnL $ 30d" value={fmtUsd(row["Net Closed PnL $ 30d"])} color={netColor(row["Net Closed PnL $ 30d"])} />
+          </WindowBlock>
+
+          <WalletLens
+            title="Top closed winners 24h"
+            subtitle="Highest matched VWAP PnL (bought + sold in 24h) — shows wallet · PnL · buyVWAP · sellVWAP"
+            raw={row["Top Closed Winners 24h"]}
+          />
+          <WalletLens
+            title="Top closed losers 24h"
+            subtitle="Lowest matched VWAP PnL (bought + sold in 24h)"
+            raw={row["Top Closed Losers 24h"]}
           />
         </>
       )}

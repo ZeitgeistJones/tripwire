@@ -8,6 +8,7 @@
 -- Chunk G: uniformity, vol/move, streaks, flip speed, round-trip rate, diamond hands
 -- Chunk H: timing tape — peak-price hour, nets around peak, worst hour, hourly net strip
 -- Chunk H2: who bought/sold in run-up (hour before+peak) and dump (worst net hour)
+-- Chunk I: matched-token VWAP closed PnL (data formula) — separate from net flow; not FIFO/tax lots
 
 WITH clawd AS (
     SELECT address, name FROM (
@@ -1160,6 +1161,177 @@ runup_dump_lists AS (
         WHERE side = 'sell' AND rn <= 5
         GROUP BY 1, 2
     ) ds ON COALESCE(rb.project, rs.project, db.project) = ds.project
+),
+
+-- Chunk I: closed PnL from data
+-- matched_amt = LEAST(buy_tokens, sell_tokens) in the window
+-- buy_vwap = buy_usd / buy_tokens ; sell_vwap = sell_usd / sell_tokens
+-- closed_pnl_usd = matched_amt * (sell_vwap - buy_vwap)
+-- Only wallets with both buy and sell tokens in-window. Not tax lots / not FIFO across history.
+wallet_flow_30d AS (
+    SELECT
+        project,
+        address,
+        trader,
+        COALESCE(SUM(amount_usd) FILTER (WHERE side = 'buy'), 0) AS buy_usd,
+        COALESCE(SUM(amount_usd) FILTER (WHERE side = 'sell'), 0) AS sell_usd,
+        COALESCE(SUM(clawd_amt) FILTER (WHERE side = 'buy'), 0) AS buy_amt,
+        COALESCE(SUM(clawd_amt) FILTER (WHERE side = 'sell'), 0) AS sell_amt,
+        COALESCE(SUM(amount_usd) FILTER (
+            WHERE side = 'buy' AND block_time >= now() - interval '24' hour
+        ), 0) AS buy_usd_24h,
+        COALESCE(SUM(amount_usd) FILTER (
+            WHERE side = 'sell' AND block_time >= now() - interval '24' hour
+        ), 0) AS sell_usd_24h,
+        COALESCE(SUM(clawd_amt) FILTER (
+            WHERE side = 'buy' AND block_time >= now() - interval '24' hour
+        ), 0) AS buy_amt_24h,
+        COALESCE(SUM(clawd_amt) FILTER (
+            WHERE side = 'sell' AND block_time >= now() - interval '24' hour
+        ), 0) AS sell_amt_24h
+    FROM recent_trades
+    WHERE clawd_amt IS NOT NULL
+      AND clawd_amt > 0
+      AND amount_usd > 0
+    GROUP BY 1, 2, 3
+),
+
+wallet_closed_pnl AS (
+    SELECT
+        project,
+        address,
+        trader,
+        buy_usd,
+        sell_usd,
+        buy_amt,
+        sell_amt,
+        LEAST(buy_amt, sell_amt) AS matched_amt,
+        CASE WHEN buy_amt > 0 THEN buy_usd / buy_amt END AS buy_vwap,
+        CASE WHEN sell_amt > 0 THEN sell_usd / sell_amt END AS sell_vwap,
+        CASE
+            WHEN buy_amt > 0 AND sell_amt > 0 THEN
+                LEAST(buy_amt, sell_amt) * ((sell_usd / sell_amt) - (buy_usd / buy_amt))
+            ELSE NULL
+        END AS closed_pnl_usd,
+        CASE
+            WHEN buy_amt_24h > 0 AND sell_amt_24h > 0 THEN
+                LEAST(buy_amt_24h, sell_amt_24h)
+                * ((sell_usd_24h / sell_amt_24h) - (buy_usd_24h / buy_amt_24h))
+            ELSE NULL
+        END AS closed_pnl_usd_24h,
+        CASE WHEN buy_amt_24h > 0 THEN buy_usd_24h / buy_amt_24h END AS buy_vwap_24h,
+        CASE WHEN sell_amt_24h > 0 THEN sell_usd_24h / sell_amt_24h END AS sell_vwap_24h
+    FROM wallet_flow_30d
+),
+
+pnl_summary AS (
+    SELECT
+        project,
+        address,
+        COUNT(*) FILTER (WHERE closed_pnl_usd IS NOT NULL) AS closed_wallets_30d,
+        COUNT(*) FILTER (WHERE closed_pnl_usd > 0) AS pnl_winners_30d,
+        COUNT(*) FILTER (WHERE closed_pnl_usd < 0) AS pnl_losers_30d,
+        ROUND(COALESCE(SUM(closed_pnl_usd) FILTER (WHERE closed_pnl_usd > 0), 0), 2) AS realized_gains_30d,
+        ROUND(COALESCE(SUM(ABS(closed_pnl_usd)) FILTER (WHERE closed_pnl_usd < 0), 0), 2) AS realized_losses_30d,
+        ROUND(COALESCE(SUM(closed_pnl_usd), 0), 2) AS net_closed_pnl_30d,
+        CASE
+            WHEN COUNT(*) FILTER (WHERE closed_pnl_usd IS NOT NULL) = 0 THEN NULL
+            ELSE ROUND(
+                100.0 * COUNT(*) FILTER (WHERE closed_pnl_usd > 0)
+                / COUNT(*) FILTER (WHERE closed_pnl_usd IS NOT NULL)
+            , 1)
+        END AS winner_pct_30d,
+        COUNT(*) FILTER (WHERE closed_pnl_usd_24h IS NOT NULL) AS closed_wallets_24h,
+        COUNT(*) FILTER (WHERE closed_pnl_usd_24h > 0) AS pnl_winners_24h,
+        COUNT(*) FILTER (WHERE closed_pnl_usd_24h < 0) AS pnl_losers_24h,
+        ROUND(COALESCE(SUM(closed_pnl_usd_24h) FILTER (WHERE closed_pnl_usd_24h > 0), 0), 2) AS realized_gains_24h,
+        ROUND(COALESCE(SUM(ABS(closed_pnl_usd_24h)) FILTER (WHERE closed_pnl_usd_24h < 0), 0), 2) AS realized_losses_24h,
+        ROUND(COALESCE(SUM(closed_pnl_usd_24h), 0), 2) AS net_closed_pnl_24h,
+        CASE
+            WHEN COUNT(*) FILTER (WHERE closed_pnl_usd_24h IS NOT NULL) = 0 THEN NULL
+            ELSE ROUND(
+                100.0 * COUNT(*) FILTER (WHERE closed_pnl_usd_24h > 0)
+                / COUNT(*) FILTER (WHERE closed_pnl_usd_24h IS NOT NULL)
+            , 1)
+        END AS winner_pct_24h
+    FROM wallet_closed_pnl
+    GROUP BY 1, 2
+),
+
+pnl_lists AS (
+    SELECT
+        COALESCE(w.project, l.project) AS project,
+        COALESCE(w.address, l.address) AS address,
+        w.top_winners_24h,
+        l.top_losers_24h
+    FROM (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        '0x', LOWER(to_hex(trader)),
+                        ' · +$', CAST(CAST(ROUND(closed_pnl_usd_24h) AS BIGINT) AS VARCHAR),
+                        ' · buyVWAP ', CAST(ROUND(buy_vwap_24h, 10) AS VARCHAR),
+                        ' · sellVWAP ', CAST(ROUND(sell_vwap_24h, 10) AS VARCHAR)
+                    )
+                    ORDER BY rn
+                ),
+                ' | '
+            ) AS top_winners_24h
+        FROM (
+            SELECT
+                project,
+                address,
+                trader,
+                closed_pnl_usd_24h,
+                buy_vwap_24h,
+                sell_vwap_24h,
+                ROW_NUMBER() OVER (
+                    PARTITION BY project ORDER BY closed_pnl_usd_24h DESC
+                ) AS rn
+            FROM wallet_closed_pnl
+            WHERE closed_pnl_usd_24h IS NOT NULL
+              AND closed_pnl_usd_24h > 0
+        ) x
+        WHERE rn <= 5
+        GROUP BY 1, 2
+    ) w
+    FULL OUTER JOIN (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        '0x', LOWER(to_hex(trader)),
+                        ' · -$', CAST(CAST(ROUND(ABS(closed_pnl_usd_24h)) AS BIGINT) AS VARCHAR),
+                        ' · buyVWAP ', CAST(ROUND(buy_vwap_24h, 10) AS VARCHAR),
+                        ' · sellVWAP ', CAST(ROUND(sell_vwap_24h, 10) AS VARCHAR)
+                    )
+                    ORDER BY rn
+                ),
+                ' | '
+            ) AS top_losers_24h
+        FROM (
+            SELECT
+                project,
+                address,
+                trader,
+                closed_pnl_usd_24h,
+                buy_vwap_24h,
+                sell_vwap_24h,
+                ROW_NUMBER() OVER (
+                    PARTITION BY project ORDER BY closed_pnl_usd_24h ASC
+                ) AS rn
+            FROM wallet_closed_pnl
+            WHERE closed_pnl_usd_24h IS NOT NULL
+              AND closed_pnl_usd_24h < 0
+        ) y
+        WHERE rn <= 5
+        GROUP BY 1, 2
+    ) l ON w.project = l.project
 )
 
 SELECT
@@ -1417,7 +1589,25 @@ SELECT
     COALESCE(dus.buyers, 0) AS "Dump Hour Buyers",
     COALESCE(dus.sellers, 0) AS "Dump Hour Sellers",
     rdl.dump_top_buyers AS "Dump Hour Top Buyers",
-    rdl.dump_top_sellers AS "Dump Hour Top Sellers"
+    rdl.dump_top_sellers AS "Dump Hour Top Sellers",
+
+    -- Chunk I: matched-token VWAP closed PnL (from trade $ + token amounts)
+    COALESCE(ps.closed_wallets_24h, 0) AS "Closed Wallets 24h",
+    COALESCE(ps.pnl_winners_24h, 0) AS "PnL Winners 24h",
+    COALESCE(ps.pnl_losers_24h, 0) AS "PnL Losers 24h",
+    ps.winner_pct_24h AS "Winner % 24h",
+    ps.realized_gains_24h AS "Closed Gains $ 24h",
+    ps.realized_losses_24h AS "Closed Losses $ 24h",
+    ps.net_closed_pnl_24h AS "Net Closed PnL $ 24h",
+    COALESCE(ps.closed_wallets_30d, 0) AS "Closed Wallets 30d",
+    COALESCE(ps.pnl_winners_30d, 0) AS "PnL Winners 30d",
+    COALESCE(ps.pnl_losers_30d, 0) AS "PnL Losers 30d",
+    ps.winner_pct_30d AS "Winner % 30d",
+    ps.realized_gains_30d AS "Closed Gains $ 30d",
+    ps.realized_losses_30d AS "Closed Losses $ 30d",
+    ps.net_closed_pnl_30d AS "Net Closed PnL $ 30d",
+    pl.top_winners_24h AS "Top Closed Winners 24h",
+    pl.top_losers_24h AS "Top Closed Losers 24h"
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project
@@ -1469,4 +1659,8 @@ LEFT JOIN dump_summary dus
     ON COALESCE(ap.project, fp.project) = dus.project
 LEFT JOIN runup_dump_lists rdl
     ON COALESCE(ap.project, fp.project) = rdl.project
+LEFT JOIN pnl_summary ps
+    ON COALESCE(ap.project, fp.project) = ps.project
+LEFT JOIN pnl_lists pl
+    ON COALESCE(ap.project, fp.project) = pl.project
 
