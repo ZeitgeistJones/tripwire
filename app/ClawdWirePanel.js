@@ -869,6 +869,51 @@ export default function ClawdWirePanel({
               <Stat label="Whale flow" value={fmtText(row["Hourly Whale Tape 24h"])} />
             </div>
           </section>
+
+          <WindowBlock
+            title="Run-up window"
+            subtitle="Hour before peak + peak hour — who bought the rip"
+          >
+            <Stat label="Run-up net $" value={fmtUsd(row["Run-up Net $"])} color={netColor(row["Run-up Net $"])} large />
+            <Stat label="Buy $" value={fmtUsd(row["Run-up Buy $"])} color="var(--read-teal-text)" />
+            <Stat label="Sell $" value={fmtUsd(row["Run-up Sell $"])} color="var(--read-coral-text)" />
+            <Stat label="Buyers" value={fmtInt(row["Run-up Buyers"])} />
+            <Stat label="Sellers" value={fmtInt(row["Run-up Sellers"])} />
+          </WindowBlock>
+
+          <WalletLens
+            title="Run-up top buyers"
+            subtitle="Wallets that bought in the hour before peak + peak hour"
+            raw={row["Run-up Top Buyers"]}
+          />
+          <WalletLens
+            title="Run-up top sellers"
+            subtitle="Wallets that sold into the rip (same 2h window)"
+            raw={row["Run-up Top Sellers"]}
+          />
+
+          <WindowBlock
+            title="Dump hour"
+            subtitle="Worst net hour in the last 24h — who sold the dump"
+          >
+            <Stat label="Dump hour net $" value={fmtUsd(row["Dump Hour Net $"])} color={netColor(row["Dump Hour Net $"])} large />
+            <Stat label="Buy $" value={fmtUsd(row["Dump Hour Buy $"])} color="var(--read-teal-text)" />
+            <Stat label="Sell $" value={fmtUsd(row["Dump Hour Sell $"])} color="var(--read-coral-text)" />
+            <Stat label="Buyers" value={fmtInt(row["Dump Hour Buyers"])} />
+            <Stat label="Sellers" value={fmtInt(row["Dump Hour Sellers"])} />
+            <Stat label="Worst hour (UTC)" value={fmtText(row["Worst Net Hour"])} />
+          </WindowBlock>
+
+          <WalletLens
+            title="Dump hour top sellers"
+            subtitle="Wallets that sold in the worst net hour"
+            raw={row["Dump Hour Top Sellers"]}
+          />
+          <WalletLens
+            title="Dump hour top buyers"
+            subtitle="Wallets that bought the dip in that same hour"
+            raw={row["Dump Hour Top Buyers"]}
+          />
         </>
       )}
     </div>

@@ -7,6 +7,7 @@
 -- Chunk F: WoW growth + retention + distribution / heat / flippers
 -- Chunk G: uniformity, wash pressure, streaks, flip speed, wash rate, diamond hands
 -- Chunk H: timing tape — peak-price hour, nets around peak, worst hour, hourly net strip
+-- Chunk H2: who bought/sold in run-up (hour before+peak) and dump (worst net hour)
 
 WITH clawd AS (
     SELECT address, name FROM (
@@ -996,6 +997,169 @@ hourly_tape AS (
         ) AS hourly_whale_tape_24h
     FROM hourly_flow_24h
     GROUP BY 1, 2
+),
+
+-- Run-up = hour before peak + peak hour; Dump = worst net hour
+runup_wallet_side AS (
+    SELECT
+        rt.project,
+        rt.address,
+        rt.trader,
+        rt.side,
+        SUM(rt.amount_usd) AS usd,
+        COUNT(*) AS txs,
+        MAX_BY(rt.tx_hash, rt.amount_usd) AS max_tx,
+        ROW_NUMBER() OVER (
+            PARTITION BY rt.project, rt.side
+            ORDER BY SUM(rt.amount_usd) DESC
+        ) AS rn
+    FROM recent_trades rt
+    INNER JOIN peak_hour p ON rt.project = p.project
+    WHERE rt.block_time >= p.peak_hour - interval '1' hour
+      AND rt.block_time < p.peak_hour + interval '1' hour
+    GROUP BY 1, 2, 3, 4
+),
+
+dump_wallet_side AS (
+    SELECT
+        rt.project,
+        rt.address,
+        rt.trader,
+        rt.side,
+        SUM(rt.amount_usd) AS usd,
+        COUNT(*) AS txs,
+        MAX_BY(rt.tx_hash, rt.amount_usd) AS max_tx,
+        ROW_NUMBER() OVER (
+            PARTITION BY rt.project, rt.side
+            ORDER BY SUM(rt.amount_usd) DESC
+        ) AS rn
+    FROM recent_trades rt
+    INNER JOIN worst_hour w ON rt.project = w.project
+    WHERE rt.block_time >= w.worst_net_hour
+      AND rt.block_time < w.worst_net_hour + interval '1' hour
+    GROUP BY 1, 2, 3, 4
+),
+
+runup_summary AS (
+    SELECT
+        project,
+        address,
+        ROUND(COALESCE(SUM(CASE WHEN side = 'buy' THEN usd END), 0), 2) AS buy_usd,
+        ROUND(COALESCE(SUM(CASE WHEN side = 'sell' THEN usd END), 0), 2) AS sell_usd,
+        ROUND(
+            COALESCE(SUM(CASE WHEN side = 'buy' THEN usd END), 0)
+            - COALESCE(SUM(CASE WHEN side = 'sell' THEN usd END), 0)
+        , 2) AS net_usd,
+        COUNT(DISTINCT CASE WHEN side = 'buy' THEN trader END) AS buyers,
+        COUNT(DISTINCT CASE WHEN side = 'sell' THEN trader END) AS sellers
+    FROM runup_wallet_side
+    GROUP BY 1, 2
+),
+
+dump_summary AS (
+    SELECT
+        project,
+        address,
+        ROUND(COALESCE(SUM(CASE WHEN side = 'buy' THEN usd END), 0), 2) AS buy_usd,
+        ROUND(COALESCE(SUM(CASE WHEN side = 'sell' THEN usd END), 0), 2) AS sell_usd,
+        ROUND(
+            COALESCE(SUM(CASE WHEN side = 'buy' THEN usd END), 0)
+            - COALESCE(SUM(CASE WHEN side = 'sell' THEN usd END), 0)
+        , 2) AS net_usd,
+        COUNT(DISTINCT CASE WHEN side = 'buy' THEN trader END) AS buyers,
+        COUNT(DISTINCT CASE WHEN side = 'sell' THEN trader END) AS sellers
+    FROM dump_wallet_side
+    GROUP BY 1, 2
+),
+
+runup_dump_lists AS (
+    SELECT
+        COALESCE(rb.project, rs.project, db.project, ds.project) AS project,
+        COALESCE(rb.address, rs.address, db.address, ds.address) AS address,
+        rb.top_buyers AS runup_top_buyers,
+        rs.top_sellers AS runup_top_sellers,
+        db.top_buyers AS dump_top_buyers,
+        ds.top_sellers AS dump_top_sellers
+    FROM (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        '0x', LOWER(to_hex(trader)),
+                        ' · $', CAST(CAST(ROUND(usd) AS BIGINT) AS VARCHAR),
+                        ' · ', CAST(txs AS VARCHAR), 'tx',
+                        ' · tx0x', LOWER(to_hex(max_tx))
+                    )
+                    ORDER BY rn
+                ),
+                ' | '
+            ) AS top_buyers
+        FROM runup_wallet_side
+        WHERE side = 'buy' AND rn <= 5
+        GROUP BY 1, 2
+    ) rb
+    FULL OUTER JOIN (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        '0x', LOWER(to_hex(trader)),
+                        ' · $', CAST(CAST(ROUND(usd) AS BIGINT) AS VARCHAR),
+                        ' · ', CAST(txs AS VARCHAR), 'tx',
+                        ' · tx0x', LOWER(to_hex(max_tx))
+                    )
+                    ORDER BY rn
+                ),
+                ' | '
+            ) AS top_sellers
+        FROM runup_wallet_side
+        WHERE side = 'sell' AND rn <= 5
+        GROUP BY 1, 2
+    ) rs ON rb.project = rs.project
+    FULL OUTER JOIN (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        '0x', LOWER(to_hex(trader)),
+                        ' · $', CAST(CAST(ROUND(usd) AS BIGINT) AS VARCHAR),
+                        ' · ', CAST(txs AS VARCHAR), 'tx',
+                        ' · tx0x', LOWER(to_hex(max_tx))
+                    )
+                    ORDER BY rn
+                ),
+                ' | '
+            ) AS top_buyers
+        FROM dump_wallet_side
+        WHERE side = 'buy' AND rn <= 5
+        GROUP BY 1, 2
+    ) db ON COALESCE(rb.project, rs.project) = db.project
+    FULL OUTER JOIN (
+        SELECT
+            project,
+            address,
+            array_join(
+                array_agg(
+                    CONCAT(
+                        '0x', LOWER(to_hex(trader)),
+                        ' · $', CAST(CAST(ROUND(usd) AS BIGINT) AS VARCHAR),
+                        ' · ', CAST(txs AS VARCHAR), 'tx',
+                        ' · tx0x', LOWER(to_hex(max_tx))
+                    )
+                    ORDER BY rn
+                ),
+                ' | '
+            ) AS top_sellers
+        FROM dump_wallet_side
+        WHERE side = 'sell' AND rn <= 5
+        GROUP BY 1, 2
+    ) ds ON COALESCE(rb.project, rs.project, db.project) = ds.project
 )
 
 SELECT
@@ -1237,7 +1401,23 @@ SELECT
     bh.best_hour_net AS "Best Hour Net $",
     bh.whale_net_at_best_hour AS "Whale Net At Best Hour",
     ht.hourly_net_tape_24h AS "Hourly Net Tape 24h",
-    ht.hourly_whale_tape_24h AS "Hourly Whale Tape 24h"
+    ht.hourly_whale_tape_24h AS "Hourly Whale Tape 24h",
+
+    -- Chunk H2: who in run-up vs dump hour
+    rus.buy_usd AS "Run-up Buy $",
+    rus.sell_usd AS "Run-up Sell $",
+    rus.net_usd AS "Run-up Net $",
+    COALESCE(rus.buyers, 0) AS "Run-up Buyers",
+    COALESCE(rus.sellers, 0) AS "Run-up Sellers",
+    rdl.runup_top_buyers AS "Run-up Top Buyers",
+    rdl.runup_top_sellers AS "Run-up Top Sellers",
+    dus.buy_usd AS "Dump Hour Buy $",
+    dus.sell_usd AS "Dump Hour Sell $",
+    dus.net_usd AS "Dump Hour Net $",
+    COALESCE(dus.buyers, 0) AS "Dump Hour Buyers",
+    COALESCE(dus.sellers, 0) AS "Dump Hour Sellers",
+    rdl.dump_top_buyers AS "Dump Hour Top Buyers",
+    rdl.dump_top_sellers AS "Dump Hour Top Sellers"
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project
@@ -1283,4 +1463,10 @@ LEFT JOIN best_hour bh
     ON COALESCE(ap.project, fp.project) = bh.project
 LEFT JOIN hourly_tape ht
     ON COALESCE(ap.project, fp.project) = ht.project
+LEFT JOIN runup_summary rus
+    ON COALESCE(ap.project, fp.project) = rus.project
+LEFT JOIN dump_summary dus
+    ON COALESCE(ap.project, fp.project) = dus.project
+LEFT JOIN runup_dump_lists rdl
+    ON COALESCE(ap.project, fp.project) = rdl.project
 
