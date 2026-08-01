@@ -875,7 +875,7 @@ function ProfSignalKey() {
 }
 
 
-export default function DashboardTable({ data, discoveryData = [], lastUpdated, snapshotBuiltAt = null }) {
+export default function DashboardTable({ data, discoveryData = [], lastUpdated, pricesUpdatedAt = null, snapshotBuiltAt = null }) {
   const [activeTab, setActiveTab] = useState("Overview");
   const [sortKey, setSortKey] = useState("Opp");
   const [sortDir, setSortDir] = useState("desc");
@@ -1500,7 +1500,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
       {isTripwire ? (
         <WireBanner />
       ) : (
-        <StatusBanner lastUpdated={lastUpdated} snapshotBuiltAt={snapshotBuiltAt} />
+        <StatusBanner
+          lastUpdated={lastUpdated}
+          pricesUpdatedAt={pricesUpdatedAt}
+          snapshotBuiltAt={snapshotBuiltAt}
+        />
       )}
 
       <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>

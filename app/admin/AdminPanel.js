@@ -99,6 +99,7 @@ function Segmented({ options, value, onChange, ariaLabel }) {
 export default function AdminPanel({
   rows: initialRows = [],
   scoresLastUpdated: initialScoresLastUpdated = null,
+  pricesUpdatedAt: initialPricesUpdatedAt = null,
   snapshotBuiltAt: initialBuiltAt = null,
 }) {
   const [secret, setSecret] = useState("");
@@ -116,6 +117,7 @@ export default function AdminPanel({
   const [behHistory, setBehHistory] = useState([]);
   const [rows, setRows] = useState(initialRows);
   const [scoresLastUpdated, setScoresLastUpdated] = useState(initialScoresLastUpdated);
+  const [pricesUpdatedAt, setPricesUpdatedAt] = useState(initialPricesUpdatedAt);
   const [snapshotBuiltAt, setSnapshotBuiltAt] = useState(initialBuiltAt);
   const [dataRefreshing, setDataRefreshing] = useState(false);
 
@@ -189,11 +191,14 @@ export default function AdminPanel({
   );
   const kindMeta = SHARE_PROMPT_KINDS.find((k) => k.value === promptKind);
 
-  const refreshDashboard = async ({ silent = false, readOnly = false } = {}) => {
+  const refreshDashboard = async ({ silent = false, readOnly = false, mode = "prices" } = {}) => {
     if (!secret) return;
     if (!silent) setDataRefreshing(true);
     try {
-      const qs = readOnly ? "?read=1" : "";
+      const params = new URLSearchParams();
+      if (readOnly) params.set("read", "1");
+      else if (mode === "dune") params.set("mode", "dune");
+      const qs = params.toString() ? `?${params}` : "";
       const res = await fetch(`/api/admin/dashboard-snapshot${qs}`, {
         headers: { "x-admin-secret": secret },
         cache: "no-store",
@@ -206,9 +211,10 @@ export default function AdminPanel({
       if (!res.ok) throw new Error(j.error || "Failed to refresh dashboard snapshot");
       if (Array.isArray(j.rows)) setRows(j.rows);
       if (j.lastUpdated != null) setScoresLastUpdated(j.lastUpdated);
+      if (j.pricesUpdatedAt != null) setPricesUpdatedAt(j.pricesUpdatedAt);
       if (j.builtAt != null) setSnapshotBuiltAt(j.builtAt);
       if (!silent) {
-        setStatus("data_refreshed");
+        setStatus(mode === "dune" ? "dune_pulled" : "prices_refreshed");
         setTimeout(() => setStatus(null), 2500);
       }
     } catch (e) {
@@ -344,6 +350,7 @@ export default function AdminPanel({
       const nextRows = Array.isArray(j.rows) ? j.rows : rows;
       if (Array.isArray(j.rows)) setRows(j.rows);
       if (j.lastUpdated != null) setScoresLastUpdated(j.lastUpdated);
+      if (j.pricesUpdatedAt != null) setPricesUpdatedAt(j.pricesUpdatedAt);
       if (j.builtAt != null) setSnapshotBuiltAt(j.builtAt);
       const row = nextRows.find(
         (r) => (r.Address || "").toLowerCase() === promptAddress.toLowerCase()
@@ -401,7 +408,7 @@ export default function AdminPanel({
       : null;
 
   const busy = status === "generating" || status === "forcing" || status === "posting" || status === "checking" || dataRefreshing;
-  const okStatuses = ["posted", "generated", "cached", "data_refreshed"];
+  const okStatuses = ["posted", "generated", "cached", "data_refreshed", "prices_refreshed", "dune_pulled"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -459,12 +466,21 @@ export default function AdminPanel({
               </Link>
               <button
                 type="button"
-                onClick={() => refreshDashboard()}
+                onClick={() => refreshDashboard({ mode: "prices" })}
                 disabled={dataRefreshing}
                 style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px", cursor: dataRefreshing ? "wait" : "pointer" }}
-                title="Pull latest Dune results + prices and publish to Upstash (site + banner + admin all read this)"
+                title="CoinGecko/Dex prices only — no Dune credits. Recomputes signals that use price."
               >
-                {dataRefreshing ? "Refreshing snapshot…" : "Refresh snapshot"}
+                {dataRefreshing ? "Refreshing…" : "Refresh prices"}
+              </button>
+              <button
+                type="button"
+                onClick={() => refreshDashboard({ mode: "dune" })}
+                disabled={dataRefreshing}
+                style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px", cursor: dataRefreshing ? "wait" : "pointer" }}
+                title="Pull latest Dune results + prices (~2 Result Read credits). Use after you re-run the Dune query."
+              >
+                Pull Dune
               </button>
               <button type="button" onClick={lock} style={{ ...secondaryBtn, padding: "4px 10px", fontSize: "11px" }}>
                 Lock
@@ -558,6 +574,9 @@ export default function AdminPanel({
                 {scoresLastUpdated
                   ? ` · scores as of ${new Date(scoresLastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
                   : ""}
+                {pricesUpdatedAt
+                  ? ` · prices ${new Date(pricesUpdatedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
+                  : ""}
                 {moversStatus && (
                   <div style={{ marginTop: "4px" }}>
                     Movers {promptWindow === "all" ? "7d" : promptWindow}:{" "}
@@ -602,7 +621,7 @@ export default function AdminPanel({
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
               Same plain-text copies that used to live on the public CLAWD tab. Uses the token selected above.
-              All &quot;as of&quot; times and numbers come from the current admin snapshot — hit <strong style={{ color: "var(--text-muted)" }}>Refresh snapshot</strong> after a new Dune run.
+              Numbers come from the shared Upstash snapshot. Use <strong style={{ color: "var(--text-muted)" }}>Refresh prices</strong> anytime (free of Dune credits). Use <strong style={{ color: "var(--text-muted)" }}>Pull Dune</strong> only after you re-run the Dune query.
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
               <button
@@ -677,7 +696,9 @@ export default function AdminPanel({
                 {status === "posted" ? "✓ Manual report saved"
                   : status === "generated" ? "✓ Report generated"
                   : status === "cached" ? "✓ Already up to date (no API call)"
-                  : status === "data_refreshed" ? "✓ Shared snapshot published (site + admin aligned)"
+                  : status === "prices_refreshed" ? "✓ Prices refreshed (no Dune credits)"
+                  : status === "dune_pulled" ? "✓ Dune + prices published to shared snapshot"
+                  : status === "data_refreshed" ? "✓ Shared snapshot published"
                   : status}
               </span>
             )}

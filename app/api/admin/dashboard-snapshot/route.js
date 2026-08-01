@@ -1,4 +1,4 @@
-import { getDashboardData, getDashboardDataFresh } from "@/lib/getData";
+import { getDashboardData, getDashboardDataFresh, refreshDashboardPrices } from "@/lib/getData";
 
 export const dynamic = "force-dynamic";
 
@@ -7,8 +7,9 @@ function unauthorized() {
 }
 
 /**
- * ?read=1 → return the shared Upstash snapshot (no Dune rebuild).
- * default → rebuild from Dune + prices and publish (Admin "Refresh snapshot").
+ * ?read=1     → shared Upstash snapshot (no rebuild)
+ * ?mode=dune  → Dune Result Read + prices (costs ~2 credits)
+ * default     → prices only on existing snapshot (no Dune credits)
  */
 export async function GET(req) {
   const secret = req.headers.get("x-admin-secret") || "";
@@ -18,10 +19,21 @@ export async function GET(req) {
   try {
     const url = new URL(req.url);
     const readOnly = url.searchParams.get("read") === "1";
-    const data = readOnly ? await getDashboardData() : await getDashboardDataFresh();
+    const mode = url.searchParams.get("mode");
+
+    let data;
+    if (readOnly) {
+      data = await getDashboardData();
+    } else if (mode === "dune") {
+      data = await getDashboardDataFresh();
+    } else {
+      data = await refreshDashboardPrices();
+    }
+
     return Response.json({
       rows: data.rows,
       lastUpdated: data.lastUpdated,
+      pricesUpdatedAt: data.pricesUpdatedAt ?? null,
       builtAt: data.builtAt ?? null,
     });
   } catch (err) {
