@@ -1588,7 +1588,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   });
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} style={{ width: "100%" }}>
       {isTripwire ? (
         <WireBanner />
       ) : isClawdWire ? (

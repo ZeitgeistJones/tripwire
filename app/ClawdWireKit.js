@@ -20,7 +20,8 @@ import {
  *   green  = CLAWD identity + the primary action, nothing else
  * Everything else is greyscale. Motion only ever marks a value that changed.
  *
- * `.cw-root` can nudge local tokens (brighter labels) without affecting Snapshot.
+ * Inherit site theme tokens — never force light cream onto dark skins.
+ * Full-width shell matches the page chrome above it.
  *
  * Every class is `cw-` prefixed and the stylesheet is injected by the panel,
  * so nothing here can leak into Tripwire's other pages.
@@ -28,122 +29,74 @@ import {
 
 export const CLAWDWIRE_CSS = `
 .cw-root {
-  max-width: 1180px;
-  /* Light: one step stronger label contrast than global cream theme */
-  --text-muted: #4a4740;
-  --text-faint: #6e6b63;
-  --text-xfaint: #9a968c;
-  --bg-subtle: #efece6;
-  --bg-muted: #e6e2da;
-  --border: #d4d0c6;
-  --border-strong: #b8b3a6;
-}
-[data-theme="wire"] .cw-root,
-[data-theme="dark"] .cw-root,
-[data-theme="minimal"] .cw-root,
-[data-theme="volt"] .cw-root,
-[data-theme="tide"] .cw-root,
-[data-theme="ember"] .cw-root,
-[data-theme="ink"] .cw-root {
-  /* Inherit site look; nudge Wire labels a touch brighter on dark skins */
-  --text-muted: color-mix(in srgb, var(--text-muted) 70%, var(--text) 30%);
-  --text-faint: color-mix(in srgb, var(--text-faint) 65%, var(--text-muted) 35%);
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 .cw-mono {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
-/* Display figures stay in the UI face but keep fixed-width digits so a
-   ticking net-flow number never reflows its neighbours. */
 .cw-display {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   font-weight: 800;
-  line-height: 1;
+  line-height: 0.95;
 }
-
-/* ── Shell + pulse cockpit ────────────────────────────────────────────── */
 .cw-shell {
+  width: 100%;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--clawd-row-border);
-  border-radius: 12px;
-  background: var(--bg-subtle);
+  border-radius: 14px;
+  background: var(--bg);
   overflow: hidden;
 }
 .cw-pulse {
-  padding: 18px 20px 16px;
-  background:
-    radial-gradient(ellipse 80% 60% at 12% 0%, rgba(122, 168, 90, 0.12) 0%, transparent 55%),
-    linear-gradient(180deg, var(--bg-subtle) 0%, var(--bg) 100%);
+  padding: 20px 22px 18px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
 }
 .cw-hero-top {
   display: flex; flex-wrap: wrap; align-items: baseline;
-  gap: 6px 14px; margin-bottom: 16px;
+  gap: 6px 14px; margin-bottom: 18px;
 }
 .cw-net {
   display: grid;
-  gap: 14px 18px;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  align-items: start;
+  gap: 14px 20px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: stretch;
 }
 .cw-ticker {
-  font-size: 26px; font-weight: 800; letter-spacing: -0.02em;
+  font-size: 28px; font-weight: 800; letter-spacing: -0.03em;
   color: var(--text); line-height: 1;
 }
-.cw-chips {
-  display: grid; gap: 8px; margin-top: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
-}
-/* Story strip — 3 shareable pulse metrics beside net flow on desktop. */
 .cw-story {
   display: grid; gap: 10px;
   grid-template-columns: 1fr;
+  height: 100%;
 }
 .cw-story-cell {
   border: 1px solid var(--border); border-radius: 10px;
-  background: var(--bg); padding: 14px 14px 12px; min-width: 0;
+  background: var(--bg); padding: 12px 14px 11px; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center;
 }
 .cw-story-label {
   font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text-faint);
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .cw-story-value {
-  font-size: clamp(26px, 3.6vw, 34px); font-weight: 800;
+  font-size: clamp(22px, 2.8vw, 30px); font-weight: 800;
   letter-spacing: -0.03em; line-height: 1.05;
 }
-.cw-story-note { font-size: 11px; color: var(--text-faint); margin-top: 8px; line-height: 1.4; }
-.cw-shape-secondary {
-  margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center;
-  gap: 8px 14px; padding: 8px 12px; border-radius: 8px;
-  border: 1px solid var(--border); border-left: 2px solid var(--read-amber-text);
-  background: var(--bg-muted); font-size: 12px; color: var(--text-muted);
-}
-.cw-chip {
-  border: 1px solid var(--border); border-radius: 8px;
-  background: var(--bg); padding: 10px 12px; min-width: 0;
-}
-.cw-chip[data-suspect="true"] { border-left: 2px solid var(--read-amber-text); }
-.cw-chip-head {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; margin-bottom: 6px;
-}
-.cw-chip-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.09em;
-  text-transform: uppercase; color: var(--text-faint);
-}
+.cw-story-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.35; }
 .cw-chip-band {
   font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
   text-transform: uppercase; white-space: nowrap;
   display: inline-flex; align-items: center; gap: 5px;
 }
-.cw-chip-value { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
-.cw-chip-note { font-size: 10.5px; color: var(--text-faint); margin-top: 5px; line-height: 1.4; }
-
-/* ── Token picker ─────────────────────────────────────────────────────── */
 .cw-tokenpick { position: relative; display: inline-flex; }
 .cw-tokenpick-btn {
   appearance: none; background: transparent; border: none; padding: 0;
@@ -196,199 +149,133 @@ export const CLAWDWIRE_CSS = `
 .cw-tokenpick-note {
   font-size: 10px; color: var(--text-xfaint); padding: 0 4px 2px; line-height: 1.45;
 }
-
-/* ── Command rail (sticky control surface) ────────────────────────────── */
 .cw-rail {
-  position: sticky; top: 0; z-index: 30;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 40;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
   background: var(--bg-muted);
-  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
   transition: box-shadow 160ms ease;
 }
-.cw-rail[data-stuck="true"] {
-  box-shadow: 0 6px 18px rgba(0,0,0,0.22);
-}
-
-/* ── Chapter tabs ─────────────────────────────────────────────────────── */
+.cw-rail[data-stuck="true"] { box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.cw-rail-spacer { flex: 1 1 8px; }
 .cw-chapters {
-  position: sticky; top: 52px; z-index: 25;
   display: flex; flex-wrap: wrap; gap: 6px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
   background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 52px; z-index: 35;
 }
 .cw-chapters button {
-  appearance: none; cursor: pointer;
-  border: 1px solid var(--border); border-radius: 999px;
-  background: transparent; color: var(--text-muted);
-  font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
-  padding: 6px 14px; min-height: 32px;
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  appearance: none; cursor: pointer; border-radius: 999px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-muted); font: inherit; font-size: 12.5px; font-weight: 650;
+  padding: 7px 14px; min-height: 34px;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-.cw-chapters button:hover { color: var(--text); border-color: var(--border-strong); }
+.cw-chapters button:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-muted); }
 .cw-chapters button[aria-selected="true"] {
-  background: var(--clawd-row-border); border-color: var(--clawd-row-border);
-  color: #0f140c;
+  background: var(--btn-active-bg);
+  border-color: var(--btn-active-bg);
+  color: var(--btn-active-text);
 }
-
-/* ── Chapter body ─────────────────────────────────────────────────────── */
-.cw-body { padding: 18px 20px 22px; }
+.cw-body { padding: 18px 18px 24px; width: 100%; box-sizing: border-box; }
 .cw-chapter-head {
   font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text);
   margin: 0 0 6px;
 }
 .cw-chapter-sub {
-  font-size: 12px; color: var(--text-muted); margin: 0 0 14px;
-  line-height: 1.5; max-width: 780px;
+  font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px;
+  line-height: 1.45; max-width: 720px;
 }
 .cw-wallet-grid {
-  display: grid; gap: 14px 16px;
+  display: grid; gap: 12px 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
-.cw-note {
-  margin: 10px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.45;
-}
+.cw-note { margin: 10px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.45; }
 .cw-note[data-tone="pos"] { color: var(--read-teal-text); }
 .cw-note[data-tone="neg"] { color: var(--read-coral-text); }
 .cw-alert {
-  margin: 0; padding: 10px 14px;
-  border-top: 1px solid var(--border);
-  font-size: 12px; color: var(--text); line-height: 1.45;
+  margin: 0; padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px; color: var(--text); line-height: 1.45;
 }
 .cw-alert[data-tone="caution"] {
-  border-color: var(--read-amber-text);
-  background: rgba(232, 168, 56, 0.08);
+  background: var(--read-amber-bg);
+  color: var(--read-amber-text);
 }
-.cw-alert[data-tone="neg"] { color: var(--read-coral-text); }
-.cw-alert[data-tone="pos"] { color: var(--read-teal-text); }
 .cw-empty {
-  margin: 0; padding: 28px 20px;
-  border-top: 1px dashed var(--border);
+  margin: 0; padding: 36px 20px;
   text-align: center; color: var(--text-muted); font-size: 13px;
 }
-.cw-empty-title {
-  font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px;
-}
-.cw-empty-body {
-  max-width: 460px; margin: 0 auto; line-height: 1.55;
-}
-.cw-empty-foot {
-  margin-top: 10px; font-size: 11.5px; color: var(--text-xfaint);
-}
-.cw-rail-spacer { flex: 1 1 12px; }
-.cw-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; }
+.cw-empty-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.cw-empty-body { max-width: 460px; margin: 0 auto; line-height: 1.55; }
+.cw-empty-foot { margin-top: 10px; font-size: 11.5px; color: var(--text-xfaint); }
+.cw-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
 .cw-seg button {
   appearance: none; border: none; background: transparent; cursor: pointer;
-  padding: 6px 13px; font-size: 12px; font-weight: 700; color: var(--text-muted);
+  padding: 6px 12px; font-size: 12px; font-weight: 700; color: var(--text-muted);
   min-height: 32px; letter-spacing: 0.01em;
 }
 .cw-seg button + button { border-left: 1px solid var(--border); }
 .cw-seg button:hover { color: var(--text); background: var(--bg-subtle); }
-.cw-seg button[aria-pressed="true"] { background: var(--bg); color: var(--text); }
+.cw-seg button[aria-pressed="true"] {
+  background: var(--btn-active-bg); color: var(--btn-active-text);
+}
 .cw-seg-sm button { padding: 5px 10px; font-size: 11px; min-height: 28px; }
-
-/* Net flow + window control as one causal unit */
 .cw-flow-window {
-  max-width: 520px;
-  padding: 14px 16px 16px;
+  width: 100%;
+  padding: 16px 18px 18px;
   border: 1px solid var(--border-strong);
   border-radius: 12px;
-  background: linear-gradient(180deg, var(--bg-subtle) 0%, var(--bg) 70%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  background: var(--bg);
+  box-sizing: border-box;
 }
 .cw-flow-window-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px 16px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
 }
 .cw-flow-window-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-faint);
 }
 .cw-flow-window-hint {
-  margin-top: 3px;
-  font-size: 11px;
-  color: var(--text-xfaint);
-  line-height: 1.35;
-  max-width: 220px;
-}
-.cw-flow-window .cw-seg button[aria-pressed="true"] {
-  background: var(--clawd-row-border);
-  color: #0f140c;
-  border-color: transparent;
+  margin-top: 3px; font-size: 11px; color: var(--text-muted); line-height: 1.35;
 }
 .cw-btn {
-  appearance: none; cursor: pointer; border-radius: 7px;
+  appearance: none; cursor: pointer; border-radius: 8px;
   font-weight: 700; font-size: 12px; min-height: 32px; padding: 7px 14px;
   border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted);
 }
 .cw-btn:hover:not(:disabled) { color: var(--text); border-color: var(--text-faint); }
 .cw-btn-primary {
-  border-color: var(--clawd-row-border); background: var(--clawd-row-border); color: #0f140c;
+  border-color: var(--btn-active-bg); background: var(--btn-active-bg); color: var(--btn-active-text);
 }
-.cw-btn-primary:hover:not(:disabled) { filter: brightness(1.08); color: #0f140c; }
+.cw-btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
 .cw-btn:disabled { cursor: not-allowed; opacity: 0.55; }
-
-/* ── Pressure bar ─────────────────────────────────────────────────────── */
 .cw-pressure { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--bg-muted); }
 .cw-pressure > i { display: block; height: 100%; transition: width 420ms ease; }
 .cw-pressure-buy { background: var(--read-teal-text); }
 .cw-pressure-sell { background: var(--read-coral-text); }
-
-/* ── Sections ─────────────────────────────────────────────────────────── */
-.cw-section { margin-top: 26px; }
-.cw-sechead {
-  width: 100%; display: flex; align-items: center; gap: 12px;
-  appearance: none; background: transparent; border: none; padding: 0 0 9px;
-  text-align: left; color: inherit; font: inherit;
-}
-.cw-sechead[data-interactive="true"] { cursor: pointer; }
-.cw-sechead[data-interactive="true"]:hover .cw-sectitle { color: var(--clawd-row-border); }
-.cw-secidx { font-size: 11px; font-weight: 700; color: var(--text-faint); letter-spacing: 0.04em; }
-.cw-sectitle {
-  font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text); white-space: nowrap;
-  transition: color 120ms ease;
-}
-.cw-secrule { flex: 1 1 20px; height: 1px; background: var(--border); }
-.cw-sechl {
-  font-size: 11.5px; color: var(--text-muted); white-space: nowrap;
-  min-width: 0; overflow: hidden; text-overflow: ellipsis;
+.cw-subhead {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
 }
 .cw-secchev {
   font-size: 10px; color: var(--text-muted); transition: transform 200ms ease;
   display: inline-block; width: 12px; text-align: center;
 }
-.cw-sechead[aria-expanded="false"] .cw-secchev,
 .cw-disc-head[aria-expanded="false"] .cw-secchev { transform: rotate(-90deg); }
-.cw-secsub { font-size: 12px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; max-width: 780px; }
-.cw-subhead {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
-}
 .cw-collapse { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
 .cw-collapse[data-open="true"] { grid-template-rows: 1fr; }
-/* visibility (not just zero height) so links inside a collapsed section stay
-   out of the tab order and out of the accessibility tree. It flips to hidden
-   only at the end of the transition, so the close still animates. */
 .cw-collapse > .cw-collapse-inner {
   overflow: hidden; min-height: 0;
   visibility: hidden; transition: visibility 220ms ease;
 }
 .cw-collapse[data-open="true"] > .cw-collapse-inner { visibility: visible; }
-
-/* ── Disclosure (nested) — bordered control, not a faint hairline ─────── */
-.cw-disc { margin-top: 14px; }
+.cw-disc { margin-top: 12px; }
 .cw-disc-head {
   appearance: none;
   display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -397,15 +284,11 @@ export const CLAWDWIRE_CSS = `
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--bg-muted);
-  transition: border-color 140ms ease, background 140ms ease;
+  box-sizing: border-box;
 }
-.cw-disc-head:hover {
-  border-color: var(--clawd-row-border);
-  background: var(--bg-subtle);
-}
+.cw-disc-head:hover { border-color: var(--clawd-row-border); background: var(--bg-subtle); }
 .cw-disc-head[aria-expanded="true"] {
-  border-color: var(--clawd-row-border);
-  background: var(--clawd-row-bg);
+  border-color: var(--clawd-row-border); background: var(--clawd-row-bg);
 }
 .cw-disc-title {
   font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
@@ -415,23 +298,19 @@ export const CLAWDWIRE_CSS = `
 .cw-disc-count { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .cw-disc-head .cw-secchev { font-size: 10px; color: var(--text-muted); }
 .cw-disc .cw-collapse[data-open="true"] { margin-top: 10px; }
-
-/* ── Matrix ───────────────────────────────────────────────────────────── */
 .cw-matrix-wrap {
   overflow-x: auto; border: 1px solid var(--border);
-  border-radius: 10px; background: var(--bg-subtle);
+  border-radius: 10px; background: var(--bg-subtle); width: 100%;
 }
-/* Fixed layout keeps every window column the same width, so a value's position
-   in the row is meaningful rather than an artefact of content length. */
 .cw-matrix { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 560px; }
 .cw-matrix .cw-rowhead { width: 190px; }
 .cw-matrix th, .cw-matrix td {
-  padding: 7px 14px; text-align: right; white-space: nowrap;
+  padding: 8px 14px; text-align: right; white-space: nowrap;
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
 }
 .cw-matrix thead th {
   font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
-  color: var(--text-faint); border-bottom: 1px solid var(--border); padding-top: 9px; padding-bottom: 9px;
+  color: var(--text-faint); border-bottom: 1px solid var(--border); padding-top: 10px; padding-bottom: 10px;
 }
 .cw-matrix thead th[data-active="true"] { color: var(--text); }
 .cw-matrix td { font-size: 12.5px; color: var(--text); }
@@ -447,17 +326,14 @@ export const CLAWDWIRE_CSS = `
 .cw-matrix tr[data-emph="true"] .cw-rowhead { color: var(--text); font-weight: 700; }
 .cw-matrix td[data-active="true"] { background: var(--bg-muted); }
 .cw-matrix tbody tr:hover td[data-active="true"] { background: var(--bg); }
-
-/* ── Stat strip ───────────────────────────────────────────────────────── */
-/* Separators are drawn as inset shadows on the cells themselves, so a partly
-   filled last row leaves clean empty space instead of a slab of border colour. */
 .cw-strip {
   display: grid; background: var(--bg-subtle);
   border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  width: 100%;
 }
 .cw-strip > div {
-  padding: 9px 12px; min-width: 0;
+  padding: 10px 12px; min-width: 0;
   box-shadow: inset -1px 0 0 var(--border), inset 0 -1px 0 var(--border);
 }
 .cw-strip-label {
@@ -468,9 +344,8 @@ export const CLAWDWIRE_CSS = `
 .cw-strip-value {
   font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  color: var(--text);
 }
-
-/* ── Ladder (survival curve) ──────────────────────────────────────────── */
 .cw-ladder { display: flex; flex-direction: column; gap: 7px; }
 .cw-ladder-row { display: flex; align-items: center; gap: 12px; }
 .cw-ladder-key {
@@ -486,9 +361,7 @@ export const CLAWDWIRE_CSS = `
   font-size: 12.5px; font-weight: 700; width: 58px; flex: 0 0 58px; text-align: right;
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
 }
-
-/* ── Hourly tape ──────────────────────────────────────────────────────── */
-.cw-tape-wrap { overflow-x: auto; }
+.cw-tape-wrap { overflow-x: auto; width: 100%; }
 .cw-tape {
   display: flex; align-items: stretch; gap: 2px;
   min-width: 480px; height: 132px; position: relative;
@@ -500,7 +373,6 @@ export const CLAWDWIRE_CSS = `
 .cw-tape-col:hover { background: var(--bg-muted); }
 .cw-tape-half { flex: 1 1 50%; display: flex; min-height: 0; }
 .cw-tape-half-up { align-items: flex-end; }
-/* A quiet hour is still an hour that traded — never let a bar round away to nothing. */
 .cw-tape-bar { width: 100%; border-radius: 2px; min-height: 2px; transition: height 420ms ease; }
 .cw-tape-up { background: var(--read-teal-text); }
 .cw-tape-down { background: var(--read-coral-text); }
@@ -525,8 +397,6 @@ export const CLAWDWIRE_CSS = `
   display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 9px;
   font-size: 10px; color: var(--text-xfaint);
 }
-
-/* ── Suspect marking ──────────────────────────────────────────────────── */
 .cw-badge-suspect {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
@@ -542,27 +412,6 @@ export const CLAWDWIRE_CSS = `
   font-size: 11px; color: var(--read-amber-text); line-height: 1.5;
   margin: 0 0 11px; display: flex; align-items: flex-start; gap: 8px;
 }
-
-/* ── Wallet lens ──────────────────────────────────────────────────────── */
-.cw-wallet-stack { margin-bottom: 0; }
-.cw-wallet-stack-head {
-  display: flex; align-items: baseline; gap: 10px;
-  margin-bottom: 7px; flex-wrap: wrap;
-}
-.cw-wallet-stack-title {
-  margin: 0; font-size: 12px; font-weight: 700;
-  color: var(--text); letter-spacing: 0.02em;
-}
-.cw-wallet-stack-sub {
-  font-size: 10.5px; color: var(--text-xfaint);
-}
-.cw-wallet-stack-empty {
-  font-size: 12px; color: var(--text-faint);
-  padding: 9px 12px; border: 1px dashed var(--border); border-radius: 8px;
-}
-.cw-wallet-stack-rows {
-  display: flex; flex-direction: column; gap: 5px;
-}
 .cw-wallet {
   display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
   padding: 9px 12px; background: var(--bg-subtle);
@@ -573,8 +422,7 @@ export const CLAWDWIRE_CSS = `
 .cw-wallet-rank { font-size: 10px; font-weight: 700; color: var(--text-xfaint); min-width: 16px; }
 .cw-wallet a { text-decoration: none; }
 .cw-wallet a:hover { text-decoration: underline; }
-
-/* ── Live dot + value flash ───────────────────────────────────────────── */
+.cw-wallet-stack { display: flex; flex-direction: column; gap: 5px; }
 .cw-dot { position: relative; display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; }
 .cw-dot::after {
   content: ""; position: absolute; inset: 0; border-radius: 50%;
@@ -587,47 +435,28 @@ export const CLAWDWIRE_CSS = `
 .cw-flash[data-flash="neg"] { animation: cwFlashNeg 900ms ease-out; }
 @keyframes cwFlashPos { from { background: var(--read-teal-bg); } to { background: transparent; } }
 @keyframes cwFlashNeg { from { background: var(--read-coral-bg); } to { background: transparent; } }
-
-@media (max-width: 767px) {
-  .cw-pulse { padding: 15px 14px 14px; }
+@media (max-width: 900px) {
   .cw-net { grid-template-columns: 1fr; }
-  .cw-body { padding: 15px 14px 18px; }
-  .cw-chapters { top: 48px; padding: 8px 11px; gap: 5px; }
-  .cw-chapters button { padding: 5px 11px; font-size: 11.5px; min-height: 30px; }
-  .cw-wallet-grid { grid-template-columns: 1fr; }
-  .cw-rail { padding: 9px 11px; gap: 9px 12px; }
-  .cw-rail-spacer { display: none; }
-  .cw-ticker { font-size: 22px; }
-  .cw-matrix th, .cw-matrix td { padding: 7px 11px; }
-  .cw-matrix .cw-rowhead { width: 150px; }
-  .cw-strip { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
-  /* No hover to reveal a title attribute on touch, so labels wrap instead of clipping. */
-  .cw-strip-label { white-space: normal; overflow: visible; }
-  .cw-rail .cw-btn { padding: 6px 11px; }
-  .cw-seg button { padding: 6px 10px; }
-  /* A section headline is a summary, not a label — rather than truncate it on a
-     narrow screen, drop it to its own full-width line under the title. */
-  .cw-sechead, .cw-disc-head { flex-wrap: wrap; }
-  .cw-secrule, .cw-disc-rule { order: 2; }
-  .cw-sechead .cw-secchev, .cw-disc-head .cw-secchev { order: 3; }
-  .cw-sechl, .cw-disc-count {
-    order: 4; flex: 1 1 100%; white-space: normal; overflow: visible;
-    font-size: 10.5px; line-height: 1.45; padding-top: 2px;
-  }
-  .cw-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-  .cw-chip { padding: 9px 10px; }
-  .cw-chip-head { flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
-  .cw-chip-value { font-size: 18px; }
-  .cw-chip-note { font-size: 10px; }
-  .cw-story-value { font-size: 28px; }
+  .cw-story { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-
+@media (max-width: 767px) {
+  .cw-pulse { padding: 16px 14px 14px; }
+  .cw-rail { padding: 9px 12px; }
+  .cw-chapters { top: 48px; padding: 10px 12px; }
+  .cw-body { padding: 14px 12px 18px; }
+  .cw-story { grid-template-columns: 1fr; }
+  .cw-wallet-grid { grid-template-columns: 1fr; }
+  .cw-matrix .cw-rowhead { width: 140px; }
+  .cw-strip { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
+  .cw-rail-spacer { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .cw-collapse, .cw-collapse > .cw-collapse-inner, .cw-pressure > i,
   .cw-ladder-fill, .cw-secchev, .cw-rail { transition: none; }
   .cw-dot::after, .cw-flash[data-flash] { animation: none; }
 }
 `;
+
 
 /* ── Chapter navigation ─────────────────────────────────────────────────── */
 
