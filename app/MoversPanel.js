@@ -17,10 +17,7 @@ function fmtUsd(n) {
 /** Core dashboard tabs. */
 const DASH_TABS = [
   "Overview",
-  "Activity",
-  "Wallets",
-  "Buyers",
-  "Growth",
+  "Flow",
   "Whales & Risk",
   "Discover",
   "Watchlist",

@@ -4,8 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 
-export const MOBILE_PRIMARY_TABS = ["Overview", "Whales & Risk", "Watchlist", "Activity"];
-export const MOBILE_MORE_TABS = ["Buyers", "Wallets", "Growth", "Discover", "CLAWD", "ClawdWire", "The Wire", "About"];
+export const MOBILE_PRIMARY_TABS = ["Overview", "Flow", "Whales & Risk", "Watchlist"];
+export const MOBILE_MORE_TABS = ["Discover", "CLAWD", "ClawdWire", "The Wire", "About"];
 
 const chipBase = {
   padding: "8px 16px",

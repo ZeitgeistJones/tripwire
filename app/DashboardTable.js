@@ -294,7 +294,37 @@ function hasCompactPreference() {
   }
 }
 
-const PERIOD_TABS = new Set(["Activity", "Wallets", "Buyers"]);
+/**
+ * Activity, Wallets, Buyers and Growth were four tabs over one table — same
+ * rows, same period toggle, same Project + Market Cap lead, differing only in
+ * which handful of columns showed. Four thin tabs cannot have a hierarchy; one
+ * tab with a family switch can, and nothing about the data changes.
+ */
+const FLOW_FAMILIES = [
+  { key: "Money",   source: "Activity", label: "Money",   hint: "volume, transactions, size" },
+  { key: "Wallets", source: "Wallets",  label: "Wallets", hint: "new vs returning" },
+  { key: "Traders", source: "Buyers",   label: "Traders", hint: "buyers, sellers, first-timers" },
+  { key: "Growth",  source: "Growth",   label: "Growth",  hint: "week over week" },
+];
+const FLOW_SOURCE = Object.fromEntries(FLOW_FAMILIES.map((f) => [f.key, f.source]));
+/** Old links and bookmarks must keep working. */
+const LEGACY_TAB_TO_FLOW = { Activity: "Money", Wallets: "Wallets", Buyers: "Traders", Growth: "Growth" };
+
+/** Flow borrows whichever family's columns are showing; every other tab is itself. */
+function columnSourceFor(tab, family) {
+  return tab === "Flow" ? FLOW_SOURCE[family] || "Activity" : tab;
+}
+
+function loadFlowFamily() {
+  try {
+    const v = localStorage.getItem("zdash-flow-family");
+    return FLOW_SOURCE[v] ? v : "Money";
+  } catch {
+    return "Money";
+  }
+}
+
+const PERIOD_TABS = new Set(["Flow"]);
 const PERIOD_ALWAYS = new Set([null, undefined, "live"]); // Project (no window) + Market Cap
 const PERIOD_VALUES = new Set(["24h", "7d", "30d"]);
 
@@ -382,7 +412,7 @@ function SegmentedControl({ options, value, onChange, ariaLabel }) {
   );
 }
 
-const TAB_ORDER = ["Overview", "Activity", "Wallets", "Buyers", "Growth", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "ClawdWire", "The Wire", "About"];
+const TAB_ORDER = ["Overview", "Flow", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "ClawdWire", "The Wire", "About"];
 
 const GATE_ADDRESS = "0xc22B7b983EC81523c969753c2385106835E8CfCE";
 const GATE_ABI = [
@@ -902,6 +932,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     if (typeof window === "undefined") return false;
     return hasCompactPreference();
   });
+  const [flowFamily, setFlowFamily] = useState("Money");
   const [tableMode, setTableMode] = useState("summary"); // mobile hybrid: summary | full
   const [defSheet, setDefSheet] = useState(null); // { title, body, windowLabel }
   const [rankExpand, setRankExpand] = useState(null); // { rowKey, colKey }
@@ -917,12 +948,19 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     setPinnedKeys(loadPins());
     setCompact(loadCompact());
     setCompactPrefSet(hasCompactPreference());
+    setFlowFamily(loadFlowFamily());
     try {
-      const tab = new URLSearchParams(window.location.search).get("tab");
+      let tab = new URLSearchParams(window.location.search).get("tab");
+      // ?tab=Activity and friends predate the Flow merge; land old links on the
+      // right family instead of dropping them.
+      if (tab && LEGACY_TAB_TO_FLOW[tab]) {
+        setFlowFamily(LEGACY_TAB_TO_FLOW[tab]);
+        tab = "Flow";
+      }
       if (tab && TAB_ORDER.includes(tab)) {
         setActiveTab(tab);
         if (!["The Wire", "ClawdWire", "About", "CLAWD", "Watchlist"].includes(tab)) {
-          const filtered = filterColumnsForView(TABS[tab] || [], {
+          const filtered = filterColumnsForView(TABS[columnSourceFor(tab, loadFlowFamily())] || [], {
             activeTab: tab,
             period: loadPeriod(),
             whalesView: loadWhalesView(),
@@ -1030,12 +1068,28 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   const isDiscover = activeTab === "Discover";
   const isWatchlist = activeTab === "Watchlist";
   const isSpecialTab = isTripwire || isClawdWire || isAbout || isClawd || isWatchlist;
-  const rawColumns = isSpecialTab ? [] : (TABS[activeTab] || []);
+  const rawColumns = isSpecialTab ? [] : (TABS[columnSourceFor(activeTab, flowFamily)] || []);
   const columns = filterColumnsForView(rawColumns, { activeTab, period, whalesView });
   const windowLegend = tabWindowLegend(columns);
   const showWhalesToggle = activeTab === "Whales & Risk";
   const showWhalesFlowPeriod = showWhalesToggle && whalesView === "flow";
   const showPeriodToggle = PERIOD_TABS.has(activeTab) || showWhalesFlowPeriod;
+  const showFlowFamilies = activeTab === "Flow";
+
+  function changeFlowFamily(key) {
+    setFlowFamily(key);
+    try {
+      localStorage.setItem("zdash-flow-family", key);
+    } catch {}
+    const filtered = filterColumnsForView(TABS[FLOW_SOURCE[key]] || [], {
+      activeTab: "Flow",
+      period,
+      whalesView,
+    });
+    const firstNumeric = filtered.find((c) => c.type === "number");
+    setSortKey(firstNumeric ? firstNumeric.key : filtered[0]?.key || "Project");
+    setSortDir("desc");
+  }
   const rawSource = isDiscover ? discoveryData : data;
   const sourceData = isSpecialTab ? [] : Array.isArray(rawSource) ? rawSource : [];
   const rowKeyField = isDiscover ? "address" : "Address";
@@ -1127,7 +1181,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   function handleTabChange(tab) {
     setActiveTab(tab);
     if (["The Wire", "ClawdWire", "About", "CLAWD", "Watchlist"].includes(tab)) return;
-    const filtered = filterColumnsForView(TABS[tab] || [], {
+    const filtered = filterColumnsForView(TABS[columnSourceFor(tab, flowFamily)] || [], {
       activeTab: tab,
       period,
       whalesView,
@@ -1513,7 +1567,9 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     </div>
   );
 
-  const allTabsToRender = [...Object.keys(TABS), "Watchlist", "CLAWD", "ClawdWire", "The Wire"];
+  // TAB_ORDER is the nav; TABS is now a column library, not a tab list —
+  // Flow draws from four of its entries and none of them is a destination.
+  const allTabsToRender = TAB_ORDER.filter((t) => t !== "About");
   // About is rendered after core tabs (separate button below)
   const hybridClass = showHybrid
     ? (tableMode === "full" ? "tw-hybrid-full" : "tw-hybrid-summary")
@@ -1589,7 +1645,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
           {windowLegend}
         </p>
       )}
-      {activeTab === "Wallets" && (period === "24h" || period === "7d") && (
+      {activeTab === "Flow" && flowFamily === "Wallets" && (period === "24h" || period === "7d") && (
         <p style={{ fontSize: "11px", color: "var(--text-faint)", margin: "0 0 8px", lineHeight: 1.4 }}>
           {period === "24h"
             ? "24h shows wallet count only — New / Returning and Avg Txs Ret need longer windows (30d / 7d)."
@@ -1606,7 +1662,15 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         <p className="tw-tip-mobile" style={{ fontSize: "12px", color: "var(--text-xfaint)", margin: 0, flex: "1 1 280px" }}>
           Tip: primary tabs + More · Summary/Full on Overview &amp; Whales · tap header to sort · long-press or ⓘ for defs · tap a number for peer rank. ⭐ watch · 📍 pin.
         </p>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0, flexWrap: "wrap" }}>
+          {showFlowFamilies && (
+            <SegmentedControl
+              ariaLabel="Metric family"
+              value={flowFamily}
+              onChange={changeFlowFamily}
+              options={FLOW_FAMILIES.map((f) => ({ value: f.key, label: f.label }))}
+            />
+          )}
           {showPeriodToggle && (
             <SegmentedControl
               ariaLabel="Period window"
