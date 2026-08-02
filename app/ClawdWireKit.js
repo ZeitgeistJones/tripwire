@@ -65,17 +65,29 @@ export const CLAWDWIRE_CSS = `
   line-height: 1;
 }
 
-/* ── Hero ─────────────────────────────────────────────────────────────── */
-.cw-hero {
+/* ── Shell + pulse cockpit ────────────────────────────────────────────── */
+.cw-shell {
   border: 1px solid var(--border);
   border-left: 3px solid var(--clawd-row-border);
-  border-radius: 12px 12px 0 0;
+  border-radius: 12px;
   background: var(--bg-subtle);
+  overflow: hidden;
+}
+.cw-pulse {
   padding: 18px 20px 16px;
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 0%, rgba(122, 168, 90, 0.12) 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg-subtle) 0%, var(--bg) 100%);
 }
 .cw-hero-top {
   display: flex; flex-wrap: wrap; align-items: baseline;
   gap: 6px 14px; margin-bottom: 16px;
+}
+.cw-net {
+  display: grid;
+  gap: 14px 18px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: start;
 }
 .cw-ticker {
   font-size: 26px; font-weight: 800; letter-spacing: -0.02em;
@@ -85,10 +97,10 @@ export const CLAWDWIRE_CSS = `
   display: grid; gap: 8px; margin-top: 16px;
   grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
 }
-/* Story strip — 3 shareable pulse metrics at secondary-hero size. */
+/* Story strip — 3 shareable pulse metrics beside net flow on desktop. */
 .cw-story {
-  display: grid; gap: 10px; margin-top: 18px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid; gap: 10px;
+  grid-template-columns: 1fr;
 }
 .cw-story-cell {
   border: 1px solid var(--border); border-radius: 10px;
@@ -190,15 +202,83 @@ export const CLAWDWIRE_CSS = `
 .cw-rail {
   position: sticky; top: 0; z-index: 30;
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
-  border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 12px 12px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: var(--bg-muted);
   padding: 9px 14px;
-  transition: box-shadow 160ms ease, border-radius 160ms ease;
+  transition: box-shadow 160ms ease;
 }
 .cw-rail[data-stuck="true"] {
-  border-radius: 0 0 10px 10px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+}
+
+/* ── Chapter tabs ─────────────────────────────────────────────────────── */
+.cw-chapters {
+  position: sticky; top: 52px; z-index: 25;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.cw-chapters button {
+  appearance: none; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: transparent; color: var(--text-muted);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 6px 14px; min-height: 32px;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.cw-chapters button:hover { color: var(--text); border-color: var(--border-strong); }
+.cw-chapters button[aria-selected="true"] {
+  background: var(--clawd-row-border); border-color: var(--clawd-row-border);
+  color: #0f140c;
+}
+
+/* ── Chapter body ─────────────────────────────────────────────────────── */
+.cw-body { padding: 18px 20px 22px; }
+.cw-chapter-head {
+  font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text);
+  margin: 0 0 6px;
+}
+.cw-chapter-sub {
+  font-size: 12px; color: var(--text-muted); margin: 0 0 14px;
+  line-height: 1.5; max-width: 780px;
+}
+.cw-wallet-grid {
+  display: grid; gap: 14px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+.cw-note {
+  margin: 10px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.45;
+}
+.cw-note[data-tone="pos"] { color: var(--read-teal-text); }
+.cw-note[data-tone="neg"] { color: var(--read-coral-text); }
+.cw-alert {
+  margin: 0; padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text); line-height: 1.45;
+}
+.cw-alert[data-tone="caution"] {
+  border-color: var(--read-amber-text);
+  background: rgba(232, 168, 56, 0.08);
+}
+.cw-alert[data-tone="neg"] { color: var(--read-coral-text); }
+.cw-alert[data-tone="pos"] { color: var(--read-teal-text); }
+.cw-empty {
+  margin: 0; padding: 28px 20px;
+  border-top: 1px dashed var(--border);
+  text-align: center; color: var(--text-muted); font-size: 13px;
+}
+.cw-empty-title {
+  font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px;
+}
+.cw-empty-body {
+  max-width: 460px; margin: 0 auto; line-height: 1.55;
+}
+.cw-empty-foot {
+  margin-top: 10px; font-size: 11.5px; color: var(--text-xfaint);
 }
 .cw-rail-spacer { flex: 1 1 12px; }
 .cw-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; }
@@ -465,6 +545,25 @@ export const CLAWDWIRE_CSS = `
 }
 
 /* ── Wallet lens ──────────────────────────────────────────────────────── */
+.cw-wallet-stack { margin-bottom: 0; }
+.cw-wallet-stack-head {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 7px; flex-wrap: wrap;
+}
+.cw-wallet-stack-title {
+  margin: 0; font-size: 12px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.02em;
+}
+.cw-wallet-stack-sub {
+  font-size: 10.5px; color: var(--text-xfaint);
+}
+.cw-wallet-stack-empty {
+  font-size: 12px; color: var(--text-faint);
+  padding: 9px 12px; border: 1px dashed var(--border); border-radius: 8px;
+}
+.cw-wallet-stack-rows {
+  display: flex; flex-direction: column; gap: 5px;
+}
 .cw-wallet {
   display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
   padding: 9px 12px; background: var(--bg-subtle);
@@ -491,7 +590,12 @@ export const CLAWDWIRE_CSS = `
 @keyframes cwFlashNeg { from { background: var(--read-coral-bg); } to { background: transparent; } }
 
 @media (max-width: 767px) {
-  .cw-hero { padding: 15px 14px 14px; }
+  .cw-pulse { padding: 15px 14px 14px; }
+  .cw-net { grid-template-columns: 1fr; }
+  .cw-body { padding: 15px 14px 18px; }
+  .cw-chapters { top: 48px; padding: 8px 11px; gap: 5px; }
+  .cw-chapters button { padding: 5px 11px; font-size: 11.5px; min-height: 30px; }
+  .cw-wallet-grid { grid-template-columns: 1fr; }
   .cw-rail { padding: 9px 11px; gap: 9px 12px; }
   .cw-rail-spacer { display: none; }
   .cw-ticker { font-size: 22px; }
@@ -516,7 +620,6 @@ export const CLAWDWIRE_CSS = `
   .cw-chip-head { flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
   .cw-chip-value { font-size: 18px; }
   .cw-chip-note { font-size: 10px; }
-  .cw-story { grid-template-columns: 1fr; gap: 8px; }
   .cw-story-value { font-size: 28px; }
 }
 
@@ -526,6 +629,26 @@ export const CLAWDWIRE_CSS = `
   .cw-dot::after, .cw-flash[data-flash] { animation: none; }
 }
 `;
+
+/* ── Chapter navigation ─────────────────────────────────────────────────── */
+
+export function ChapterNav({ chapters, value, onChange }) {
+  return (
+    <nav className="cw-chapters" role="tablist" aria-label="Pulse chapters">
+      {chapters.map((ch) => (
+        <button
+          key={ch.key}
+          type="button"
+          role="tab"
+          aria-selected={value === ch.key}
+          onClick={() => onChange(ch.key)}
+        >
+          {ch.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 /* ── Live dot ───────────────────────────────────────────────────────────── */
 
@@ -853,21 +976,15 @@ export function HourlyTape({ bars, peakHour = null, worstHour = null, label }) {
 export function WalletLens({ title, subtitle, raw }) {
   const lines = parseWalletLines(raw);
   return (
-    <div style={{ marginBottom: "16px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "7px", flexWrap: "wrap" }}>
-        <h4 style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "var(--text)", letterSpacing: "0.02em" }}>
-          {title}
-        </h4>
-        {subtitle ? (
-          <span style={{ fontSize: "10.5px", color: "var(--text-xfaint)" }}>{subtitle}</span>
-        ) : null}
+    <div className="cw-wallet-stack">
+      <div className="cw-wallet-stack-head">
+        <h4 className="cw-wallet-stack-title">{title}</h4>
+        {subtitle ? <span className="cw-wallet-stack-sub">{subtitle}</span> : null}
       </div>
       {lines.length === 0 ? (
-        <div style={{ fontSize: "12px", color: "var(--text-faint)", padding: "9px 12px", border: "1px dashed var(--border)", borderRadius: "8px" }}>
-          No wallets in this window yet.
-        </div>
+        <div className="cw-wallet-stack-empty">No wallets in this window yet.</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+        <div className="cw-wallet-stack-rows">
           {lines.map((line, i) => (
             <div className="cw-wallet" key={`${title}-${i}`}>
               <span className="cw-wallet-rank cw-mono">{i + 1}</span>

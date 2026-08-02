@@ -1593,10 +1593,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
       {isTripwire ? (
         <WireBanner />
       ) : isClawdWire ? (
-        <ClawdWireBanner
-          lastRunAt={clawdWireMeta.lastRunAt}
-          syncing={clawdWireMeta.syncing}
-        />
+        <ClawdWireBanner />
       ) : (
         <StatusBanner
           lastUpdated={lastUpdated}

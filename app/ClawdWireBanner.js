@@ -1,21 +1,10 @@
 "use client";
 
 /**
- * Tab-level identity strip for ClawdWire.
- *
- * The pulse clock, sync state and controls all live in the panel's command
- * rail now, so this is deliberately a single quiet line: it says which
- * instrument you are looking at and nothing that competes with the cockpit
- * directly below it.
+ * Tab-level identity strip for ClawdWire — name and tagline only.
+ * Pulse age, sync, and Trip live in the panel command rail.
  */
-export default function ClawdWireBanner({ lastRunAt = null, syncing = false }) {
-  const formatted = lastRunAt
-    ? new Date(lastRunAt).toLocaleString(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : "—";
-
+export default function ClawdWireBanner() {
   return (
     <div
       style={{
@@ -42,19 +31,6 @@ export default function ClawdWireBanner({ lastRunAt = null, syncing = false }) {
       </span>
       <span style={{ fontSize: "11.5px", color: "var(--text-faint)" }}>
         Live on-chain pulse for CLAWD on Base
-      </span>
-      <span style={{ flex: "1 1 12px" }} />
-      <span
-        style={{
-          fontSize: "13px",
-          fontWeight: 700,
-          color: "var(--text)",
-          fontVariantNumeric: "tabular-nums",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {syncing ? "syncing… · " : ""}
-        last pulse {formatted}
       </span>
     </div>
   );
