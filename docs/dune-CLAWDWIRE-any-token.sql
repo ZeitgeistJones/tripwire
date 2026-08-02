@@ -1408,6 +1408,13 @@ SELECT
             / (fp.buy_usd_24h + fp.sell_usd_24h)
         , 1)
     END AS "Whale Vol % 24h",
+    CASE
+        WHEN COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0) = 0 THEN NULL
+        ELSE ROUND(
+            100.0 * (COALESCE(fp.hump_buy_usd_24h, 0) + COALESCE(fp.hump_sell_usd_24h, 0))
+            / (fp.buy_usd_24h + fp.sell_usd_24h)
+        , 1)
+    END AS "Hump Vol % 24h",
 
     ROUND(COALESCE(fp.whale_buy_usd_7d, 0) - COALESCE(fp.whale_sell_usd_7d, 0), 2) AS "Whale Net 7d",
     CASE
@@ -1430,6 +1437,13 @@ SELECT
             / (fp.total_buy_usd_7d + fp.total_sell_usd_7d)
         , 1)
     END AS "Whale Vol %",
+    CASE
+        WHEN COALESCE(fp.total_buy_usd_7d, 0) + COALESCE(fp.total_sell_usd_7d, 0) = 0 THEN NULL
+        ELSE ROUND(
+            100.0 * (COALESCE(fp.hump_buy_usd_7d, 0) + COALESCE(fp.hump_sell_usd_7d, 0))
+            / (fp.total_buy_usd_7d + fp.total_sell_usd_7d)
+        , 1)
+    END AS "Hump Vol %",
     CASE
         WHEN COALESCE(fp.total_buy_usd_7d, 0) + COALESCE(fp.total_sell_usd_7d, 0) = 0 THEN NULL
         ELSE ROUND(100.0 * fp.total_buy_usd_7d / (fp.total_buy_usd_7d + fp.total_sell_usd_7d), 1)

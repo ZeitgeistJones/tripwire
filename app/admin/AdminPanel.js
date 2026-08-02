@@ -644,7 +644,7 @@ export default function AdminPanel({
                   ? ` · whale thr ~$${Number(selectedRow["Whale Min $"]).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                   : ""}
                 {selectedRow["Hump Min $"] != null
-                  ? ` · hump thr ~$${Number(selectedRow["Hump Min $"]).toLocaleString(undefined, { maximumFractionDigits: 0 })}${Number(selectedRow["Hump Min $"]) <= 1000 ? " (floor)" : ""}`
+                  ? ` · mega thr ~$${Number(selectedRow["Hump Min $"]).toLocaleString(undefined, { maximumFractionDigits: 0 })}${Number(selectedRow["Hump Min $"]) <= 1000 ? " (floor)" : ""}`
                   : ""}
                 {scoresLastUpdated
                   ? ` · scores as of ${new Date(scoresLastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`

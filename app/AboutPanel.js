@@ -33,11 +33,11 @@ const GLOSSARY_ROWS = [
   ["Whale Net · 24h / 7d", "Net USD from large trades (buys minus sells). Positive = whales accumulating"],
   ["Accum % · 24h / 7d", "Whale buys as a share of all whale volume. ~50% neutral; higher suggests accumulation"],
   ["Whale Buyers / Sellers · 24h / 7d", "Distinct wallets making top-decile-sized buys or sells"],
-  ["Humpback Net / Buyers / Sellers · 24h / 7d", "Same idea as whales, but top 1% of trade sizes (min $1,000) — the mega-whale subset"],
+  ["Mega Whale Net / Buyers / Sellers · 24h / 7d", "Same idea as whales, but top 1% of trade sizes (min $1,000) — the mega-whale subset"],
   ["Retail Net · 24h / 7d", "Net USD from all non-whale trades. Read it against Whale Net"],
   ["Whale Vol % · 24h / 7d", "Whale trades as a share of all volume in that window — how much whale flow actually matters"],
   ["Whale Min $ · 30d thr", "This token's whale threshold — top-10% trade size over 30d (min $100). Scales per token"],
-  ["Hump Min $ · 30d thr", "This token's humpback / mega threshold — top-1% over 30d, floored at $1,000. $1,000 means sitting on the floor; higher = live p99"],
+  ["Mega Min $ · 30d thr", "This token's mega-whale threshold — top-1% over 30d, floored at $1,000. $1,000 means sitting on the floor; higher = live p99"],
   ["W/R Div (bps) · 24h / 7d", "(Whale Net − Retail Net) ÷ Market Cap × 10,000. Positive = whales lean harder than retail"],
   ["Non-Trade New · 30d", "New wallets with no first buy or sell — likely airdrop/transfer. New − 1st Buyers − 1st Sellers, floored at 0"],
   ["Top10 % · 30d", "Share of 30-day transactions from the top 10 most active wallets. Lower is healthier"],
@@ -86,9 +86,9 @@ export default function AboutPanel() {
         </p>
         <p style={{ color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>Whale trade</strong> — a trade in the top 10% of that
-          token&apos;s own 30d trade sizes (minimum $100). <strong style={{ color: "var(--text)" }}>Humpback</strong> =
+          token&apos;s own 30d trade sizes (minimum $100). <strong style={{ color: "var(--text)" }}>Mega whale</strong> =
           top 1% with a <strong style={{ color: "var(--text)" }}>$1,000 minimum</strong> (a subset of whale).{" "}
-          <code>Hump Min $</code> shows the live bar — if it&apos;s $1,000 the token is on that floor; if higher, that&apos;s the true top‑1% size.
+          <code>Mega Min $</code> shows the live bar — if it&apos;s $1,000 the token is on that floor; if higher, that&apos;s the true top‑1% size.
         </p>
 
         <h3 style={{ color: "var(--text)" }}>Whale &amp; Accumulation</h3>

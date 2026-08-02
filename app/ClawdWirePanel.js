@@ -9,6 +9,7 @@ import {
   Ladder,
   LiveDot,
   Matrix,
+  CohortPie,
   PressureBar,
   StatStrip,
   SuspectBadge,
@@ -17,6 +18,8 @@ import {
 import {
   FLAT_HOUR_SHARE,
   divergenceBps,
+  exclusiveCohortMetrics,
+  exclusiveCohortMix,
   fmtInt,
   fmtMins,
   fmtPct,
@@ -27,6 +30,7 @@ import {
   fmtUsdCompact,
   fmtUsdSigned,
   fmtUtcHour,
+  megaFloorNote,
   formatPulseClock,
   freshness,
   heatBand,
@@ -356,25 +360,50 @@ export default function ClawdWirePanel({
   }, [row]);
   const cohortRows = useMemo(() => {
     if (!row) return [];
-    const tier = (name) => ({
-      label: name,
-      hint:
-        name === "Whale"
-          ? `≥ ${fmtUsd(row["Whale Min $"])}`
-          : name === "Hump"
-          ? `≥ ${fmtUsd(row["Hump Min $"])}`
-          : "below hump tier",
-      emph: name === "Whale",
+    const m = exclusiveCohortMetrics(row);
+    if (!m) return [];
+    const whaleMin = fmtUsd(row["Whale Min $"]);
+    const megaMin = fmtUsd(row["Hump Min $"]);
+    const floor = megaFloorNote(row["Hump Min $"]);
+    const line = (label, hint, emph, t) => ({
+      label,
+      hint,
+      emph,
       cells: [
-        cell(row[`${name} Net 24h`], fmtUsdSigned(row[`${name} Net 24h`]), netTone(row[`${name} Net 24h`])),
-        cell(row[`${name} Net 7d`], fmtUsdSigned(row[`${name} Net 7d`]), netTone(row[`${name} Net 7d`])),
-        cell(row[`${name} Buyers 24h`], fmtInt(row[`${name} Buyers 24h`])),
-        cell(row[`${name} Sellers 24h`], fmtInt(row[`${name} Sellers 24h`])),
-        cell(row[`${name} Buyers 7d`], fmtInt(row[`${name} Buyers 7d`])),
-        cell(row[`${name} Sellers 7d`], fmtInt(row[`${name} Sellers 7d`])),
+        cell(t.net24, fmtUsdSigned(t.net24), netTone(t.net24)),
+        cell(t.net7, fmtUsdSigned(t.net7), netTone(t.net7)),
+        cell(t.buyers24, fmtInt(t.buyers24)),
+        cell(t.sellers24, fmtInt(t.sellers24)),
+        cell(t.buyers7, fmtInt(t.buyers7)),
+        cell(t.sellers7, fmtInt(t.sellers7)),
       ],
     });
-    return [tier("Whale"), tier("Hump"), tier("Retail")];
+    return [
+      line("Mega whale", `≥ ${megaMin}${floor} · top 1%`, true, m.mega),
+      line("Whale", `${whaleMin} → ${megaMin} · top 10%`, false, m.whaleOnly),
+      line("Retail", `< ${whaleMin}`, false, m.retail),
+    ];
+  }, [row]);
+  const cohortPies = useMemo(() => {
+    if (!row) return [];
+    const colors = {
+      mega: "var(--clawd-row-border)",
+      whaleOnly: "var(--text-muted)",
+      retail: "var(--text-faint)",
+    };
+    return ["24h", "7d"].map((window) => {
+      const mix = exclusiveCohortMix(row, window);
+      if (!mix) return null;
+      return {
+        window,
+        mode: mix.mode,
+        slices: [
+          { key: "mega", label: "Mega", pct: mix.mega, color: colors.mega },
+          { key: "whale", label: "Whale", pct: mix.whaleOnly, color: colors.whaleOnly },
+          { key: "retail", label: "Retail", pct: mix.retail, color: colors.retail },
+        ],
+      };
+    }).filter(Boolean);
   }, [row]);
   const participationRows = useMemo(() => {
     if (!row) return [];
@@ -710,8 +739,26 @@ export default function ClawdWirePanel({
 
                   <SubHead>Cohort tiers</SubHead>
                   <p className="cw-note" style={{ margin: "0 0 10px", fontSize: "11.5px" }}>
-                    Live 30d CLAWD percentiles — whale ≥ {fmtUsd(row["Whale Min $"])}, hump ≥ {fmtUsd(row["Hump Min $"])}, retail below.
+                    Exclusive size bands from CLAWD&apos;s 30d tape — mega ≥ {fmtUsd(row["Hump Min $"])}
+                    {megaFloorNote(row["Hump Min $"])}, whale {fmtUsd(row["Whale Min $"])}→{fmtUsd(row["Hump Min $"])},
+                    retail below. Mega is split out of whale so nothing is counted twice.
                   </p>
+                  {cohortPies.length ? (
+                    <div className="cw-cohort">
+                      {cohortPies.map((p) => (
+                        <CohortPie
+                          key={p.window}
+                          title={`${p.window} mix`}
+                          slices={p.slices}
+                          caption={
+                            p.mode === "volume"
+                              ? "Share of DEX volume in each exclusive band."
+                              : "Share of |net USD| until next Trip adds volume splits — same exclusive bands."
+                          }
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                   <Matrix
                     rowHeadLabel="Tier"
                     columns={[

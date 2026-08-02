@@ -328,6 +328,43 @@ export const CLAWDWIRE_CSS = `
 .cw-matrix tr[data-emph="true"] .cw-rowhead { color: var(--text); font-weight: 700; }
 .cw-matrix td[data-active="true"] { background: var(--bg-muted); }
 .cw-matrix tbody tr:hover td[data-active="true"] { background: var(--bg); }
+.cw-cohort {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: 0 0 14px;
+}
+.cw-pie-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  padding: 12px 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+}
+.cw-pie {
+  width: 72px; height: 72px; border-radius: 50%; flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.cw-pie-legend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.cw-pie-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 2px;
+}
+.cw-pie-row {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums;
+}
+.cw-pie-swatch {
+  width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto;
+}
+.cw-pie-name { color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cw-pie-pct { font-weight: 700; letter-spacing: -0.01em; }
+.cw-pie-caption {
+  font-size: 10.5px; color: var(--text-xfaint); line-height: 1.4; margin-top: 4px;
+}
 .cw-strip {
   display: grid; background: var(--bg-subtle);
   border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
@@ -625,6 +662,57 @@ export function Disclosure({ title, note, defaultOpen = false, children }) {
       </button>
       <div className="cw-collapse" data-open={open} id={bodyId}>
         <div className="cw-collapse-inner">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Cohort pie ─────────────────────────────────────────────────────────── */
+
+/**
+ * slices: [{ key, label, pct, color }]
+ * pct values should already sum ~100 (exclusive bands).
+ */
+export function CohortPie({ title, slices, caption }) {
+  const clean = (slices || [])
+    .map((s) => ({ ...s, pct: Math.max(0, Number(s.pct) || 0) }))
+    .filter((s) => s.pct > 0.05);
+  const total = clean.reduce((a, s) => a + s.pct, 0);
+  let cursor = 0;
+  const stops = clean.map((s) => {
+    const start = cursor;
+    cursor += (s.pct / (total || 1)) * 100;
+    return `${s.color} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+  });
+  const gradient =
+    stops.length > 0
+      ? `conic-gradient(from -90deg, ${stops.join(", ")})`
+      : "conic-gradient(var(--border) 0 100%)";
+
+  return (
+    <div className="cw-pie-card">
+      <div
+        className="cw-pie"
+        style={{ background: gradient }}
+        role="img"
+        aria-label={
+          title +
+          ": " +
+          (slices || [])
+            .map((s) => `${s.label} ${(Number(s.pct) || 0).toFixed(0)}%`)
+            .join(", ")
+        }
+      />
+      <div className="cw-pie-legend">
+        <div className="cw-pie-title">{title}</div>
+        {(slices || []).map((s) => (
+          <div className="cw-pie-row" key={s.key}>
+            <i className="cw-pie-swatch" style={{ background: s.color }} />
+            <span className="cw-pie-name">{s.label}</span>
+            <span className="cw-pie-pct">{fmtPct(s.pct, 0)}</span>
+          </div>
+        ))}
+        {caption ? <div className="cw-pie-caption">{caption}</div> : null}
       </div>
     </div>
   );
