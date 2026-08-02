@@ -308,9 +308,11 @@ export default function ClawdWirePanel({
   }
   const isRunning = status === "starting" || status === "running";
   const isClawdToken = tokenAddress?.toLowerCase() === CLAWD_TOKEN_ADDRESS.toLowerCase();
-  // Snapshot price/Δ are CLAWD-only; never show them under another ticker.
-  const displayPrice = isClawdToken ? clawdRow?.priceUsd : null;
-  const displayChange24h = isClawdToken ? clawdRow?.priceChange7d : null;
+  // Live solo CoinGecko quote is stamped on the pulse row at Trip/enrich time.
+  // Snapshot fallback is CLAWD-only so another ticker never inherits CLAWD price.
+  const displayPrice = row?.priceUsd ?? (isClawdToken ? clawdRow?.priceUsd : null) ?? null;
+  const displayChange24h =
+    row?.priceChange24h ?? (isClawdToken ? clawdRow?.priceChange7d : null) ?? null;
   const marketCap = row?.marketCapUsd ?? (isClawdToken ? clawdRow?.marketCapUsd : null) ?? null;
   // ── Derived reads (presentation only — every band names one source metric) ──
   const activeNet = row ? row[`Net USD ${activeWindow}`] : null;

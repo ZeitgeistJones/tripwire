@@ -1,6 +1,6 @@
 import { canUseClawdWire } from "@/lib/gateAccess";
 import { CLAWD_TOKEN_ADDRESS, resolvePulseToken } from "@/lib/clawdWire";
-import { enrichClawdWireRows, fetchClawdMarketCap } from "@/lib/clawdWireFetch";
+import { enrichClawdWireRows, fetchClawdQuote } from "@/lib/clawdWireFetch";
 import { writePulse, normalizeTokenAddress } from "@/lib/clawdWirePulse";
 
 export async function GET(request) {
@@ -37,15 +37,15 @@ export async function GET(request) {
     const rawRows = resultsJson.result?.rows || [];
 
     // Trust the execution's own row over anything the caller asked for: this is
-    // the token that actually ran, so it decides both the market cap we attach
-    // and the cache slot the result lands in.
+    // the token that actually ran, so it decides the CoinGecko quote we attach
+    // and the cache slot the result lands in. Solo CG call — not the dashboard batch.
     const ranAddress = normalizeTokenAddress(
       rawRows[0]?.Address || searchParams.get("token") || CLAWD_TOKEN_ADDRESS
     );
     const known = resolvePulseToken(ranAddress);
 
-    const marketCapUsd = await fetchClawdMarketCap(ranAddress);
-    const rows = enrichClawdWireRows(rawRows, marketCapUsd, ranAddress);
+    const quote = await fetchClawdQuote(ranAddress);
+    const rows = enrichClawdWireRows(rawRows, quote, ranAddress);
     const lastRunAt =
       resultsJson.execution_ended_at ||
       statusJson.execution_ended_at ||
