@@ -38,10 +38,10 @@ export const THEMES = [
   {
     id: "lilac",
     label: "Lilac",
-    blurb: "Cool purple-white dashboard.",
-    swatch: "#f6f4fb",
-    accent: "#5b35c5",
-    bg: "#f6f4fb",
+    blurb: "Purple field, white accents.",
+    swatch: "#5b35c5",
+    accent: "#ffffff",
+    bg: "#5b35c5",
   },
   {
     id: "tide",
