@@ -1,6 +1,9 @@
+import { revalidatePath } from "next/cache";
 import { getDashboardData, getDashboardDataFresh, refreshDashboardPrices } from "@/lib/getData";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 function unauthorized() {
   return Response.json({ error: "unauthorized" }, { status: 401 });
@@ -30,12 +33,26 @@ export async function GET(req) {
       data = await refreshDashboardPrices();
     }
 
-    return Response.json({
-      rows: data.rows,
-      lastUpdated: data.lastUpdated,
-      pricesUpdatedAt: data.pricesUpdatedAt ?? null,
-      builtAt: data.builtAt ?? null,
-    });
+    if (!readOnly) {
+      revalidatePath("/dashboard");
+      revalidatePath("/movers");
+      revalidatePath("/admin");
+      revalidatePath("/api/scores-updated");
+    }
+
+    return Response.json(
+      {
+        rows: data.rows,
+        lastUpdated: data.lastUpdated,
+        pricesUpdatedAt: data.pricesUpdatedAt ?? null,
+        builtAt: data.builtAt ?? null,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-store, no-cache, max-age=0, must-revalidate",
+        },
+      }
+    );
   } catch (err) {
     console.error("[admin/dashboard-snapshot]", String(err));
     return Response.json({ error: String(err?.message || err) }, { status: 500 });

@@ -7,6 +7,8 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export default async function AdminPage() {
   const { rows, lastUpdated, pricesUpdatedAt, builtAt } = await getDashboardData().catch(() => ({
