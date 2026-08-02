@@ -627,19 +627,6 @@ export default function ClawdWirePanel({
           </div>
         </div>
 
-        <div className="cw-shape-secondary">
-          <SuspectBadge />
-          <span style={{ fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", fontSize: "10px" }}>
-            Trade shape
-          </span>
-          <span className="cw-mono" style={{ fontWeight: 700, color: "var(--text)" }}>
-            {fmtPct(roundTripVol(row))} {shape.label}
-          </span>
-          <span style={{ color: "var(--text-faint)" }}>
-            Round-trip vol % · {fmtInt(roundTripWallets(row))} wallets · research heuristic
-          </span>
-        </div>
-
         <div style={{ marginTop: "14px", maxWidth: "640px", display: "flex", flexDirection: "column", gap: "4px" }}>
           <Disclosure title="Why don’t they match?" note="price vs net flow">
             <ul
@@ -683,6 +670,22 @@ export default function ClawdWirePanel({
               <div style={{ fontSize: "11px", color: "var(--text-xfaint)" }}>
                 Shared dashboard snapshot — not recomputed per pulse.
               </div>
+            </div>
+          </Disclosure>
+          <Disclosure
+            title="Trade shape (advanced)"
+            note={`${fmtPct(roundTripVol(row))} · dig deeper`}
+          >
+            <p style={{ margin: "0 0 8px", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+              <SuspectBadge />{" "}
+              Round-trip vol % and related size/timing patterns — research heuristics for people who want them.
+              Full detail lives in Shape &amp; conviction below. Not accusations.
+            </p>
+            <div className="cw-mono" style={{ fontSize: "13px", color: "var(--text)", fontWeight: 700 }}>
+              {fmtPct(roundTripVol(row))} {shape.label}
+              <span style={{ fontWeight: 400, color: "var(--text-faint)", marginLeft: "10px" }}>
+                · {fmtInt(roundTripWallets(row))} wallets
+              </span>
             </div>
           </Disclosure>
         </div>
