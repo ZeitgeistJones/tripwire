@@ -11,6 +11,7 @@ import StatusBanner from "./StatusBanner";
 import WireBanner from "./WireBanner";
 import ClawdWireBanner from "./ClawdWireBanner";
 import DefSheet from "./DefSheet";
+import LocalClock from "./LocalClock";
 import { DashboardMobileNav, MoreMenu, SNAPSHOT_TABS } from "./MobileTabNav";
 import { isWireTester } from "@/lib/wireAccess";
 
@@ -1658,7 +1659,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
             {lastUpdated ? (
               <>
                 {" "}
-                · Dune {new Date(lastUpdated).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
+                · Dune <LocalClock value={lastUpdated} />
               </>
             ) : null}
           </span>
