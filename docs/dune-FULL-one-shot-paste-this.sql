@@ -128,10 +128,8 @@ WITH tracked_tokens AS (
         (0x16332535E2c27da578bC2e82bEb09Ce9d3C8EB07, 'ClawBank', 'CLAWBANK', 'agent-via-bankr'),
         (0x5f980dcfc4c0fa3911554cf5ab288ed0eb13dba3, 'Gitlawb', 'GITLAWB', 'agent-via-bankr'),
         (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory', 'SMCF', 'agent-via-bankr'),
-
-        -- NON-AGENT VIA BANKR
-        (0xc52aedec3374422d7510e294cfaa90799595cba3, 'Surplus Intelligence', 'SURP', 'non-agent-via-bankr'),
-        (0x572c4fA77623652411574c51B5dDB7e1b750AbA3, 'Supergemma4-26b-multimodal', 'SUPERGEMMA', 'non-agent-via-bankr')
+        (0xc52aedec3374422d7510e294cfaa90799595cba3, 'Surplus Intelligence', 'SURP', 'agent-via-bankr'),
+        (0x572c4fA77623652411574c51B5dDB7e1b750AbA3, 'Supergemma4-26b-multimodal', 'SUPERGEMMA', 'agent-via-bankr')
     ) AS t(address, name, symbol, tag)
 ),
 

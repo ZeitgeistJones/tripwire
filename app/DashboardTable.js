@@ -508,16 +508,16 @@ const TABS = {
     { key: "marketCapUsd",    label: "Market Cap",      type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn\u2019t track)" },
     { key: "Traders",         label: "Traders",         type: "number", format: "int", window: "30d", tooltip: "Unique wallets that bought or sold on DEX in the last 30 days" },
     { key: "Buyers 30d",      label: "Buyers",          type: "number", format: "int", window: "30d", tooltip: "Unique wallets that bought in the last 30 days" },
-    { key: "1st Buyers 30d",  label: "1st Buyers",      type: "number", format: "int", window: "30d", tooltip: "Wallets buying this token for the very first time in the last 30 days" },
-    { key: "1st Sellers 30d", label: "1st Sellers",     type: "number", format: "int", window: "30d", tooltip: "Wallets selling this token for the very first time in the last 30 days" },
+    { key: "1st Buyers 30d",  label: "1st Buyers",      type: "number", format: "int", window: "30d", tooltip: "New buyers in the last 30 days — first purchase of this token in our 90-day scan fell in that window (not the same as all Buyers)" },
+    { key: "1st Sellers 30d", label: "1st Sellers",     type: "number", format: "int", window: "30d", tooltip: "New sellers in the last 30 days — first sale of this token in our 90-day scan fell in that window" },
     { key: "Buyers 7d",       label: "Buyers",          type: "number", format: "int", window: "7d", tooltip: "Unique wallets that bought in the last 7 days" },
-    { key: "1st Buyers 7d",   label: "1st Buyers",      type: "number", format: "int", window: "7d", tooltip: "Wallets buying for the first time in the last 7 days" },
-    { key: "1st Sellers 7d",  label: "1st Sellers",     type: "number", format: "int", window: "7d", tooltip: "Wallets selling for the first time in the last 7 days" },
+    { key: "1st Buyers 7d",   label: "1st Buyers",      type: "number", format: "int", window: "7d", tooltip: "New buyers in the last 7 days — first purchase in our 90-day scan fell in that window (not all Buyers)" },
+    { key: "1st Sellers 7d",  label: "1st Sellers",     type: "number", format: "int", window: "7d", tooltip: "New sellers in the last 7 days — first sale in our 90-day scan fell in that window" },
     { key: "Buy/Sell Ratio",  label: "Buy/Sell Ratio",  type: "number", format: "dec2", window: "7d", tooltip: "Buyers 7d \u00f7 all unique sellers this week \u2014 above 1.0 means more wallets buying than selling" },
     { key: "Buy Vol %",       label: "Buy Vol %",       type: "number", format: "pct1", window: "7d", tooltip: "Buys as a share of 7-day DOLLAR volume \u2014 the money-weighted complement to Buy/Sell Ratio (which counts wallets). High ratio + low Buy Vol % = many small wallets buying while a few big ones sell into them" },
     { key: "Buyers 24h",      label: "Buyers",          type: "number", format: "int", window: "24h", tooltip: "Unique wallets that bought in the last 24 hours" },
-    { key: "1st Buyers 24h",  label: "1st Buyers",      type: "number", format: "int", window: "24h", tooltip: "Wallets buying for the first time in the last 24 hours" },
-    { key: "1st Sellers 24h", label: "1st Sellers",     type: "number", format: "int", window: "24h", tooltip: "Wallets selling for the first time in the last 24 hours" },
+    { key: "1st Buyers 24h",  label: "1st Buyers",      type: "number", format: "int", window: "24h", tooltip: "New buyers in the last 24h — first purchase in our 90-day scan fell in that window (not all Buyers)" },
+    { key: "1st Sellers 24h", label: "1st Sellers",     type: "number", format: "int", window: "24h", tooltip: "New sellers in the last 24h — first sale in our 90-day scan fell in that window" },
     { key: "Buy/Sell Ratio 24h", label: "Buy/Sell Ratio", type: "number", format: "dec2", window: "24h", tooltip: "Buyers 24h \u00f7 unique sellers in the last 24 hours \u2014 above 1.0 means more wallets buying than selling" },
     { key: "Buy Vol % 24h",   label: "Buy Vol %",       type: "number", format: "pct1", window: "24h", tooltip: "Buys as a share of 24h DOLLAR volume \u2014 money-weighted complement to Buy/Sell Ratio" },
   ],
@@ -566,21 +566,16 @@ const TABS = {
   ],
 };
 
-// Two groups, horizontal, always visible
-const TYPE_FILTERS = [
-  { label: "Agents",     key: "agents",     match: (tag) => (tag && tag.startsWith("agent-")) || tag === "clanker-via-bankrbot-prefork" },
-  { label: "Non-Agents", key: "non-agents", match: (tag) => tag && (tag.startsWith("non-agent-") || tag === "neither") },
+// Agent-adjacent subtypes (OR within group). Board is rails + launchpads — no Agents/Non-Agents split.
+const SUBTYPE_FILTERS = [
+  { label: "Independent",      key: "independent", match: (tag) => tag === "agent-independent" || tag === "non-agent-infrastructure" || tag === "neither" },
+  { label: "Virtuals",         key: "virtuals",    match: (tag) => tag === "agent-via-virtuals" || tag === "non-agent-via-virtuals" },
+  { label: "Clanker",          key: "clanker",     match: (tag) => tag === "agent-via-clanker" || tag === "non-agent-via-clanker" },
+  { label: "Bankr",            key: "bankr",       match: (tag) => tag === "agent-via-bankr" || tag === "non-agent-via-bankr" },
+  { label: "Bankr (pre-fork)", key: "prefork",     match: (tag) => tag === "clanker-via-bankrbot-prefork" },
 ];
 
-const PLATFORM_FILTERS = [
-  { label: "Virtuals",         key: "virtuals", match: (tag) => tag === "agent-via-virtuals" || tag === "non-agent-via-virtuals" },
-  { label: "Clanker",          key: "clanker",  match: (tag) => tag === "agent-via-clanker" || tag === "non-agent-via-clanker" },
-  { label: "Bankr",            key: "bankr",    match: (tag) => tag === "agent-via-bankr" || tag === "non-agent-via-bankr" },
-  { label: "Bankr (pre-fork)", key: "prefork",  match: (tag) => tag === "clanker-via-bankrbot-prefork" },
-  { label: "Other",            key: "other",    match: (tag) => tag === "agent-independent" || tag === "non-agent-infrastructure" || tag === "neither" },
-];
-
-const ALL_FILTER_DEFS = [...TYPE_FILTERS, ...PLATFORM_FILTERS];
+const ALL_FILTER_DEFS = SUBTYPE_FILTERS;
 
 const READ_TIERS = {
   Beacon: "teal", "Low Hum": "teal", Undercurrent: "teal", "Quiet Beacon": "teal",
@@ -820,9 +815,7 @@ function FilterBar({ activeFilters, onToggle, onClear }) {
 
   return (
     <div className="tw-filter-bar" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
-      {TYPE_FILTERS.map(pill)}
-      <span style={{ width: "1px", height: "16px", background: "var(--border-strong)", flexShrink: 0, alignSelf: "center" }} />
-      {PLATFORM_FILTERS.map(pill)}
+      {SUBTYPE_FILTERS.map(pill)}
       {hasActive && (
         <button
           onClick={onClear}
@@ -1230,11 +1223,8 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
     : activeFilters.size === 0
       ? sourceData
       : sourceData.filter((d) => {
-          const typeActive = TYPE_FILTERS.filter((f) => activeFilters.has(f.key));
-          const platformActive = PLATFORM_FILTERS.filter((f) => activeFilters.has(f.key));
-          const typeOk = typeActive.length === 0 || typeActive.some((f) => f.match(d["Tag"]));
-          const platformOk = platformActive.length === 0 || platformActive.some((f) => f.match(d["Tag"]));
-          return typeOk && platformOk;
+          const active = SUBTYPE_FILTERS.filter((f) => activeFilters.has(f.key));
+          return active.length === 0 || active.some((f) => f.match(d["Tag"]));
         });
 
   const sorted = isSpecialTab

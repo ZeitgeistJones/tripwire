@@ -391,18 +391,18 @@ export default function AdminPanel({
       const wireJson = await wireRes.json().catch(() => ({}));
       if (!wireRes.ok) throw new Error(wireJson.error || "ClawdWire latest failed");
       const wireRow = Array.isArray(wireJson.rows) ? wireJson.rows[0] : null;
-      if (!wireRow) throw new Error("No ClawdWire row yet — run query 8180604 first");
+      if (!wireRow) throw new Error("No ClawdWire row yet — run a pulse for a token first");
 
       const snapJson = await snapRes.json().catch(() => ({}));
       const nextRows = Array.isArray(snapJson.rows) ? snapJson.rows : rows;
       if (Array.isArray(snapJson.rows)) setRows(snapJson.rows);
+      const wireAddr = (wireRow.Address || "").toLowerCase();
+      const wireProject = (wireRow.Project || "").toUpperCase();
       const dashRow =
-        nextRows.find((r) => (r.Project || "").toUpperCase() === "CLAWD") ||
-        nextRows.find(
-          (r) =>
-            (r.Address || "").toLowerCase() ===
-            "0x9f86db9fc6f7c9408e8fda3ff8ce4e78ac7a6b07"
-        ) ||
+        (wireAddr &&
+          nextRows.find((r) => (r.Address || "").toLowerCase() === wireAddr)) ||
+        (wireProject &&
+          nextRows.find((r) => (r.Project || "").toUpperCase() === wireProject)) ||
         null;
 
       const text = buildClawdWireCardPrompt(wireRow, dashRow, {

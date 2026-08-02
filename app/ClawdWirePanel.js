@@ -355,10 +355,10 @@ export default function ClawdWirePanel({
       { label: "Buy $", cells: per("Buy USD", fmtUsdCompact).map((c) => ({ ...c, tone: "pos" })) },
       { label: "Sell $", cells: per("Sell USD", fmtUsdCompact).map((c) => ({ ...c, tone: "neg" })) },
       { label: "Buy vol %", hint: "share of window volume", cells: per("Buy Vol %", fmtPct) },
-      { label: "Wallets", cells: per("Wallets", fmtInt) },
-      { label: "Txs", cells: per("Txs", fmtInt) },
-      { label: "Buyers", cells: per("Buyers", fmtInt) },
-      { label: "Sellers", cells: per("Sellers", fmtInt) },
+      { label: "Wallets", hint: "contract calls", cells: per("Wallets", fmtInt) },
+      { label: "Txs", hint: "contract calls", cells: per("Txs", fmtInt) },
+      { label: "Buyers", hint: "DEX swaps", cells: per("Buyers", fmtInt) },
+      { label: "Sellers", hint: "DEX swaps", cells: per("Sellers", fmtInt) },
       { label: "Max trade $", hint: "largest single swap", cells: per("Max Trade USD", fmtUsdCompact) },
     ];
   }, [row]);
@@ -419,12 +419,12 @@ export default function ClawdWirePanel({
     return [
       { label: "Volume $", emph: true, cells: per("Vol", fmtUsdCompact) },
       { label: "Traders", hint: "unique addresses", cells: per("Traders", fmtInt) },
-      { label: "Wallets", cells: per("Wallets", fmtInt) },
-      { label: "Txs", cells: per("Txs", fmtInt) },
-      { label: "Buyers", cells: per("Buyers", fmtInt) },
-      { label: "Sellers", cells: per("Sellers", fmtInt) },
-      { label: "First-time buyers", hint: "first buy in the 30d scan", cells: per("1st Buyers", fmtInt) },
-      { label: "First-time sellers", hint: "first sell in the 30d scan", cells: per("1st Sellers", fmtInt) },
+      { label: "Wallets", hint: "contract calls", cells: per("Wallets", fmtInt) },
+      { label: "Txs", hint: "contract calls", cells: per("Txs", fmtInt) },
+      { label: "Buyers", hint: "DEX swaps", cells: per("Buyers", fmtInt) },
+      { label: "Sellers", hint: "DEX swaps", cells: per("Sellers", fmtInt) },
+      { label: "New-in-30d buyers", hint: "first buy in this 30d scan fell in window — not lifetime", cells: per("1st Buyers", fmtInt) },
+      { label: "New-in-30d sellers", hint: "first sell in this 30d scan fell in window — not lifetime", cells: per("1st Sellers", fmtInt) },
       { label: "Buy/sell ratio", cells: per("Buy/Sell Ratio", fmtRatio) },
       { label: "Buy vol %", cells: per("Buy Vol %", fmtPct) },
       { label: "Vol per tx $", cells: per("Vol/Tx", fmtUsdCompact) },
@@ -590,7 +590,8 @@ export default function ClawdWirePanel({
               <FlashNum raw={row?.["Survive 1d %"]}>{fmtPct(row?.["Survive 1d %"])}</FlashNum>
             </div>
             <div className="cw-story-note">
-              First buyers still holding a day later (cohort {fmtInt(row?.["1st Buyer Cohort 30d"])}).
+              New-in-30d buyers still holding a day later (cohort{" "}
+              {fmtInt(row?.["1st Buyer Cohort 30d"])}).
             </div>
           </div>
         </div>
@@ -991,7 +992,7 @@ export default function ClawdWirePanel({
                         }}
                       >
                         <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: "10px" }}>
-                          First buyers still holding after
+                          New-in-30d buyers still holding after
                         </div>
                         <Ladder
                           steps={[
@@ -1002,15 +1003,15 @@ export default function ClawdWirePanel({
                           ]}
                         />
                         <p className="cw-note" style={{ margin: "10px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)" }}>
-                          Cohort of {fmtInt(row["1st Buyer Cohort 30d"])} first-time buyers over the 30d scan.
+                          Cohort of {fmtInt(row["1st Buyer Cohort 30d"])} wallets whose first buy in the last 30 days is in this scan — not lifetime first buy.
                         </p>
                       </div>
                       <StatStrip
                         items={[
                           { label: "Median flip", value: fmtMins(row["Median Flip Mins"]), raw: row["Median Flip Mins"] },
-                          { label: "Flip · new", value: fmtMins(row["Median Flip Mins New"]), raw: row["Median Flip Mins New"] },
+                          { label: "Flip · new-in-7d", value: fmtMins(row["Median Flip Mins New"]), raw: row["Median Flip Mins New"] },
                           { label: "Flip · returning", value: fmtMins(row["Median Flip Mins Returning"]), raw: row["Median Flip Mins Returning"] },
-                          { label: "1st buyer cohort", value: fmtInt(row["1st Buyer Cohort 30d"]), raw: row["1st Buyer Cohort 30d"] },
+                          { label: "New-in-30d cohort", value: fmtInt(row["1st Buyer Cohort 30d"]), raw: row["1st Buyer Cohort 30d"] },
                         ]}
                       />
                     </div>
