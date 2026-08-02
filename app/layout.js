@@ -9,11 +9,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-theme="wire" suppressHydrationWarning style={{ background: "#16181c" }}>
+    <html lang="en" data-theme="bone" suppressHydrationWarning style={{ background: "#eef1f4" }}>
       <head>
         <script
   dangerouslySetInnerHTML={{
-    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t==='dark')t='wire';else if(t==='light')t='paper';var ok={minimal:1,wire:1,volt:1,tide:1,ember:1,ink:1,paper:1,bone:1};if(!ok[t])t='wire';var bg={minimal:'#0c0d0f',wire:'#16181c',volt:'#070a06',tide:'#0a1218',ember:'#14110f',ink:'#0b0e16',paper:'#f8f7f4',bone:'#eef1f4'};document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=bg[t]||'#16181c';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','wire')}})();`,
+    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t==='dark')t='wire';else if(t==='light')t='paper';var ok={minimal:1,wire:1,volt:1,tide:1,ember:1,ink:1,paper:1,bone:1};if(!ok[t])t='bone';var bg={minimal:'#0c0d0f',wire:'#16181c',volt:'#070a06',tide:'#0a1218',ember:'#14110f',ink:'#0b0e16',paper:'#f8f7f4',bone:'#eef1f4'};document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=bg[t]||'#eef1f4';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','bone');document.documentElement.style.background='#eef1f4'}})();`,
   }}
 />
         <style
@@ -366,7 +366,7 @@ export default function RootLayout({ children }) {
                 font-feature-settings: "tnum" 1;
               }
 
-              html { background: #16181c; }
+              html { background: #eef1f4; }
               html[data-theme="minimal"] { background: #0c0d0f; }
               html[data-theme="wire"], html[data-theme="dark"] { background: #16181c; }
               html[data-theme="volt"] { background: #070a06; }

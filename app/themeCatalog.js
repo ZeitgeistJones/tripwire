@@ -12,6 +12,14 @@ export const THEME_STORAGE_KEY = "zdash-theme";
 
 export const THEMES = [
   {
+    id: "bone",
+    label: "Bone",
+    blurb: "Cool light, steel type.",
+    swatch: "#eef1f4",
+    accent: "#1a5f7a",
+    bg: "#eef1f4",
+  },
+  {
     id: "minimal",
     label: "Minimal",
     blurb: "Quiet graphite. Almost nothing.",
@@ -67,29 +75,21 @@ export const THEMES = [
     accent: "#3B6D11",
     bg: "#f8f7f4",
   },
-  {
-    id: "bone",
-    label: "Bone",
-    blurb: "Cool light, steel type.",
-    swatch: "#eef1f4",
-    accent: "#1a5f7a",
-    bg: "#eef1f4",
-  },
 ];
 
 const THEME_IDS = new Set(THEMES.map((t) => t.id));
 
-/** Map legacy storage values → current ids. */
+/** Map legacy storage values → current ids. Default: Bone. */
 export function normalizeThemeId(raw) {
   if (raw === "dark") return "wire";
   if (raw === "light") return "paper";
   if (THEME_IDS.has(raw)) return raw;
-  return "wire";
+  return "bone";
 }
 
 export function themeBg(id) {
   const t = THEMES.find((x) => x.id === id);
-  return t?.bg || "#16181c";
+  return t?.bg || "#eef1f4";
 }
 
 export function applyTheme(rawId) {

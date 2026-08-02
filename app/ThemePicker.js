@@ -9,7 +9,7 @@ import { THEMES, applyTheme, normalizeThemeId } from "./themeCatalog";
  */
 export default function ThemePicker({ compact = false }) {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState("wire");
+  const [theme, setTheme] = useState("bone");
   const rootRef = useRef(null);
   const listId = useId();
 
