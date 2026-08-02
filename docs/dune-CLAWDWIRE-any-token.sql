@@ -12,6 +12,12 @@
 -- for round-trip / peak-hour / wallet-list chunks; zero ROWS is the only
 -- result that means something is actually wrong.
 --
+-- Two deviations from the CLAWD-only query, both deliberate:
+--   1. the token CTE below takes parameters instead of a hardcoded address
+--   2. the hourly tape uses format('%.1f', ...) instead of CAST(... AS VARCHAR),
+--      because Trino renders small doubles as 9.0E-1 and a quiet token's tape
+--      came out as "05:+9.0E-1k". Everything else is unchanged.
+--
 -- One token per run: 7d txs + 30d dex.trades
 -- Pulse $: 15m / 1h / 6h / 24h
 -- Chunk C: whale / hump / retail 24h + 7d
@@ -999,7 +1005,7 @@ hourly_tape AS (
                         WHEN net_usd >= 0 THEN '+'
                         ELSE ''
                     END,
-                    CAST(ROUND(net_usd / 1000.0, 1) AS VARCHAR),
+                    format('%.1f', net_usd / 1000.0),
                     'k'
                 )
                 ORDER BY hour_start
@@ -1015,7 +1021,7 @@ hourly_tape AS (
                         WHEN whale_net_usd >= 0 THEN '+'
                         ELSE ''
                     END,
-                    CAST(ROUND(whale_net_usd / 1000.0, 1) AS VARCHAR),
+                    format('%.1f', whale_net_usd / 1000.0),
                     'k'
                 )
                 ORDER BY hour_start
