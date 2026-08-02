@@ -29,6 +29,7 @@ import {
   fmtUsdCompact,
   fmtUsdSigned,
   fmtUtcHour,
+  formatPulseClock,
   freshness,
   heatBand,
   holdBand,
@@ -90,7 +91,9 @@ export default function ClawdWirePanel({
   const [lastRunAt, setLastRunAt] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [syncHint, setSyncHint] = useState("");
+  const [cooldownMsg, setCooldownMsg] = useState("");
   const [activeWindow, setActiveWindow] = useState("1h");
+  const [, setTick] = useState(0);
   const [token, setToken] = useState(() => initialToken || defaultPulseToken());
   const tokenAddress = token.address;
   const tokenSymbol = token.symbol;
@@ -177,6 +180,7 @@ export default function ClawdWirePanel({
     setLastRunAt(null);
     setErrorMsg("");
     setSyncHint("");
+    setCooldownMsg("");
     lastRunRef.current = null;
   }, [tokenAddress]);
 
@@ -209,6 +213,12 @@ export default function ClawdWirePanel({
     return () => clearTimeout(t);
   }, [syncHint]);
 
+  // Keep relative pulse age honest without waiting for the next Sync.
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   // Shadow under the rail only once it has actually pinned to the top.
   useEffect(() => {
     const el = sentinelRef.current;
@@ -225,6 +235,7 @@ export default function ClawdWirePanel({
     setStatus("starting");
     setErrorMsg("");
     setSyncHint("");
+    setCooldownMsg("");
     attemptsRef.current = 0;
     publishMeta(lastRunRef.current, true);
 
@@ -234,6 +245,13 @@ export default function ClawdWirePanel({
         headers: wireHeaders(),
       });
       const startJson = await startRes.json();
+      if (startRes.status === 429 || startJson.cooldown) {
+        executingRef.current = false;
+        setStatus("idle");
+        setCooldownMsg(startJson.error || "This token was pulsed recently — wait before Tripping again.");
+        publishMeta(lastRunRef.current, false);
+        return;
+      }
       if (!startRes.ok || !startJson.executionId) {
         throw new Error(startJson.error || "Failed to start ClawdWire run");
       }
@@ -409,12 +427,14 @@ export default function ClawdWirePanel({
     ];
   }, [row]);
 
+  const pulseAge = timeAgo(lastRunAt);
+  const pulseClock = formatPulseClock(lastRunAt);
   const railStatus = isRunning
     ? status === "starting"
       ? "Starting Dune execute…"
       : "Running on Dune…"
     : lastRunAt
-    ? `Pulse ${timeAgo(lastRunAt)}`
+    ? `Pulse ${pulseAge}`
     : "No pulse yet";
 
   return (
@@ -449,6 +469,82 @@ export default function ClawdWirePanel({
             </span>
           ) : null}
         </div>
+
+        {/* Pulse clock — freshness is the product story; make it impossible to miss. */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "12px 18px",
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            border: `1px solid ${
+              isRunning
+                ? "var(--read-amber-text)"
+                : fresh.tone === "pos"
+                ? "var(--read-teal-text)"
+                : fresh.tone === "caution"
+                ? "var(--read-amber-text)"
+                : "var(--border)"
+            }`,
+            background: "var(--bg-muted)",
+          }}
+        >
+          <LiveDot tone={isRunning ? "caution" : fresh.tone} ping={isRunning || fresh.tone === "pos"} />
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.11em",
+                textTransform: "uppercase",
+                color: "var(--text-faint)",
+                marginBottom: "4px",
+              }}
+            >
+              Data freshness · {fresh.label}
+            </div>
+            <div
+              className="cw-mono"
+              style={{
+                fontSize: "clamp(22px, 4vw, 32px)",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.1,
+                color: isRunning
+                  ? "var(--read-amber-text)"
+                  : toneColor(fresh.tone === "pos" ? "pos" : fresh.tone === "caution" ? "caution" : "faint"),
+              }}
+            >
+              {isRunning ? "Running on Dune…" : pulseAge || "No pulse yet"}
+            </div>
+            {pulseClock && !isRunning ? (
+              <div className="cw-mono" style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}>
+                {pulseClock}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {fresh.tone === "caution" && lastRunAt && !isRunning ? (
+          <p
+            style={{
+              margin: "0 0 14px",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              border: "1px solid var(--read-amber-text)",
+              background: "rgba(232, 168, 56, 0.08)",
+              fontSize: "12.5px",
+              color: "var(--text)",
+              lineHeight: 1.45,
+            }}
+          >
+            Pulse is <strong>{pulseAge}</strong> old — Trip for a fresh Dune run (or Sync if someone else
+            just did).
+          </p>
+        ) : null}
 
         {/* Dominant readout: net flow for the selected window. Price is on every
             other venue — net flow is what this instrument uniquely knows. */}
@@ -601,10 +697,28 @@ export default function ClawdWirePanel({
 
       {/* ── Command rail — the only control surface, pinned on scroll ────── */}
       <div className="cw-rail" data-stuck={stuck ? "true" : "false"}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", minWidth: 0 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
           <LiveDot tone={isRunning ? "caution" : fresh.tone} ping={isRunning || fresh.tone === "pos"} />
-          <span className="cw-mono" style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-            {railStatus}
+          <span style={{ minWidth: 0 }}>
+            <span
+              className="cw-mono"
+              style={{
+                display: "block",
+                fontSize: "15px",
+                fontWeight: 700,
+                color: isRunning
+                  ? "var(--read-amber-text)"
+                  : toneColor(fresh.tone === "pos" ? "pos" : fresh.tone === "caution" ? "caution" : "muted"),
+                whiteSpace: "nowrap",
+              }}
+            >
+              {railStatus}
+            </span>
+            {pulseClock && !isRunning ? (
+              <span className="cw-mono" style={{ display: "block", fontSize: "11px", color: "var(--text-faint)" }}>
+                {pulseClock}
+              </span>
+            ) : null}
           </span>
         </span>
 
@@ -649,6 +763,24 @@ export default function ClawdWirePanel({
           {isRunning ? "Running…" : canTrip ? "Trip ClawdWire" : "Trip · holders"}
         </button>
       </div>
+
+      {cooldownMsg ? (
+        <p
+          style={{
+            margin: "10px 0 0",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            border: "1px solid var(--read-amber-text)",
+            background: "rgba(232, 168, 56, 0.08)",
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "var(--text)",
+            lineHeight: 1.45,
+          }}
+        >
+          {cooldownMsg}
+        </p>
+      ) : null}
 
       {syncHint || (status === "error" && errorMsg) || isRunning ? (
         <p

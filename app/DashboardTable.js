@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { base } from "wagmi/chains";
 import AboutPanel from "./AboutPanel";
@@ -12,8 +11,10 @@ import StatusBanner from "./StatusBanner";
 import WireBanner from "./WireBanner";
 import ClawdWireBanner from "./ClawdWireBanner";
 import DefSheet from "./DefSheet";
-import { DashboardMobileNav } from "./MobileTabNav";
+import { DashboardMobileNav, MoreMenu, SNAPSHOT_TABS } from "./MobileTabNav";
 import { isWireTester } from "@/lib/wireAccess";
+
+const SNAPSHOT_TAB_SET = new Set(SNAPSHOT_TABS);
 
 
 // ── Custom delayed tooltip ────────────────────────────────────────────────────
@@ -917,7 +918,7 @@ function ProfSignalKey() {
 
 
 export default function DashboardTable({ data, discoveryData = [], lastUpdated, pricesUpdatedAt = null, snapshotBuiltAt = null }) {
-  const [activeTab, setActiveTab] = useState("Overview");
+  const [activeTab, setActiveTab] = useState("ClawdWire");
   const [sortKey, setSortKey] = useState("Opp");
   const [sortDir, setSortDir] = useState("desc");
   const [pinnedKeys, setPinnedKeys] = useState([]);
@@ -1567,13 +1568,24 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     </div>
   );
 
-  // TAB_ORDER is the nav; TABS is now a column library, not a tab list —
-  // Flow draws from four of its entries and none of them is a destination.
-  const allTabsToRender = TAB_ORDER.filter((t) => t !== "About");
-  // About is rendered after core tabs (separate button below)
+  // Public nav is slim: ClawdWire + About + Snapshot menu. TABS remains a column library.
+  const isSnapshotTab = SNAPSHOT_TAB_SET.has(activeTab);
   const hybridClass = showHybrid
     ? (tableMode === "full" ? "tw-hybrid-full" : "tw-hybrid-summary")
     : "";
+
+  const navChip = (active) => ({
+    padding: "8px 16px",
+    borderRadius: "6px",
+    border: active ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
+    background: active ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
+    color: active ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
+    cursor: "pointer",
+    fontWeight: active ? 600 : 400,
+    fontSize: "14px",
+    fontFamily: "inherit",
+    textDecoration: "none",
+  });
 
   return (
     <div ref={rootRef}>
@@ -1592,44 +1604,29 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         />
       )}
 
-      <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
-        <Link
-          href="/"
-          style={{
-            padding: "8px 16px", borderRadius: "6px",
-            border: "1px solid var(--btn-inactive-border)",
-            background: "var(--btn-inactive-bg)",
-            color: "var(--btn-inactive-text)",
-            fontWeight: 400, textDecoration: "none",
+      <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "6px", flexWrap: "wrap", alignItems: "center" }}>
+        <button type="button" onClick={() => handleTabChange("ClawdWire")} style={navChip(activeTab === "ClawdWire")}>
+          ClawdWire
+        </button>
+        <MoreMenu
+          chipLabel="Snapshot"
+          items={[
+            ...SNAPSHOT_TABS.map((t) => ({
+              key: t,
+              label: t === "Whales & Risk" ? "Whales" : tabLabel(t),
+            })),
+            { key: "__movers", label: "Movers" },
+          ]}
+          activeKey={isSnapshotTab ? activeTab : null}
+          onSelect={(key) => {
+            if (key === "__movers") {
+              window.location.href = "/movers";
+              return;
+            }
+            handleTabChange(key);
           }}
-        >
-          Movers
-        </Link>
-        {allTabsToRender.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => handleTabChange(tab)}
-            style={{
-              padding: "8px 16px", borderRadius: "6px",
-              border: activeTab === tab ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
-              background: activeTab === tab ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
-              color: activeTab === tab ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
-              cursor: "pointer", fontWeight: activeTab === tab ? 600 : 400,
-            }}
-          >
-            {tabLabel(tab)}
-          </button>
-        ))}
-        <button
-          onClick={() => handleTabChange("About")}
-          style={{
-            padding: "8px 16px", borderRadius: "6px",
-            border: activeTab === "About" ? "1px solid var(--btn-active-bg)" : "1px solid var(--btn-inactive-border)",
-            background: activeTab === "About" ? "var(--btn-active-bg)" : "var(--btn-inactive-bg)",
-            color: activeTab === "About" ? "var(--btn-active-text)" : "var(--btn-inactive-text)",
-            cursor: "pointer", fontWeight: activeTab === "About" ? 600 : 400,
-          }}
-        >
+        />
+        <button type="button" onClick={() => handleTabChange("About")} style={navChip(activeTab === "About")}>
           About
         </button>
       </div>
@@ -1639,6 +1636,37 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         onTabChange={handleTabChange}
         tabLabel={(tab) => (tab === "Whales & Risk" ? "Whales" : tabLabel(tab))}
       />
+
+      {isSnapshotTab && (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            margin: "0 0 10px",
+            padding: "6px 10px",
+            borderRadius: "6px",
+            border: "1px solid var(--read-amber-text)",
+            background: "rgba(232, 168, 56, 0.08)",
+            fontSize: "12px",
+            color: "var(--text)",
+            lineHeight: 1.4,
+          }}
+        >
+          <strong style={{ letterSpacing: "0.06em", textTransform: "uppercase", fontSize: "10px" }}>
+            Snapshot
+          </strong>
+          <span style={{ color: "var(--text-muted)" }}>
+            Multi-token board ages with Scores last updated — not the ClawdWire live pulse.
+            {lastUpdated ? (
+              <>
+                {" "}
+                · Dune {new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+              </>
+            ) : null}
+          </span>
+        </div>
+      )}
 
       {!isSpecialTab && windowLegend && (
         <p style={{ fontSize: "11px", color: "var(--text-faint)", margin: "0 0 8px", letterSpacing: "0.01em" }}>

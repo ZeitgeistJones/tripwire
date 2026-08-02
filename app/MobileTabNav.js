@@ -4,8 +4,18 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 
-export const MOBILE_PRIMARY_TABS = ["Overview", "Flow", "Whales & Risk", "Watchlist"];
-export const MOBILE_MORE_TABS = ["Discover", "CLAWD", "ClawdWire", "The Wire", "About"];
+/** Public primary chrome — live pulse first. Snapshot tables live under More. */
+export const MOBILE_PRIMARY_TABS = ["ClawdWire", "About"];
+export const SNAPSHOT_TABS = [
+  "Overview",
+  "Flow",
+  "Whales & Risk",
+  "Watchlist",
+  "Discover",
+  "CLAWD",
+  "The Wire",
+];
+export const MOBILE_MORE_TABS = [...SNAPSHOT_TABS];
 
 const chipBase = {
   padding: "8px 16px",
@@ -37,14 +47,14 @@ function itemLabel(item) {
 /**
  * More menu portals to document.body so it is not clipped by overflow-x tab strips.
  */
-function MoreMenu({ items, activeKey, onSelect, renderItem }) {
+export function MoreMenu({ items, activeKey, onSelect, renderItem, chipLabel = "More" }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const btnRef = useRef(null);
   const menuRef = useRef(null);
   const moreActive = items.some((item) => itemKey(item) === activeKey);
   const activeItem = items.find((item) => itemKey(item) === activeKey);
-  const chipText = moreActive && activeItem ? itemLabel(activeItem) : "More";
+  const chipText = moreActive && activeItem ? itemLabel(activeItem) : chipLabel;
 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) {
@@ -185,6 +195,7 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
         </button>
       ))}
       <MoreMenu
+        chipLabel="Snapshot"
         items={MOBILE_MORE_TABS.map((t) => ({ key: t, label: labelOf(t) }))}
         activeKey={activeTab}
         onSelect={(key) => onTabChange(key)}
@@ -193,28 +204,31 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
   );
 }
 
-/** Movers: link-based mobile nav with ?tab= deep links */
+/** Link-based mobile nav (Movers page) with ?tab= deep links */
 export function LinkMobileNav({ currentPage }) {
   const dashHref = (tab) => `/dashboard?tab=${encodeURIComponent(tab)}`;
-  const moreItems = MOBILE_MORE_TABS.map((t) => ({ key: t, label: t === "Whales & Risk" ? "Whales" : t }));
+  const moreItems = [
+    ...MOBILE_MORE_TABS.map((t) => ({ key: t, label: t === "Whales & Risk" ? "Whales" : t })),
+    { key: "Movers", label: "Movers" },
+  ];
   return (
     <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "16px" }}>
+      <Link href={dashHref("ClawdWire")} style={chipStyle(false)}>
+        ClawdWire
+      </Link>
+      <Link href={dashHref("About")} style={chipStyle(false)}>
+        About
+      </Link>
       {currentPage === "movers" ? (
         <span style={chipStyle(true)}>Movers</span>
-      ) : (
-        <Link href="/" style={chipStyle(false)}>Movers</Link>
-      )}
-      {MOBILE_PRIMARY_TABS.map((tab) => (
-        <Link key={tab} href={dashHref(tab)} style={chipStyle(false)}>
-          {tab === "Whales & Risk" ? "Whales" : tab}
-        </Link>
-      ))}
+      ) : null}
       <MoreMenu
+        chipLabel="Snapshot"
         items={moreItems}
-        activeKey={null}
+        activeKey={currentPage === "movers" ? "Movers" : null}
         renderItem={({ key, label, active, close }) => (
           <Link
-            href={dashHref(key)}
+            href={key === "Movers" ? "/movers" : dashHref(key)}
             onClick={close}
             style={{
               ...chipBase,

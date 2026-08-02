@@ -46,8 +46,9 @@ export default function ClawdWireBanner({ lastRunAt = null, syncing = false }) {
       <span style={{ flex: "1 1 12px" }} />
       <span
         style={{
-          fontSize: "11px",
-          color: "var(--text-faint)",
+          fontSize: "13px",
+          fontWeight: 700,
+          color: "var(--text)",
           fontVariantNumeric: "tabular-nums",
           whiteSpace: "nowrap",
         }}

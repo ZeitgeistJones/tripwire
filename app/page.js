@@ -1,17 +1,6 @@
-import { getDashboardData } from "@/lib/getData";
-import Header from "./Header";
-import MoversPanel from "./MoversPanel";
+import { redirect } from "next/navigation";
 
-// Always read the shared Upstash snapshot (no ISR copy that can drift from admin).
-export const dynamic = "force-dynamic";
-
-export default async function Home() {
-  const { rows: data, lastUpdated, pricesUpdatedAt, builtAt } = await getDashboardData();
-
-  return (
-    <main className="page-shell" style={{ padding: "20px 24px", fontFamily: "sans-serif", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-      <Header />
-      <MoversPanel data={data} lastUpdated={lastUpdated} pricesUpdatedAt={pricesUpdatedAt} snapshotBuiltAt={builtAt} />
-    </main>
-  );
+/** ClawdWire is the public front door — freshness over the stale multi-token board. */
+export default function Home() {
+  redirect("/dashboard?tab=ClawdWire");
 }

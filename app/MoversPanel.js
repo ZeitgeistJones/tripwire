@@ -14,17 +14,15 @@ function fmtUsd(n) {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
-/** Core dashboard tabs. */
-const DASH_TABS = [
+/** Snapshot / secondary destinations (ClawdWire is the front door). */
+const SNAPSHOT_LINKS = [
   "Overview",
   "Flow",
   "Whales & Risk",
-  "Discover",
   "Watchlist",
+  "Discover",
   "CLAWD",
-  "ClawdWire",
   "The Wire",
-  "About",
 ];
 
 const PERIOD_VALUES = new Set(["24h", "7d", "30d"]);
@@ -210,10 +208,16 @@ function TabBar() {
   return (
     <>
       <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+        <Link href="/dashboard?tab=ClawdWire" style={tabStyle(false)}>
+          ClawdWire
+        </Link>
         <span style={tabStyle(true)}>Movers</span>
-        {DASH_TABS.map((tab) => (
+        <Link href="/dashboard?tab=About" style={tabStyle(false)}>
+          About
+        </Link>
+        {SNAPSHOT_LINKS.map((tab) => (
           <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
-            {tab}
+            {tab === "Whales & Risk" ? "Whales" : tab}
           </Link>
         ))}
       </div>
