@@ -1,7 +1,7 @@
 -- The Wire pulse (lean) - paste into Dune query 7765068
 -- 24h scan only: raw wallets + txs for 15m / 1h / 6h / 24h
 -- No first-time / new-buyer / new-seller paths (those forced the old 90d cost)
--- Contract list synced from lib/tokens.js (174 addresses)
+-- Contract list synced from lib/tokens.js (115 addresses)
 
 WITH agentic_contracts AS (
     SELECT address, name FROM (
@@ -25,9 +25,7 @@ WITH agentic_contracts AS (
         (0x29cc30f9d113b356ce408667aa6433589cecbdca, 'Elsa'),
         (0x30c7235866872213f68cb1f08c37cb9eccb93452, 'Wayfinder'),
         (0x810affc8aadad2824c65e0a2c5ef96ef1de42ba3, 'AXOBOTL'),
-        (0xb22a793a81ff5b6ad37f40d5fe1e0ac4184d52f3, 'Big Tony'),
         (0xB3D7e0c3C39A1D3F1B304663065A2F83Ddf56d8e, 'AUTONOMOPOLY'),
-        (0xD88FD4a11255E51f64f78b4a7d74456325c2d8dC, 'BitVault Signal'),
         (0x0086cFF0c1E5D17b19F5bCd4c8840a5B4251D959, 'ODEI AI'),
         (0xdd32659b1e7a6a6b3c6e96cd8a4c936bcfea0607, 'Trackgood AI'),
         (0xb2aca4ca8b7bbd9a5388ccb044c87dedf8a51c7c, 'Thirdfy'),
@@ -42,6 +40,7 @@ WITH agentic_contracts AS (
         (0x7Ce02e86354EA0Cc3b302AeAdC0Ab56bC7EB44b8, 'SIRE'),
         (0x9d56c29e820Dd13b0580B185d0e0Dc301d27581d, 'Aubrai'),
         (0xfc48314ad4aD5bD36a84E8307b86A68A01D95d9C, 'AION 5100'),
+        (0x7300B37DfdfAb110d83290A29DfB31B1740219fE, 'Mamo'),
         -- AGENT VIA VIRTUALS
         (0x96419929d7949d6a801a6909c145c8eef6a40431, 'Spectral'),
         (0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825, 'AIXBT'),
@@ -118,78 +117,17 @@ WITH agentic_contracts AS (
         -- AGENT VIA CLANKER
         (0x7D928816CC9c462DD7adef911De41535E444CB07, 'Faircaster'),
         (0xde61878b0b21ce395266c44d4d548d1c72a3eb07, 'Sairi'),
+        (0xD88FD4a11255E51f64F78b4a7d74456325c2d8dC, 'BitVault Signal'),
         -- AGENT VIA BANKR
         (0x16332535E2c27da578bC2e82bEb09Ce9d3C8EB07, 'ClawBank'),
         (0x5f980dcfc4c0fa3911554cf5ab288ed0eb13dba3, 'Gitlawb'),
         (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory'),
-        -- NON-AGENT VIA BANKR
-        (0xc52aedec3374422d7510e294cfaa90799595cba3, 'Surplus Intelligence'),
-        (0xBf8E8f0e8866a7052F948C16508644347c57aba3, 'aeon'),
-        (0xb233bdffd437e60fa451f62c6c09d3804d285ba3, 'nookplot'),
-        (0xa601877977340862ca67f816eb079958e5bd0ba3, 'BOTCOIN'),
-        (0x461d3c96d170e551611f54fa466d3d74a680aba3, 'Root Edge'),
-        (0x65021a79aeef22b17cdc1b768f5e79a8618beba3, 'Robot Money'),
-        (0x07E61D8a4e197dfC269e90D7ECe1dF0D26702bA3, 'Basemate'),
-        (0xf1e9baa65d418a9025e1851dd2d37f1ad208bba3, 'Ratspeak'),
-        (0x67a7ca081dc79b45fd1fa059cd3b8dcca779aba3, 'FreeCode'),
-        (0x7afe438411ee3959c7de6f7fb76bf9c769320ba3, 'Blocktronics'),
-        (0x26E6e2E7a9289B6485c53Cd498dE510d3a8c8ba3, 'cyb3rwr3n'),
-        (0x00cb1fbca324d51325a7264d54072bc073c28ba3, 'DARKSOL'),
-        (0x7b0ee9dcb5c1d4d7cd630c652959951936512ba3, 'Delu'),
-        (0x753f2af0f46361c9ae6fc347797f99b0c9e82ba3, 'grantr'),
-        (0x316ffb9c875f900adcf04889e415cc86b564eba3, 'LITCOIN'),
-        (0x85eac631c800af804476b140f87039f742c28ba3, 'WOON'),
-        (0x61d91cff0fc9fbbdb89f505cf8a7422bf95fdba3, '1clawAI'),
-        (0x721b072dbb616f29eea73ac004e03fd4e884bba3, 'evo'),
-        (0x95ccfD2B81A9667b0Cc979992632F98fc853EBa3, 'HermesOS'),
-        (0xd7bc6a05a56655FB2052F742B012d1DFD66e1BA3, 'MiroShark'),
-        (0x39b4b879b8521d6a8c3a87cda64b969327b7fba3, 'TACHI'),
-        (0x0a56431ecc9d0b39be0b1e27e795f4c4f19d0ba3, 'HALO'),
-        (0x2878cfc54aabdadd9bb5d70dd24d6b91485afba3, 'Polygraph'),
-        (0x591666816c7c527b02a162a88aae75f20b90eba3, 'TEMPO'),
-        (0xc46c41005a1a88b0c1491f2b542a4831d6d1eba3, 'A2H'),
-        (0x8070b5e222f1ec077845e46ced2267e0def4cba3, 'Protean'),
-        (0x3722264aB15a1dfCe5a5af89e6547F7949A8ABA3, 'LienFi'),
-        (0x572c4fA77623652411574c51B5dDB7e1b750AbA3, 'Supergemma4-26b-multimodal'),
         -- NON-AGENT VIA CLANKER
         (0xB695559b26BB2c9703ef1935c37AeaE9526bab07, 'Moltbook'),
-        (0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf, 'Dickbutt'),
-        (0x2f6c17fa9f9bC3600346ab4e48C0701e1d5962AE, 'Based Fartcoin'),
-        (0x2b5050F01d64FBb3e4Ac44dc07f0732BFb5ecadF, 'QR coin'),
-        (0x17d70172c7c4205bd39ce80f7f0ee660b7dc5a23, 'Dimes'),
-        (0x9Cb41FD9dC6891BAe8187029461bfAADF6CC0C69, 'noice'),
-        (0x680BC6ed5c7222E2f29bdBc87f8E8f3400D8Ce04, 'WYDE End Hunger'),
-        (0x0Db510e79909666d6dEc7f5e49370838c16D950f, 'Super Anon'),
-        (0x2100A39f514d8FE3F26963A29B95b030A0A5d4b7, 'UPONLY'),
-        (0x774EAeFE73Df7959496Ac92a77279A8D7d690b07, 'Minted Merch'),
-        (0x3d5e487b21e0569048c4d1a60e98c36e1b09db07, 'TurboUSD'),
-        (0x534b7aad1cdb6f02ec48cabe428f0d9131e40b07, 'minidev'),
-        (0x3ec2156D4c0A9CBdAB4a016633b7BcF6a8d68Ea2, 'DebtReliefBot'),
-        (0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07, 'Defense of the Agents'),
-        (0x2e7df1528f4eA427F48B49Ae8A1f78149db7185A, 'ProductClank'),
-        (0x3977fc913dB86b01a257232C568317798B903B07, 'Cody'),
-        (0x0fD7a301B51d0A83FCAf6718628174D527B373b6, 'luminous'),
-        (0x6f89bcA4eA5931EdFCB09786267b251DeE752b07, 'Regent'),
-        (0x5eeB2662615782b58251b6f0c3E107571ae1AB07, 'RETAKE.TV'),
-        (0x051024B653E8ec69E72693F776c41C2A9401FB07, 'BETRMINT'),
-        (0x820C5F0fB255a1D18fd0eBB0F1CCefbC4D546dA7, 'A0x'),
-        (0xC29832025E7652ef58D15F7fA3e232A2fDfaaB07, 'Zoe'),
-        -- NON-AGENT VIA VIRTUALS
-        (0xc2427bf51d99b6ed0da0da103bc51235638ee868, 'Wasabot'),
-        (0xefc6fd02b39142ffc4a42d1078157f609be0a5b8, 'Shadow Combat League'),
-        (0x296eB9c4D8fCbd00fBc6D5027e4202BF955fA76f, 'PEAK'),
-        (0xbf8566956b4e2D8BEB90c4c19dbb8c67A9290C36, 'VIRGEN'),
-        (0xd655790b0486fa681c23b955f5ca7cd5f5c8cb07, 'Bio Unit 000'),
-        (0x919e43a2cce006710090e64bde9e01b38fd7f32f, 'Agent YP'),
-        (0xb56b5269c03421765c28aa61037536ea5690741c, 'DessalinesAI'),
-        (0x06a63c498ef95ad1fa4fff841955e512b4b2198a, 'Gluteus Maximus'),
         -- NON-AGENT INFRASTRUCTURE
         (0x91dA780BC7f4B7Cf19ABE90411a2a296Ec5FF787, 'Hive Intelligence'),
         (0x67543CF0304C19CA62AC95ba82FD4F4B40788dc1, 'Rivalz Token'),
-        (0xb942B75A602fA318ac091370D93d9143Ba345Ba3, 'Mythos Router'),
-        -- NEITHER
-        (0x315B8c9A1123c10228d469551033440441b41F0b, 'BEATS on BASE'),
-        (0xEb6d78148F001F3aA2f588997c5E102E489Ad341, 'Super Champs')
+        (0xb942B75A602fA318ac091370D93d9143Ba345Ba3, 'Mythos Router')
     ) AS t(address, name)
 ),
 
