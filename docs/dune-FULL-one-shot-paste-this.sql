@@ -158,6 +158,7 @@ WITH tracked_tokens AS (
         (0xc46c41005a1a88b0c1491f2b542a4831d6d1eba3, 'A2H', 'A2H', 'non-agent-via-bankr'),
         (0x8070b5e222f1ec077845e46ced2267e0def4cba3, 'Protean', 'PRTN', 'non-agent-via-bankr'),
         (0x3722264aB15a1dfCe5a5af89e6547F7949A8ABA3, 'LienFi', 'LFI', 'non-agent-via-bankr'),
+        (0x572c4fA77623652411574c51B5dDB7e1b750AbA3, 'Supergemma4-26b-multimodal', 'SUPERGEMMA', 'non-agent-via-bankr'),
 
         -- NON-AGENT VIA CLANKER
         (0xB695559b26BB2c9703ef1935c37AeaE9526bab07, 'Moltbook', 'MOLT', 'non-agent-via-clanker'),
@@ -377,7 +378,8 @@ token_ages (age_address, deployed_at) AS (
     (0x29cc30f9d113b356ce408667aa6433589cecbdca, TIMESTAMP '2026-01-07 22:35:05'),
     (0x0086cff0c1e5d17b19f5bcd4c8840a5b4251d959, TIMESTAMP '2026-02-12 14:06:59'),
     (0xf714e60f85497d70508f7e356b5db80e64539ba3, TIMESTAMP '2026-02-12 21:32:05'),
-    (0x7ffd8f91b0b1b5c7a2e6c7c9efb8be0a71885b07, TIMESTAMP '2026-02-13 21:00:09')
+    (0x7ffd8f91b0b1b5c7a2e6c7c9efb8be0a71885b07, TIMESTAMP '2026-02-13 21:00:09'),
+    (0x572c4fa77623652411574c51b5ddb7e1b750aba3, TIMESTAMP '2026-04-14 02:53:59')
 ),
 
 -- Pre-filtered transaction windows (all limited by time)
