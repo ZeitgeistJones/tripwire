@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+/** Always format in the viewer's local timezone (client-side). */
 function formatTs(value) {
   if (!value) return "—";
   return new Date(value).toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZoneName: "short",
   });
 }
 
@@ -28,8 +30,9 @@ export default function StatusBanner({
   snapshotBuiltAt: initialBuiltAt = null,
 }) {
   const router = useRouter();
-  const [duneFormatted, setDuneFormatted] = useState(() => formatTs(initialLastUpdated));
-  const [pricesFormatted, setPricesFormatted] = useState(() => formatTs(initialPricesUpdatedAt));
+  // Start blank so SSR (UTC server) never paints a wrong zone; fill after mount.
+  const [duneFormatted, setDuneFormatted] = useState("—");
+  const [pricesFormatted, setPricesFormatted] = useState("—");
 
   useEffect(() => {
     setDuneFormatted(formatTs(initialLastUpdated));

@@ -32,6 +32,7 @@ import {
   freshness,
   heatBand,
   holdBand,
+  localTimeZoneAbbr,
   netTone,
   num,
   parseHourlyTape,
@@ -327,6 +328,8 @@ export default function ClawdWirePanel({
   const fresh = freshness(lastRunAt);
   const peakHourKey = utcHourKey(row?.["Peak Price Hour"]);
   const worstHourKey = utcHourKey(row?.["Worst Net Hour"]);
+  const tzAbbr = localTimeZoneAbbr();
+  const hourLabel = tzAbbr ? `hour (${tzAbbr})` : "hour (local)";
   const netTape = useMemo(() => parseHourlyTape(row?.["Hourly Net Tape 24h"]), [row]);
   const whaleTape = useMemo(() => parseHourlyTape(row?.["Hourly Whale Tape 24h"]), [row]);
   const flowColumns = useMemo(
@@ -797,12 +800,12 @@ export default function ClawdWirePanel({
                   <div style={{ marginTop: "10px" }}>
                     <StatStrip
                       items={[
-                        { label: "Peak hour (UTC)", value: fmtUtcHour(row["Peak Price Hour"]) },
+                        { label: `Peak ${hourLabel}`, value: fmtUtcHour(row["Peak Price Hour"]) },
                         { label: "Vol at peak hour", value: fmtUsd(row["Vol At Peak Hour"]), raw: row["Vol At Peak Hour"] },
-                        { label: "Best hour (UTC)", value: fmtUtcHour(row["Best Net Hour"]) },
+                        { label: `Best ${hourLabel}`, value: fmtUtcHour(row["Best Net Hour"]) },
                         { label: "Best hour net", value: fmtUsdSigned(row["Best Hour Net $"]), raw: row["Best Hour Net $"], tone: netTone(row["Best Hour Net $"]) },
                         { label: "Whale at best hour", value: fmtUsdSigned(row["Whale Net At Best Hour"]), raw: row["Whale Net At Best Hour"], tone: netTone(row["Whale Net At Best Hour"]) },
-                        { label: "Worst hour (UTC)", value: fmtUtcHour(row["Worst Net Hour"]) },
+                        { label: `Worst ${hourLabel}`, value: fmtUtcHour(row["Worst Net Hour"]) },
                         { label: "Worst hour net", value: fmtUsdSigned(row["Worst Hour Net $"]), raw: row["Worst Hour Net $"], tone: netTone(row["Worst Hour Net $"]) },
                         { label: "Whale at worst hour", value: fmtUsdSigned(row["Whale Net At Worst Hour"]), raw: row["Whale Net At Worst Hour"], tone: netTone(row["Whale Net At Worst Hour"]) },
                         { label: "Vol at worst hour", value: fmtUsd(row["Vol At Worst Hour"]), raw: row["Vol At Worst Hour"] },
@@ -817,7 +820,7 @@ export default function ClawdWirePanel({
                         bars={netTape}
                         peakHour={peakHourKey}
                         worstHour={worstHourKey}
-                        label="Net dollar flow per UTC hour over the last 24 hours"
+                        label={`Net dollar flow per local hour (${tzAbbr || "your timezone"}) over the last 24 hours`}
                       />
                     </div>
                   ) : null}
@@ -829,7 +832,7 @@ export default function ClawdWirePanel({
                         bars={whaleTape}
                         peakHour={peakHourKey}
                         worstHour={worstHourKey}
-                        label="Whale-tier net dollar flow per UTC hour over the last 24 hours"
+                        label={`Whale-tier net dollar flow per local hour (${tzAbbr || "your timezone"}) over the last 24 hours`}
                       />
                     </div>
                   ) : null}
@@ -860,7 +863,7 @@ export default function ClawdWirePanel({
                         { label: "Sell $", value: fmtUsdCompact(row["Dump Hour Sell $"]), raw: row["Dump Hour Sell $"], tone: "neg" },
                         { label: "Buyers", value: fmtInt(row["Dump Hour Buyers"]), raw: row["Dump Hour Buyers"] },
                         { label: "Sellers", value: fmtInt(row["Dump Hour Sellers"]), raw: row["Dump Hour Sellers"] },
-                        { label: "Worst hour (UTC)", value: fmtUtcHour(row["Worst Net Hour"]) },
+                        { label: `Worst ${hourLabel}`, value: fmtUtcHour(row["Worst Net Hour"]) },
                       ]}
                     />
                     <div className="cw-wallet-grid" style={{ marginTop: "12px" }}>

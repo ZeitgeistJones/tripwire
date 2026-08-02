@@ -3,6 +3,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import {
   fmtPct,
   fmtUsdSigned,
+  formatTapeHourLocal,
+  localTimeZoneAbbr,
   num,
   parseWalletLines,
   shortAddr,
@@ -752,6 +754,7 @@ export function HourlyTape({ bars, peakHour = null, worstHour = null, label }) {
   const peak = Math.max(...bars.map((b) => Math.abs(b.usd)), 1);
   const mark = (hour) =>
     hour && hour === peakHour ? "peak" : hour && hour === worstHour ? "worst" : undefined;
+  const tz = localTimeZoneAbbr();
 
   return (
     <div>
@@ -761,12 +764,13 @@ export function HourlyTape({ bars, peakHour = null, worstHour = null, label }) {
           {bars.map((b) => {
             const h = `${(Math.abs(b.usd) / peak) * 100}%`;
             const up = b.usd >= 0;
+            const localHour = formatTapeHourLocal(b.hour);
             return (
               <div
                 className="cw-tape-col"
                 key={b.hour}
                 data-mark={mark(b.hour)}
-                title={`${b.hour}:00 UTC · net ${fmtUsdSigned(b.usd)}`}
+                title={`${localHour}${tz ? ` ${tz}` : ""} · net ${fmtUsdSigned(b.usd)}`}
               >
                 <div className="cw-tape-half cw-tape-half-up">
                   {up ? <span className="cw-tape-bar cw-tape-up" style={{ height: h }} /> : null}
@@ -781,13 +785,13 @@ export function HourlyTape({ bars, peakHour = null, worstHour = null, label }) {
         <div className="cw-tape-hours" aria-hidden="true">
           {bars.map((b) => (
             <span key={b.hour} data-mark={mark(b.hour)}>
-              {b.hour}
+              {formatTapeHourLocal(b.hour)}
             </span>
           ))}
         </div>
       </div>
       <div className="cw-tape-legend">
-        <span>UTC hour · net $ · tallest bar {fmtUsdSigned(peak)}</span>
+        <span>{tz || "Local"} hour · net $ · tallest bar {fmtUsdSigned(peak)}</span>
         {peakHour ? (
           <span style={{ color: "var(--clawd-row-border)" }}>▮ price peak hour</span>
         ) : null}
