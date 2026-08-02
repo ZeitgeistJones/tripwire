@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
       <head>
         <script
   dangerouslySetInnerHTML={{
-    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t==='dark')t='wire';else if(t==='light')t='paper';var ok={minimal:1,wire:1,volt:1,tide:1,ember:1,ink:1,paper:1,bone:1};if(!ok[t])t='bone';var bg={minimal:'#0c0d0f',wire:'#16181c',volt:'#070a06',tide:'#0a1218',ember:'#14110f',ink:'#0b0e16',paper:'#f8f7f4',bone:'#eef1f4'};document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=bg[t]||'#eef1f4';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','bone');document.documentElement.style.background='#eef1f4'}})();`,
+    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t==='dark')t='wire';else if(t==='light')t='paper';else if(t==='volt')t='lilac';var ok={minimal:1,wire:1,lilac:1,tide:1,ember:1,ink:1,paper:1,bone:1};if(!ok[t])t='bone';var bg={minimal:'#0c0d0f',wire:'#16181c',lilac:'#f6f4fb',tide:'#0a1218',ember:'#14110f',ink:'#0b0e16',paper:'#f8f7f4',bone:'#eef1f4'};document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=bg[t]||'#eef1f4';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','bone');document.documentElement.style.background='#eef1f4'}})();`,
   }}
 />
         <style
@@ -105,45 +105,46 @@ export default function RootLayout({ children }) {
                 --card-header-bg:   #181a1e;
               }
 
-              /* Volt: near-black + acid */
+              /* Lilac: cool purple-white — replaces Volt */
+              [data-theme="lilac"],
               [data-theme="volt"] {
-                --bg:               #070a06;
-                --bg-subtle:        #0d120c;
-                --bg-muted:         #141b12;
-                --border:           #24301f;
-                --border-strong:    #35482c;
-                --text:             #eef6e0;
-                --text-muted:       #a8b890;
-                --text-faint:       #6f8260;
-                --text-xfaint:      #4a5740;
-                --pill-bg:          #141b12;
-                --pill-border:      #24301f;
-                --pill-text:        #d4e8b8;
-                --pill-label:       #6f8260;
-                --pill-value:       #eef6e0;
-                --clawd-row-bg:     rgba(184,240,0,0.10);
-                --clawd-row-border: #b8f000;
-                --btn-active-bg:    #b8f000;
-                --btn-active-text:  #0a1004;
-                --btn-inactive-bg:  #0d120c;
-                --btn-inactive-text:#a8b890;
-                --btn-inactive-border:#35482c;
-                --badge-neutral-bg: #141b12;
-                --badge-neutral-text:#d4e8b8;
-                --gate-ok-bg:       #122018;
-                --gate-ok-text:     #9ad88a;
-                --gate-fail-bg:     #281410;
-                --gate-fail-text:   #e09080;
-                --read-teal-bg:     #10241c;
-                --read-teal-text:   #7fd4a8;
-                --read-amber-bg:    #242010;
-                --read-amber-text:  #d4c050;
-                --read-coral-bg:    #281410;
-                --read-coral-text:  #e09080;
-                --chart-grid:       rgba(184,240,0,0.07);
-                --chart-tick:       #6f8260;
-                --card-bg:          #0d120c;
-                --card-header-bg:   #141b12;
+                --bg:               #f6f4fb;
+                --bg-subtle:        #efeaf8;
+                --bg-muted:         #e6dff4;
+                --border:           #d5cce8;
+                --border-strong:    #b5a6d6;
+                --text:             #1a1430;
+                --text-muted:       #564b72;
+                --text-faint:       #8578a4;
+                --text-xfaint:      #ada2c4;
+                --pill-bg:          #eae3f6;
+                --pill-border:      #d5cce8;
+                --pill-text:        #2a2048;
+                --pill-label:       #8578a4;
+                --pill-value:       #1a1430;
+                --clawd-row-bg:     rgba(91,53,197,0.08);
+                --clawd-row-border: #5b35c5;
+                --btn-active-bg:    #5b35c5;
+                --btn-active-text:  #f8f5ff;
+                --btn-inactive-bg:  #f6f4fb;
+                --btn-inactive-text:#564b72;
+                --btn-inactive-border:#b5a6d6;
+                --badge-neutral-bg: #eae3f6;
+                --badge-neutral-text:#1a1430;
+                --gate-ok-bg:       #ddf4ec;
+                --gate-ok-text:     #145240;
+                --gate-fail-bg:     #f8e6e4;
+                --gate-fail-text:   #7a2820;
+                --read-teal-bg:     #d8f0e8;
+                --read-teal-text:   #0a5048;
+                --read-amber-bg:    #f5ecd8;
+                --read-amber-text:  #6a4810;
+                --read-coral-bg:    #f8e6e4;
+                --read-coral-text:  #7a3028;
+                --chart-grid:       rgba(60,30,120,0.08);
+                --chart-tick:       #8578a4;
+                --card-bg:          #ffffff;
+                --card-header-bg:   #efeaf8;
               }
 
               /* Tide: deep sea + cyan */
@@ -369,7 +370,7 @@ export default function RootLayout({ children }) {
               html { background: #eef1f4; }
               html[data-theme="minimal"] { background: #0c0d0f; }
               html[data-theme="wire"], html[data-theme="dark"] { background: #16181c; }
-              html[data-theme="volt"] { background: #070a06; }
+              html[data-theme="lilac"], html[data-theme="volt"] { background: #f6f4fb; }
               html[data-theme="tide"] { background: #0a1218; }
               html[data-theme="ember"] { background: #14110f; }
               html[data-theme="ink"] { background: #0b0e16; }

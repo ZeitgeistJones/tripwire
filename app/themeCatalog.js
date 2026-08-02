@@ -36,12 +36,12 @@ export const THEMES = [
     bg: "#16181c",
   },
   {
-    id: "volt",
-    label: "Volt",
-    blurb: "Near-black, acid signal.",
-    swatch: "#070a06",
-    accent: "#b8f000",
-    bg: "#070a06",
+    id: "lilac",
+    label: "Lilac",
+    blurb: "Cool purple-white dashboard.",
+    swatch: "#f6f4fb",
+    accent: "#5b35c5",
+    bg: "#f6f4fb",
   },
   {
     id: "tide",
@@ -83,6 +83,7 @@ const THEME_IDS = new Set(THEMES.map((t) => t.id));
 export function normalizeThemeId(raw) {
   if (raw === "dark") return "wire";
   if (raw === "light") return "paper";
+  if (raw === "volt") return "lilac";
   if (THEME_IDS.has(raw)) return raw;
   return "bone";
 }
