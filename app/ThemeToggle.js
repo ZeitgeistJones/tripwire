@@ -1,4 +1,8 @@
-// Theme toggle disabled — dark mode is permanent for now.
+"use client";
+
+import ThemePicker from "./ThemePicker";
+
+/** @deprecated Prefer ThemePicker — kept so old imports keep resolving. */
 export default function ThemeToggle() {
-  return null;
+  return <ThemePicker compact />;
 }

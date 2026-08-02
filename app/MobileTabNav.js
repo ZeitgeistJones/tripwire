@@ -3,7 +3,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import AppearanceToggle from "./AppearanceToggle";
 
 /** Public primary chrome — live pulse first. Snapshot tables live under More. */
 export const MOBILE_PRIMARY_TABS = ["ClawdWire", "About"];
@@ -201,7 +200,6 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
         activeKey={activeTab}
         onSelect={(key) => onTabChange(key)}
       />
-      <AppearanceToggle compact />
     </div>
   );
 }
@@ -246,7 +244,6 @@ export function LinkMobileNav({ currentPage }) {
           </Link>
         )}
       />
-      <AppearanceToggle compact />
     </div>
   );
 }

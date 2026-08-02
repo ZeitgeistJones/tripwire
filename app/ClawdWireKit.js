@@ -38,17 +38,16 @@ export const CLAWDWIRE_CSS = `
   --border: #d4d0c6;
   --border-strong: #b8b3a6;
 }
-[data-theme="dark"] .cw-root {
-  /* Align with charcoal theme; keep Wire labels a touch brighter */
-  --bg: #16181c;
-  --bg-subtle: #1c1f24;
-  --bg-muted: #24282f;
-  --border: #323840;
-  --border-strong: #454c56;
-  --text: #eef0f2;
-  --text-muted: #c0c6ce;
-  --text-faint: #949ca8;
-  --text-xfaint: #6a7280;
+[data-theme="wire"] .cw-root,
+[data-theme="dark"] .cw-root,
+[data-theme="minimal"] .cw-root,
+[data-theme="volt"] .cw-root,
+[data-theme="tide"] .cw-root,
+[data-theme="ember"] .cw-root,
+[data-theme="ink"] .cw-root {
+  /* Inherit site look; nudge Wire labels a touch brighter on dark skins */
+  --text-muted: color-mix(in srgb, var(--text-muted) 70%, var(--text) 30%);
+  --text-faint: color-mix(in srgb, var(--text-faint) 65%, var(--text-muted) 35%);
 }
 .cw-mono {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;

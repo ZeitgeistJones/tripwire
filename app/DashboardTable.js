@@ -12,7 +12,6 @@ import WireBanner from "./WireBanner";
 import ClawdWireBanner from "./ClawdWireBanner";
 import DefSheet from "./DefSheet";
 import { DashboardMobileNav, MoreMenu, SNAPSHOT_TABS } from "./MobileTabNav";
-import AppearanceToggle from "./AppearanceToggle";
 import { isWireTester } from "@/lib/wireAccess";
 
 const SNAPSHOT_TAB_SET = new Set(SNAPSHOT_TABS);
@@ -1627,8 +1626,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         <button type="button" onClick={() => handleTabChange("About")} style={navChip(activeTab === "About")}>
           About
         </button>
-        <span style={{ flex: "1 1 8px" }} />
-        <AppearanceToggle />
       </div>
 
       <DashboardMobileNav

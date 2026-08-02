@@ -1,7 +1,7 @@
 "use client";
 import { useAccount, useConnect, useDisconnect, useReadContract } from "wagmi";
 import { base } from "wagmi/chains";
-import ThemeToggle from "./ThemeToggle";
+import ThemePicker from "./ThemePicker";
 
 const GATE_ADDRESS = "0xc22B7b983EC81523c969753c2385106835E8CfCE";
 const GATE_ABI = [
@@ -73,7 +73,8 @@ function PublicHeader() {
         </div>
 
         {/* Right column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", alignItems: "flex-start" }}>
+          <ThemePicker />
           <div>
             <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: 600, color: "var(--text-muted)" }}>
               Access requires 10,000,000 CLAWD.
@@ -125,7 +126,8 @@ function HolderHeader({ address, disconnect }) {
           Community dashboard for CLAWD holders · Dune + CoinGecko · DYOR
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+        <ThemePicker compact />
         <span style={{
           fontSize: "12px", fontWeight: 600,
           padding: "4px 10px", borderRadius: "6px",
@@ -168,7 +170,8 @@ function ConnectedNotHolder({ address, disconnect }) {
           Requires 10,000,000 CLAWD to unlock
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+        <ThemePicker compact />
         <span style={{
           fontSize: "12px", fontWeight: 600,
           padding: "4px 10px", borderRadius: "6px",
@@ -209,10 +212,6 @@ export default function Header() {
 
   return (
     <div style={{ marginBottom: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "12px" }}>
-        <ThemeToggle />
-      </div>
-
       {!isConnected && <PublicHeader />}
       {isConnected && hasAccess && <HolderHeader address={address} disconnect={disconnect} />}
       {isConnected && !hasAccess && <ConnectedNotHolder address={address} disconnect={disconnect} />}

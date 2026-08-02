@@ -9,65 +9,21 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning style={{ background: "#16181c" }}>
+    <html lang="en" data-theme="wire" suppressHydrationWarning style={{ background: "#16181c" }}>
       <head>
         <script
   dangerouslySetInnerHTML={{
-    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=t==='light'?'#f8f7f4':'#16181c';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();`,
+    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t==='dark')t='wire';else if(t==='light')t='paper';var ok={minimal:1,wire:1,volt:1,tide:1,ember:1,ink:1,paper:1,bone:1};if(!ok[t])t='wire';var bg={minimal:'#0c0d0f',wire:'#16181c',volt:'#070a06',tide:'#0a1218',ember:'#14110f',ink:'#0b0e16',paper:'#f8f7f4',bone:'#eef1f4'};document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=bg[t]||'#16181c';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','wire')}})();`,
   }}
 />
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              /* ── Light mode ─────────────────────────────────────────── */
-              :root {
-                --bg:               #f8f7f4;
-                --bg-subtle:        #f2f0ec;
-                --bg-muted:         #eceae4;
-                --border:           #dedad2;
-                --border-strong:    #c8c4ba;
-                --text:             #2c2a26;
-                --text-muted:       #5a5750;
-                --text-faint:       #8a877f;
-                --text-xfaint:      #b0ada5;
+              /* Theme tokens — each look is a full identity, not a tint. */
 
-                --pill-bg:          #eceae4;
-                --pill-border:      #dedad2;
-                --pill-text:        #3a3830;
-                --pill-label:       #8a877f;
-                --pill-value:       #1e1c18;
-
-                --clawd-row-bg:     rgba(59,109,17,0.06);
-                --clawd-row-border: #3B6D11;
-
-                --btn-active-bg:    #3B6D11;
-                --btn-active-text:  #f4faf0;
-                --btn-inactive-bg:  #f8f7f4;
-                --btn-inactive-text:#3a3830;
-                --btn-inactive-border:#c8c4ba;
-
-                --badge-neutral-bg: #eceae4;
-                --badge-neutral-text:#2c2a26;
-
-                --gate-ok-bg:       #e6f4ee;
-                --gate-ok-text:     #1a5c3a;
-                --gate-fail-bg:     #faecea;
-                --gate-fail-text:   #7a2118;
-
-                --read-teal-bg:     #ddf4ec;
-                --read-teal-text:   #085041;
-                --read-amber-bg:    #faeeda;
-                --read-amber-text:  #633806;
-                --read-coral-bg:    #faecea;
-                --read-coral-text:  #712B13;
-
-                --chart-grid:       rgba(0,0,0,0.07);
-                --chart-tick:       #8a877f;
-                --card-bg:          #f8f7f4;
-                --card-header-bg:   #eceae4;
-              }
-
-              /* ── Dark mode — cool charcoal + CLAWD green (no lavender) ─ */
+              /* Wire (default): charcoal + CLAWD green */
+              :root,
+              [data-theme="wire"],
               [data-theme="dark"] {
                 --bg:               #16181c;
                 --bg-subtle:        #1c1f24;
@@ -78,42 +34,324 @@ export default function RootLayout({ children }) {
                 --text-muted:       #b4bac4;
                 --text-faint:       #8a929e;
                 --text-xfaint:      #636b78;
-
                 --pill-bg:          #24282f;
                 --pill-border:      #323840;
                 --pill-text:        #d8dce2;
                 --pill-label:       #8a929e;
                 --pill-value:       #eef0f2;
-
-                --clawd-row-bg:     rgba(130,180,80,0.10);
+                --clawd-row-bg:     rgba(122,184,74,0.10);
                 --clawd-row-border: #7ab84a;
-
                 --btn-active-bg:    #7ab84a;
                 --btn-active-text:  #0f140c;
                 --btn-inactive-bg:  #1c1f24;
                 --btn-inactive-text:#b4bac4;
                 --btn-inactive-border:#323840;
-
                 --badge-neutral-bg: #24282f;
                 --badge-neutral-text:#d8dce2;
-
                 --gate-ok-bg:       #1a2e24;
                 --gate-ok-text:     #74c99a;
                 --gate-fail-bg:     #2e1a1a;
                 --gate-fail-text:   #e08080;
-
                 --read-teal-bg:     #1a2e28;
                 --read-teal-text:   #74c9a8;
                 --read-amber-bg:    #2e2210;
                 --read-amber-text:  #d4a864;
                 --read-coral-bg:    #2e1a1a;
                 --read-coral-text:  #e08878;
-
                 --chart-grid:       rgba(180,200,220,0.08);
                 --chart-tick:       #8a929e;
                 --card-bg:          #1c1f24;
                 --card-header-bg:   #24282f;
               }
+
+              /* Minimal: quiet graphite */
+              [data-theme="minimal"] {
+                --bg:               #0c0d0f;
+                --bg-subtle:        #121316;
+                --bg-muted:         #181a1e;
+                --border:           #26282d;
+                --border-strong:    #35383f;
+                --text:             #e6e7e9;
+                --text-muted:       #9a9ea6;
+                --text-faint:       #6d717a;
+                --text-xfaint:      #4a4e56;
+                --pill-bg:          #181a1e;
+                --pill-border:      #26282d;
+                --pill-text:        #c8cbd0;
+                --pill-label:       #6d717a;
+                --pill-value:       #e6e7e9;
+                --clawd-row-bg:     rgba(180,186,196,0.08);
+                --clawd-row-border: #a8aeb8;
+                --btn-active-bg:    #d0d4da;
+                --btn-active-text:  #0c0d0f;
+                --btn-inactive-bg:  #121316;
+                --btn-inactive-text:#9a9ea6;
+                --btn-inactive-border:#35383f;
+                --badge-neutral-bg: #181a1e;
+                --badge-neutral-text:#c8cbd0;
+                --gate-ok-bg:       #14201a;
+                --gate-ok-text:     #8ab89a;
+                --gate-fail-bg:     #241616;
+                --gate-fail-text:   #c89898;
+                --read-teal-bg:     #14201c;
+                --read-teal-text:   #8ab8a8;
+                --read-amber-bg:    #221c12;
+                --read-amber-text:  #c0a878;
+                --read-coral-bg:    #241616;
+                --read-coral-text:  #c89890;
+                --chart-grid:       rgba(200,205,215,0.06);
+                --chart-tick:       #6d717a;
+                --card-bg:          #121316;
+                --card-header-bg:   #181a1e;
+              }
+
+              /* Volt: near-black + acid */
+              [data-theme="volt"] {
+                --bg:               #070a06;
+                --bg-subtle:        #0d120c;
+                --bg-muted:         #141b12;
+                --border:           #24301f;
+                --border-strong:    #35482c;
+                --text:             #eef6e0;
+                --text-muted:       #a8b890;
+                --text-faint:       #6f8260;
+                --text-xfaint:      #4a5740;
+                --pill-bg:          #141b12;
+                --pill-border:      #24301f;
+                --pill-text:        #d4e8b8;
+                --pill-label:       #6f8260;
+                --pill-value:       #eef6e0;
+                --clawd-row-bg:     rgba(184,240,0,0.10);
+                --clawd-row-border: #b8f000;
+                --btn-active-bg:    #b8f000;
+                --btn-active-text:  #0a1004;
+                --btn-inactive-bg:  #0d120c;
+                --btn-inactive-text:#a8b890;
+                --btn-inactive-border:#35482c;
+                --badge-neutral-bg: #141b12;
+                --badge-neutral-text:#d4e8b8;
+                --gate-ok-bg:       #122018;
+                --gate-ok-text:     #9ad88a;
+                --gate-fail-bg:     #281410;
+                --gate-fail-text:   #e09080;
+                --read-teal-bg:     #10241c;
+                --read-teal-text:   #7fd4a8;
+                --read-amber-bg:    #242010;
+                --read-amber-text:  #d4c050;
+                --read-coral-bg:    #281410;
+                --read-coral-text:  #e09080;
+                --chart-grid:       rgba(184,240,0,0.07);
+                --chart-tick:       #6f8260;
+                --card-bg:          #0d120c;
+                --card-header-bg:   #141b12;
+              }
+
+              /* Tide: deep sea + cyan */
+              [data-theme="tide"] {
+                --bg:               #0a1218;
+                --bg-subtle:        #0f1a22;
+                --bg-muted:         #152530;
+                --border:           #243848;
+                --border-strong:    #355568;
+                --text:             #e4eef4;
+                --text-muted:       #9bb0bc;
+                --text-faint:       #6a8290;
+                --text-xfaint:      #4a6270;
+                --pill-bg:          #152530;
+                --pill-border:      #243848;
+                --pill-text:        #c8dde8;
+                --pill-label:       #6a8290;
+                --pill-value:       #e4eef4;
+                --clawd-row-bg:     rgba(62,199,192,0.12);
+                --clawd-row-border: #3ec7c0;
+                --btn-active-bg:    #3ec7c0;
+                --btn-active-text:  #041416;
+                --btn-inactive-bg:  #0f1a22;
+                --btn-inactive-text:#9bb0bc;
+                --btn-inactive-border:#355568;
+                --badge-neutral-bg: #152530;
+                --badge-neutral-text:#c8dde8;
+                --gate-ok-bg:       #102820;
+                --gate-ok-text:     #6ed4b0;
+                --gate-fail-bg:     #2a1618;
+                --gate-fail-text:   #e08890;
+                --read-teal-bg:     #102820;
+                --read-teal-text:   #5ed4c0;
+                --read-amber-bg:    #282418;
+                --read-amber-text:  #d4b870;
+                --read-coral-bg:    #2a1618;
+                --read-coral-text:  #e09098;
+                --chart-grid:       rgba(62,199,192,0.08);
+                --chart-tick:       #6a8290;
+                --card-bg:          #0f1a22;
+                --card-header-bg:   #152530;
+              }
+
+              /* Ember: warm night + copper */
+              [data-theme="ember"] {
+                --bg:               #14110f;
+                --bg-subtle:        #1c1815;
+                --bg-muted:         #26201c;
+                --border:           #3a322c;
+                --border-strong:    #524840;
+                --text:             #f2ebe4;
+                --text-muted:       #b8a99a;
+                --text-faint:       #857868;
+                --text-xfaint:      #5c5248;
+                --pill-bg:          #26201c;
+                --pill-border:      #3a322c;
+                --pill-text:        #e0d4c8;
+                --pill-label:       #857868;
+                --pill-value:       #f2ebe4;
+                --clawd-row-bg:     rgba(224,138,74,0.12);
+                --clawd-row-border: #e08a4a;
+                --btn-active-bg:    #e08a4a;
+                --btn-active-text:  #1a1008;
+                --btn-inactive-bg:  #1c1815;
+                --btn-inactive-text:#b8a99a;
+                --btn-inactive-border:#524840;
+                --badge-neutral-bg: #26201c;
+                --badge-neutral-text:#e0d4c8;
+                --gate-ok-bg:       #1a2820;
+                --gate-ok-text:     #90c8a0;
+                --gate-fail-bg:     #2e1814;
+                --gate-fail-text:   #e09888;
+                --read-teal-bg:     #182820;
+                --read-teal-text:   #88c8a8;
+                --read-amber-bg:    #2a2010;
+                --read-amber-text:  #e0b060;
+                --read-coral-bg:    #2e1814;
+                --read-coral-text:  #e09888;
+                --chart-grid:       rgba(224,138,74,0.08);
+                --chart-tick:       #857868;
+                --card-bg:          #1c1815;
+                --card-header-bg:   #26201c;
+              }
+
+              /* Ink: blue-black terminal */
+              [data-theme="ink"] {
+                --bg:               #0b0e16;
+                --bg-subtle:        #111522;
+                --bg-muted:         #181e30;
+                --border:           #2a3348;
+                --border-strong:    #3e4a66;
+                --text:             #e8ecf6;
+                --text-muted:       #a4acc4;
+                --text-faint:       #6e7690;
+                --text-xfaint:      #4c5470;
+                --pill-bg:          #181e30;
+                --pill-border:      #2a3348;
+                --pill-text:        #d0d6e8;
+                --pill-label:       #6e7690;
+                --pill-value:       #e8ecf6;
+                --clawd-row-bg:     rgba(110,168,255,0.12);
+                --clawd-row-border: #6ea8ff;
+                --btn-active-bg:    #6ea8ff;
+                --btn-active-text:  #081018;
+                --btn-inactive-bg:  #111522;
+                --btn-inactive-text:#a4acc4;
+                --btn-inactive-border:#3e4a66;
+                --badge-neutral-bg: #181e30;
+                --badge-neutral-text:#d0d6e8;
+                --gate-ok-bg:       #142428;
+                --gate-ok-text:     #70c8b0;
+                --gate-fail-bg:     #2a1620;
+                --gate-fail-text:   #e090a0;
+                --read-teal-bg:     #142828;
+                --read-teal-text:   #70d0c0;
+                --read-amber-bg:    #282418;
+                --read-amber-text:  #d4b868;
+                --read-coral-bg:    #2a1620;
+                --read-coral-text:  #e098a8;
+                --chart-grid:       rgba(110,168,255,0.08);
+                --chart-tick:       #6e7690;
+                --card-bg:          #111522;
+                --card-header-bg:   #181e30;
+              }
+
+              /* Paper: daylight */
+              [data-theme="paper"],
+              [data-theme="light"] {
+                --bg:               #f8f7f4;
+                --bg-subtle:        #f2f0ec;
+                --bg-muted:         #eceae4;
+                --border:           #dedad2;
+                --border-strong:    #c8c4ba;
+                --text:             #2c2a26;
+                --text-muted:       #5a5750;
+                --text-faint:       #8a877f;
+                --text-xfaint:      #b0ada5;
+                --pill-bg:          #eceae4;
+                --pill-border:      #dedad2;
+                --pill-text:        #3a3830;
+                --pill-label:       #8a877f;
+                --pill-value:       #1e1c18;
+                --clawd-row-bg:     rgba(59,109,17,0.06);
+                --clawd-row-border: #3B6D11;
+                --btn-active-bg:    #3B6D11;
+                --btn-active-text:  #f4faf0;
+                --btn-inactive-bg:  #f8f7f4;
+                --btn-inactive-text:#3a3830;
+                --btn-inactive-border:#c8c4ba;
+                --badge-neutral-bg: #eceae4;
+                --badge-neutral-text:#2c2a26;
+                --gate-ok-bg:       #e6f4ee;
+                --gate-ok-text:     #1a5c3a;
+                --gate-fail-bg:     #faecea;
+                --gate-fail-text:   #7a2118;
+                --read-teal-bg:     #ddf4ec;
+                --read-teal-text:   #085041;
+                --read-amber-bg:    #faeeda;
+                --read-amber-text:  #633806;
+                --read-coral-bg:    #faecea;
+                --read-coral-text:  #712B13;
+                --chart-grid:       rgba(0,0,0,0.07);
+                --chart-tick:       #8a877f;
+                --card-bg:          #f8f7f4;
+                --card-header-bg:   #eceae4;
+              }
+
+              /* Bone: cool light + steel */
+              [data-theme="bone"] {
+                --bg:               #eef1f4;
+                --bg-subtle:        #e6eaef;
+                --bg-muted:         #dce2e8;
+                --border:           #cdd5de;
+                --border-strong:    #b0bac6;
+                --text:             #1a222c;
+                --text-muted:       #4a5564;
+                --text-faint:       #7a8696;
+                --text-xfaint:      #a0aab8;
+                --pill-bg:          #e0e6ec;
+                --pill-border:      #cdd5de;
+                --pill-text:        #243040;
+                --pill-label:       #7a8696;
+                --pill-value:       #1a222c;
+                --clawd-row-bg:     rgba(26,95,122,0.08);
+                --clawd-row-border: #1a5f7a;
+                --btn-active-bg:    #1a5f7a;
+                --btn-active-text:  #f0f7fa;
+                --btn-inactive-bg:  #eef1f4;
+                --btn-inactive-text:#4a5564;
+                --btn-inactive-border:#b0bac6;
+                --badge-neutral-bg: #e0e6ec;
+                --badge-neutral-text:#1a222c;
+                --gate-ok-bg:       #d8eee6;
+                --gate-ok-text:     #145240;
+                --gate-fail-bg:     #f5e4e2;
+                --gate-fail-text:   #7a2820;
+                --read-teal-bg:     #d4efe8;
+                --read-teal-text:   #0a5048;
+                --read-amber-bg:    #f5ecd8;
+                --read-amber-text:  #6a4810;
+                --read-coral-bg:    #f5e4e2;
+                --read-coral-text:  #7a3028;
+                --chart-grid:       rgba(20,40,60,0.08);
+                --chart-tick:       #7a8696;
+                --card-bg:          #e6eaef;
+                --card-header-bg:   #e0e6ec;
+              }
+
 
               *, *::before, *::after { box-sizing: border-box; }
 
@@ -128,12 +366,15 @@ export default function RootLayout({ children }) {
                 font-feature-settings: "tnum" 1;
               }
 
-              html {
-                background: #16181c;
-              }
-              html[data-theme="light"] {
-                background: #f8f7f4;
-              }
+              html { background: #16181c; }
+              html[data-theme="minimal"] { background: #0c0d0f; }
+              html[data-theme="wire"], html[data-theme="dark"] { background: #16181c; }
+              html[data-theme="volt"] { background: #070a06; }
+              html[data-theme="tide"] { background: #0a1218; }
+              html[data-theme="ember"] { background: #14110f; }
+              html[data-theme="ink"] { background: #0b0e16; }
+              html[data-theme="paper"], html[data-theme="light"] { background: #f8f7f4; }
+              html[data-theme="bone"] { background: #eef1f4; }
 
               body {
                 background: var(--bg);
