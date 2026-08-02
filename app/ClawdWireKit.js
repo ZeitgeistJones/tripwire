@@ -186,6 +186,44 @@ export const CLAWDWIRE_CSS = `
 .cw-seg button + button { border-left: 1px solid var(--border); }
 .cw-seg button:hover { color: var(--text); background: var(--bg-subtle); }
 .cw-seg button[aria-pressed="true"] { background: var(--bg); color: var(--text); }
+.cw-seg-sm button { padding: 5px 10px; font-size: 11px; min-height: 28px; }
+
+/* Net flow + window control as one causal unit */
+.cw-flow-window {
+  max-width: 520px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--bg-subtle) 0%, var(--bg) 70%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+.cw-flow-window-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.cw-flow-window-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.cw-flow-window-hint {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-xfaint);
+  line-height: 1.35;
+  max-width: 220px;
+}
+.cw-flow-window .cw-seg button[aria-pressed="true"] {
+  background: var(--clawd-row-border);
+  color: #0f140c;
+  border-color: transparent;
+}
 .cw-btn {
   appearance: none; cursor: pointer; border-radius: 7px;
   font-weight: 700; font-size: 12px; min-height: 32px; padding: 7px 14px;
@@ -410,17 +448,6 @@ export const CLAWDWIRE_CSS = `
 .cw-flash[data-flash="neg"] { animation: cwFlashNeg 900ms ease-out; }
 @keyframes cwFlashPos { from { background: var(--read-teal-bg); } to { background: transparent; } }
 @keyframes cwFlashNeg { from { background: var(--read-coral-bg); } to { background: transparent; } }
-
-/* ── Standing (shared-snapshot scores) ────────────────────────────────── */
-.cw-standing {
-  flex: 0 1 auto; min-width: 196px; align-self: stretch;
-  display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
-  border-left: 1px solid var(--border); padding-left: 20px;
-}
-.cw-standing-row { display: flex; gap: 10px; font-size: 12px; align-items: baseline; }
-.cw-standing-row > span:nth-child(1) { color: var(--text-faint); width: 30px; }
-.cw-standing-row > span:nth-child(2) { color: var(--text); font-weight: 700; width: 42px; text-align: right; }
-.cw-standing-row > span:nth-child(3) { color: var(--text-xfaint); }
 
 @media (max-width: 767px) {
   .cw-hero { padding: 15px 14px 14px; }

@@ -1872,10 +1872,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
               walletAddress={address}
               onMeta={setClawdWireMeta}
               clawdRow={clawdRow}
-              opportunityRank={opportunityRank}
-              momentumRank={momentumRank}
-              sustainabilityRank={sustainabilityRank}
-              totalProjects={totalProjects}
             />
           </div>
         )}

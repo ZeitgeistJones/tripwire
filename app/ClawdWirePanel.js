@@ -24,7 +24,6 @@ import {
   fmtPctSmall,
   fmtPrice,
   fmtRatio,
-  fmtScore,
   fmtUsd,
   fmtUsdCompact,
   fmtUsdSigned,
@@ -47,8 +46,7 @@ import ClawdWireTokenPicker from "./ClawdWireTokenPicker";
 const SYNC_MS = 45_000;
 
 /**
- * Trade windows. The rail's selector drives the hero readout and highlights the
- * matching column in the flow matrix, so one control does both jobs.
+ * Trade windows for Net flow (hero + sticky rail) and the highlighted Flow matrix column.
  */
 const WINDOWS = [
   { key: "15m", label: "15m", note: "immediate" },
@@ -62,6 +60,23 @@ const PARTICIPATION_WINDOWS = [
   { key: "7d", label: "7d" },
   { key: "30d", label: "30d" },
 ];
+
+function WindowSeg({ value, onChange, size = "md", "aria-label": ariaLabel = "Net flow window" }) {
+  return (
+    <span className={`cw-seg${size === "sm" ? " cw-seg-sm" : ""}`} role="group" aria-label={ariaLabel}>
+      {WINDOWS.map((w) => (
+        <button
+          key={w.key}
+          type="button"
+          aria-pressed={w.key === value}
+          onClick={() => onChange(w.key)}
+        >
+          {w.label}
+        </button>
+      ))}
+    </span>
+  );
+}
 
 function cell(raw, text, tone) {
   return { raw, text, tone };
@@ -80,11 +95,8 @@ export default function ClawdWirePanel({
   walletAddress = null,
   initialToken = null,
   onMeta = null,
+  /** Price / MC only — no snapshot ranks or Opp/Mom/Sus on this page. */
   clawdRow = null,
-  opportunityRank = null,
-  momentumRank = null,
-  sustainabilityRank = null,
-  totalProjects = null,
 }) {
   const [status, setStatus] = useState("idle");
   const [row, setRow] = useState(null);
@@ -463,11 +475,6 @@ export default function ClawdWirePanel({
           <span className="cw-mono" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
             MC {fmtUsd(marketCap)}
           </span>
-          {clawdRow?.read ? (
-            <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>
-              {[clawdRow.read, clawdRow.signal, clawdRow.Prof].filter(Boolean).join(" · ")}
-            </span>
-          ) : null}
         </div>
 
         {/* Freshness — compact trust strip; does not rival the money hero. */}
@@ -528,22 +535,18 @@ export default function ClawdWirePanel({
           </p>
         ) : null}
 
-        {/* Money hero: net flow only. */}
-        <div style={{ maxWidth: "520px" }}>
-          <div
-            style={{
-              fontSize: "10px",
-              fontWeight: 700,
-              letterSpacing: "0.11em",
-              textTransform: "uppercase",
-              color: "var(--text-faint)",
-              marginBottom: "8px",
-            }}
-          >
-            Net flow · {activeWindow}
+        {/* Money hero: window control lives here so toggle ↔ number feel causal. */}
+        <div className="cw-flow-window" data-window={activeWindow}>
+          <div className="cw-flow-window-head">
+            <div>
+              <div className="cw-flow-window-label">Net flow</div>
+              <div className="cw-flow-window-hint">Toggle changes this block + Flow matrix highlight</div>
+            </div>
+            <WindowSeg value={activeWindow} onChange={setActiveWindow} />
           </div>
           <div
             className="cw-display"
+            key={activeWindow}
             style={{
               fontSize: "clamp(42px, 8vw, 64px)",
               color: row ? toneColor(netTone(activeNet)) : "var(--text-faint)",
@@ -564,12 +567,12 @@ export default function ClawdWirePanel({
               <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
             </div>
             <p style={{ margin: "10px 0 0", fontSize: "11.5px", color: "var(--text-faint)", lineHeight: 1.45 }}>
-              Net flow = buy $ − sell $ on DEX. Price can rise while net is red (and the reverse).
+              Buy $ − sell $ on DEX for {activeWindow}. Price can diverge from net.
             </p>
           </div>
         </div>
 
-        {/* Story strip — fixed windows on purpose; only Net flow follows the rail toggle. */}
+        {/* Story strip — fixed windows; outside the flow-window frame on purpose. */}
         <div className="cw-story">
           <div className="cw-story-cell">
             <div className="cw-story-label">
@@ -627,12 +630,6 @@ export default function ClawdWirePanel({
           </div>
         </div>
 
-        <p style={{ margin: "10px 0 0", fontSize: "11px", color: "var(--text-xfaint)", lineHeight: 1.45 }}>
-          Only <strong style={{ color: "var(--text-faint)", fontWeight: 600 }}>Net flow</strong> follows the
-          15m / 1h / 6h / 24h toggle. Whale · Heat · Survive (and trade shape) use fixed windows — they won’t
-          change when you flip the rail. Quiet hours often read 0% heat / round-trip; that’s real, not stuck.
-        </p>
-
         <div style={{ marginTop: "14px", maxWidth: "640px", display: "flex", flexDirection: "column", gap: "4px" }}>
           <Disclosure title="Why don’t they match?" note="price vs net flow">
             <ul
@@ -657,26 +654,6 @@ export default function ClawdWirePanel({
                 experiment, not tax.
               </li>
             </ul>
-          </Disclosure>
-          <Disclosure title="Snapshot standing" note="Opp · Mom · Sus — not from this pulse">
-            <div className="cw-mono" style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.7 }}>
-              {[
-                ["Opp", clawdRow?.Opp, opportunityRank],
-                ["Mom", clawdRow?.Mom, momentumRank],
-                ["Sus", clawdRow?.Sus, sustainabilityRank],
-              ].map(([label, score, rank]) => (
-                <div key={label}>
-                  {label} {fmtScore(score)}
-                  {rank != null && totalProjects ? ` · #${rank}/${totalProjects}` : ""}
-                </div>
-              ))}
-              <div style={{ marginTop: "4px" }}>
-                Qlty {fmtPct(clawdRow?.["Qlty %"])} · Risk {fmtPct(clawdRow?.["Risk %"])}
-              </div>
-              <div style={{ fontSize: "11px", color: "var(--text-xfaint)" }}>
-                Shared dashboard snapshot — not recomputed per pulse.
-              </div>
-            </div>
           </Disclosure>
           <Disclosure
             title="Trade shape (advanced)"
@@ -733,26 +710,18 @@ export default function ClawdWirePanel({
           </span>
         </span>
 
-        <span className="cw-seg" role="group" aria-label="Trade window">
-          {WINDOWS.map((w) => (
-            <button
-              key={w.key}
-              type="button"
-              aria-pressed={w.key === activeWindow}
-              onClick={() => setActiveWindow(w.key)}
-            >
-              {w.label}
-            </button>
-          ))}
-        </span>
-
-        {stuck && row ? (
-          <span
-            className="cw-mono"
-            style={{ fontSize: "13px", fontWeight: 700, color: toneColor(netTone(activeNet)), whiteSpace: "nowrap" }}
-          >
-            {fmtUsdSigned(activeNet)}
-          </span>
+        {stuck ? (
+          <>
+            <WindowSeg value={activeWindow} onChange={setActiveWindow} size="sm" />
+            {row ? (
+              <span
+                className="cw-mono"
+                style={{ fontSize: "13px", fontWeight: 700, color: toneColor(netTone(activeNet)), whiteSpace: "nowrap" }}
+              >
+                {fmtUsdSigned(activeNet)}
+              </span>
+            ) : null}
+          </>
         ) : null}
 
         <span className="cw-rail-spacer" />
@@ -812,12 +781,6 @@ export default function ClawdWirePanel({
         </p>
       ) : null}
 
-      {clawdRow?.signalNote ? (
-        <p style={{ margin: "10px 0 0", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5, maxWidth: "780px" }}>
-          {clawdRow.signalNote}
-        </p>
-      ) : null}
-
       {!row ? (
         <div
           style={{
@@ -859,8 +822,8 @@ export default function ClawdWirePanel({
           <Section
             index="01"
             title="Flow"
-            subtitle="Money and participation by window. Net $ is buy minus sell; 15m carries no buyer/seller split in the source query."
-            headline={`Net 24h ${fmtUsdSigned(row["Net USD 24h"])}`}
+            subtitle={`Highlighted column = ${activeWindow} (same control as Net flow above). Net $ is buy minus sell; 15m has no buyer/seller split in the source query.`}
+            headline={`Net ${activeWindow} ${fmtUsdSigned(activeNet)}`}
           >
             <Matrix columns={flowColumns} rows={flowRows} rowHeadLabel="Metric" />
             <div style={{ marginTop: "10px" }}>
