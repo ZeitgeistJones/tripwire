@@ -1,7 +1,7 @@
 -- The Wire pulse (lean) - paste into Dune query 7765068
 -- 24h scan only: raw wallets + txs for 15m / 1h / 6h / 24h
 -- No first-time / new-buyer / new-seller paths (those forced the old 90d cost)
--- Contract list synced from lib/tokens.js (108 addresses)
+-- Contract list synced from lib/tokens.js (110 addresses)
 
 WITH agentic_contracts AS (
     SELECT address, name FROM (
@@ -118,7 +118,10 @@ WITH agentic_contracts AS (
         -- AGENT VIA BANKR
         (0x16332535E2c27da578bC2e82bEb09Ce9d3C8EB07, 'ClawBank'),
         (0x5f980dcfc4c0fa3911554cf5ab288ed0eb13dba3, 'Gitlawb'),
-        (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory')
+        (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory'),
+        -- NON-AGENT VIA BANKR
+        (0xc52aedec3374422d7510e294cfaa90799595cba3, 'Surplus Intelligence'),
+        (0x572c4fA77623652411574c51B5dDB7e1b750AbA3, 'Supergemma4-26b-multimodal')
     ) AS t(address, name)
 ),
 

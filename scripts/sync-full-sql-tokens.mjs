@@ -52,6 +52,8 @@ for (const tag of present) {
 // Known ages for tokens not yet in the ages CTE (UTC).
 const extraAges = {
   "0x7300b37dfdfab110d83290a29dfb31b1740219fe": "2025-05-20 13:39:00", // MAMO genesis
+  "0xc52aedec3374422d7510e294cfaa90799595cba3": "2026-05-16 15:20:31", // SURP
+  "0x572c4fa77623652411574c51b5ddb7e1b750aba3": "2026-04-14 02:53:59", // SUPERGEMMA
 };
 
 const path = new URL("../docs/dune-FULL-one-shot-paste-this.sql", import.meta.url);

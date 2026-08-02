@@ -322,8 +322,12 @@ export default function ClawdWirePanel({
   const activeNet = row ? row[`Net USD ${activeWindow}`] : null;
   const activeBuy = row ? row[`Buy USD ${activeWindow}`] : null;
   const activeSell = row ? row[`Sell USD ${activeWindow}`] : null;
-  const activeWallets = row ? row[`Wallets ${activeWindow}`] : null;
-  const activeTxs = row ? row[`Txs ${activeWindow}`] : null;
+  // Prefer DEX trader counts (same tape as buy/sell $). Contract wallets/txs can
+  // tick with $0 flow (approvals/transfers) and confused the hero.
+  const activeBuyers = row ? row[`Buyers ${activeWindow}`] : null;
+  const activeSellers = row ? row[`Sellers ${activeWindow}`] : null;
+  const activeContractTxs = row ? row[`Txs ${activeWindow}`] : null;
+  const hasDexTraders = activeBuyers != null || activeSellers != null;
   const heat = heatBand(row?.["Heat % 1h"]);
   const shape = roundTripBand(roundTripVol(row));
   const hold = holdBand(row?.["Survive 1d %"]);
@@ -504,7 +508,7 @@ export default function ClawdWirePanel({
               <div className="cw-flow-window-head">
                 <div>
                   <div className="cw-flow-window-label">Net flow</div>
-                  <div className="cw-flow-window-hint">Buy $ − sell $ — price can diverge</div>
+                  <div className="cw-flow-window-hint">DEX buy $ − sell $ — price can diverge</div>
                 </div>
                 <WindowSeg value={activeWindow} onChange={setActiveWindow} />
               </div>
@@ -525,8 +529,10 @@ export default function ClawdWirePanel({
               style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginTop: "6px", fontSize: "11px" }}
             >
               <span style={{ color: "var(--read-teal-text)" }}>buy {fmtUsdCompact(activeBuy)}</span>
-              <span style={{ color: "var(--text-xfaint)" }}>
-                {fmtInt(activeWallets)} wallets · {fmtInt(activeTxs)} txs
+              <span style={{ color: "var(--text-xfaint)" }} title={hasDexTraders ? "Distinct DEX swap traders in this window" : "Calls to the token contract (not the same as swap $)"}>
+                {hasDexTraders
+                  ? `${fmtInt(activeBuyers ?? 0)} buyers · ${fmtInt(activeSellers ?? 0)} sellers`
+                  : `${fmtInt(activeContractTxs)} contract txs`}
               </span>
               <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
             </div>
