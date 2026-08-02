@@ -45,7 +45,7 @@ export async function GET(request) {
     const known = resolvePulseToken(ranAddress);
 
     const marketCapUsd = await fetchClawdMarketCap(ranAddress);
-    const rows = enrichClawdWireRows(rawRows, marketCapUsd);
+    const rows = enrichClawdWireRows(rawRows, marketCapUsd, ranAddress);
     const lastRunAt =
       resultsJson.execution_ended_at ||
       statusJson.execution_ended_at ||

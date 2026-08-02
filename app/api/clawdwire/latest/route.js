@@ -49,7 +49,7 @@ export async function GET(request) {
   }
 
   try {
-    const data = await fetchClawdWireLatestFromDune();
+    const data = await fetchClawdWireLatestFromDune(token.address);
     const rows = data?.rows || [];
 
     // Dune's "latest results" is per QUERY, not per token — it returns whatever
