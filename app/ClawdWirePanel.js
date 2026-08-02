@@ -470,73 +470,55 @@ export default function ClawdWirePanel({
           ) : null}
         </div>
 
-        {/* Pulse clock — freshness is the product story; make it impossible to miss. */}
+        {/* Freshness — compact trust strip; does not rival the money hero. */}
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
             alignItems: "center",
-            gap: "12px 18px",
-            marginBottom: "16px",
-            padding: "12px 14px",
-            borderRadius: "10px",
+            gap: "8px 12px",
+            marginBottom: "14px",
+            padding: "7px 11px",
+            borderRadius: "8px",
             border: `1px solid ${
-              isRunning
-                ? "var(--read-amber-text)"
-                : fresh.tone === "pos"
-                ? "var(--read-teal-text)"
-                : fresh.tone === "caution"
-                ? "var(--read-amber-text)"
-                : "var(--border)"
+              isRunning || fresh.tone === "caution" ? "var(--read-amber-text)" : "var(--border)"
             }`,
             background: "var(--bg-muted)",
+            fontSize: "12.5px",
           }}
         >
           <LiveDot tone={isRunning ? "caution" : fresh.tone} ping={isRunning || fresh.tone === "pos"} />
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                letterSpacing: "0.11em",
-                textTransform: "uppercase",
-                color: "var(--text-faint)",
-                marginBottom: "4px",
-              }}
-            >
-              Data freshness · {fresh.label}
-            </div>
-            <div
-              className="cw-mono"
-              style={{
-                fontSize: "clamp(22px, 4vw, 32px)",
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.1,
-                color: isRunning
-                  ? "var(--read-amber-text)"
-                  : toneColor(fresh.tone === "pos" ? "pos" : fresh.tone === "caution" ? "caution" : "faint"),
-              }}
-            >
-              {isRunning ? "Running on Dune…" : pulseAge || "No pulse yet"}
-            </div>
-            {pulseClock && !isRunning ? (
-              <div className="cw-mono" style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}>
-                {pulseClock}
-              </div>
-            ) : null}
-          </div>
+          <span
+            className="cw-mono"
+            style={{
+              fontWeight: 700,
+              color: isRunning
+                ? "var(--read-amber-text)"
+                : toneColor(fresh.tone === "pos" ? "pos" : fresh.tone === "caution" ? "caution" : "muted"),
+            }}
+          >
+            {isRunning ? "Running on Dune…" : pulseAge ? `Pulse ${pulseAge}` : "No pulse yet"}
+          </span>
+          <span style={{ color: "var(--text-xfaint)" }}>·</span>
+          <span style={{ color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "10px", fontWeight: 700 }}>
+            {fresh.label}
+          </span>
+          {pulseClock && !isRunning ? (
+            <span className="cw-mono" style={{ color: "var(--text-muted)", marginLeft: "auto" }}>
+              {pulseClock}
+            </span>
+          ) : null}
         </div>
 
         {fresh.tone === "caution" && lastRunAt && !isRunning ? (
           <p
             style={{
               margin: "0 0 14px",
-              padding: "10px 12px",
+              padding: "8px 11px",
               borderRadius: "8px",
               border: "1px solid var(--read-amber-text)",
               background: "rgba(232, 168, 56, 0.08)",
-              fontSize: "12.5px",
+              fontSize: "12px",
               color: "var(--text)",
               lineHeight: 1.45,
             }}
@@ -546,83 +528,119 @@ export default function ClawdWirePanel({
           </p>
         ) : null}
 
-        {/* Dominant readout: net flow for the selected window. Price is on every
-            other venue — net flow is what this instrument uniquely knows. */}
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "18px 28px" }}>
-          <div style={{ minWidth: "220px", flex: "1 1 260px" }}>
+        {/* Money hero: net flow only. */}
+        <div style={{ maxWidth: "520px" }}>
+          <div
+            style={{
+              fontSize: "10px",
+              fontWeight: 700,
+              letterSpacing: "0.11em",
+              textTransform: "uppercase",
+              color: "var(--text-faint)",
+              marginBottom: "8px",
+            }}
+          >
+            Net flow · {activeWindow}
+          </div>
+          <div
+            className="cw-display"
+            style={{
+              fontSize: "clamp(42px, 8vw, 64px)",
+              color: row ? toneColor(netTone(activeNet)) : "var(--text-faint)",
+            }}
+          >
+            <FlashNum raw={activeNet}>{row ? fmtUsdSigned(activeNet) : "—"}</FlashNum>
+          </div>
+          <div style={{ marginTop: "12px", maxWidth: "420px" }}>
+            <PressureBar buy={activeBuy} sell={activeSell} />
             <div
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                letterSpacing: "0.11em",
-                textTransform: "uppercase",
-                color: "var(--text-faint)",
-                marginBottom: "8px",
-              }}
+              className="cw-mono"
+              style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginTop: "6px", fontSize: "11px" }}
             >
-              Net flow · {activeWindow}
+              <span style={{ color: "var(--read-teal-text)" }}>buy {fmtUsdCompact(activeBuy)}</span>
+              <span style={{ color: "var(--text-xfaint)" }}>
+                {fmtInt(activeWallets)} wallets · {fmtInt(activeTxs)} txs
+              </span>
+              <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
+            </div>
+            <p style={{ margin: "10px 0 0", fontSize: "11.5px", color: "var(--text-faint)", lineHeight: 1.45 }}>
+              Net flow = buy $ − sell $ on DEX. Price can rise while net is red (and the reverse).
+            </p>
+          </div>
+        </div>
+
+        {/* Story strip — shareable pulse numbers at secondary-hero size. */}
+        <div className="cw-story">
+          <div className="cw-story-cell">
+            <div className="cw-story-label">
+              <span>Whale net · 24h</span>
+              <span className="cw-chip-band" style={{ color: toneColor(whaleNet24h == null ? "faint" : netTone(whaleNet24h)) }}>
+                <LiveDot tone={whaleNet24h == null ? "faint" : netTone(whaleNet24h)} />
+                {whaleNet24h == null ? "no data" : num(whaleNet24h) > 0 ? "accumulating" : "distributing"}
+              </span>
             </div>
             <div
-              className="cw-display"
-              style={{
-                fontSize: "clamp(38px, 7vw, 56px)",
-                color: row ? toneColor(netTone(activeNet)) : "var(--text-faint)",
-              }}
+              className="cw-story-value cw-mono"
+              style={{ color: whaleNet24h == null ? "var(--text-faint)" : toneColor(netTone(whaleNet24h)) }}
             >
-              <FlashNum raw={activeNet}>{row ? fmtUsdSigned(activeNet) : "—"}</FlashNum>
+              <FlashNum raw={whaleNet24h}>{fmtUsdSigned(whaleNet24h)}</FlashNum>
             </div>
-            <div style={{ marginTop: "12px", maxWidth: "420px" }}>
-              <PressureBar buy={activeBuy} sell={activeSell} />
-              <div
-                className="cw-mono"
-                style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginTop: "6px", fontSize: "11px" }}
-              >
-                <span style={{ color: "var(--read-teal-text)" }}>buy {fmtUsdCompact(activeBuy)}</span>
-                <span style={{ color: "var(--text-xfaint)" }}>
-                  {fmtInt(activeWallets)} wallets · {fmtInt(activeTxs)} txs
-                </span>
-                <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
-              </div>
-              <p style={{ margin: "10px 0 0", fontSize: "11.5px", color: "var(--text-faint)", lineHeight: 1.45 }}>
-                Net flow = buy $ − sell $ on DEX. Price can rise while net is red (and the reverse).
-              </p>
+            <div className="cw-story-note">
+              Large-wallet buy $ − sell $. Whale vol {fmtPct(row?.["Whale Vol % 24h"])} of day.
             </div>
           </div>
-
-          {/* Standing: shared-snapshot scores, kept present but subordinate. */}
-          <div className="cw-standing">
+          <div className="cw-story-cell">
+            <div className="cw-story-label">
+              <span>Heat · 1h</span>
+              <span className="cw-chip-band" style={{ color: toneColor(heat.tone) }}>
+                <LiveDot tone={heat.tone} />
+                {heat.label}
+              </span>
+            </div>
             <div
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                letterSpacing: "0.11em",
-                textTransform: "uppercase",
-                color: "var(--text-faint)",
-              }}
+              className="cw-story-value cw-mono"
+              style={{ color: row?.["Heat % 1h"] == null ? "var(--text-faint)" : "var(--text)" }}
             >
-              Standing
+              <FlashNum raw={row?.["Heat % 1h"]}>{fmtPct(row?.["Heat % 1h"])}</FlashNum>
             </div>
-            {[
-              ["Opp", clawdRow?.Opp, opportunityRank],
-              ["Mom", clawdRow?.Mom, momentumRank],
-              ["Sus", clawdRow?.Sus, sustainabilityRank],
-            ].map(([label, score, rank]) => (
-              <div key={label} className="cw-mono cw-standing-row">
-                <span>{label}</span>
-                <span>{fmtScore(score)}</span>
-                <span>{rank != null && totalProjects ? `#${rank}/${totalProjects}` : "—"}</span>
-              </div>
-            ))}
-            <div className="cw-mono" style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-              Qlty {fmtPct(clawdRow?.["Qlty %"])} · Risk {fmtPct(clawdRow?.["Risk %"])}
+            <div className="cw-story-note">
+              Share of 24h volume in the last hour. Flat day ≈ {FLAT_HOUR_SHARE.toFixed(1)}%.
             </div>
-            <div style={{ fontSize: "9.5px", color: "var(--text-xfaint)", letterSpacing: "0.02em" }}>
-              shared snapshot · not recomputed per pulse
+          </div>
+          <div className="cw-story-cell">
+            <div className="cw-story-label">
+              <span>Survive · 1d</span>
+              <span className="cw-chip-band" style={{ color: toneColor(hold.tone) }}>
+                <LiveDot tone={hold.tone} />
+                {hold.label}
+              </span>
+            </div>
+            <div
+              className="cw-story-value cw-mono"
+              style={{ color: row?.["Survive 1d %"] == null ? "var(--text-faint)" : "var(--text)" }}
+            >
+              <FlashNum raw={row?.["Survive 1d %"]}>{fmtPct(row?.["Survive 1d %"])}</FlashNum>
+            </div>
+            <div className="cw-story-note">
+              First buyers still holding a day later (cohort {fmtInt(row?.["1st Buyer Cohort 30d"])}).
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: "14px", maxWidth: "640px" }}>
+        <div className="cw-shape-secondary">
+          <SuspectBadge />
+          <span style={{ fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", fontSize: "10px" }}>
+            Trade shape
+          </span>
+          <span className="cw-mono" style={{ fontWeight: 700, color: "var(--text)" }}>
+            {fmtPct(roundTripVol(row))} {shape.label}
+          </span>
+          <span style={{ color: "var(--text-faint)" }}>
+            Round-trip vol % · {fmtInt(roundTripWallets(row))} wallets · research heuristic
+          </span>
+        </div>
+
+        <div style={{ marginTop: "14px", maxWidth: "640px", display: "flex", flexDirection: "column", gap: "4px" }}>
           <Disclosure title="Why don’t they match?" note="price vs net flow">
             <ul
               style={{
@@ -647,43 +665,26 @@ export default function ClawdWirePanel({
               </li>
             </ul>
           </Disclosure>
-        </div>
-
-        {/* The questions a visitor actually asks, in order. Each chip names the
-            one metric behind it — none of them is a blended score. */}
-        <div className="cw-chips">
-          <VerdictChip
-            label="Alive?"
-            band={heat}
-            value={fmtPct(row?.["Heat % 1h"])}
-            raw={row?.["Heat % 1h"]}
-            note={`Heat % 1h — share of 24h volume traded in the last hour. A flat day sits at ${FLAT_HOUR_SHARE.toFixed(1)}%.`}
-          />
-          <VerdictChip
-            label="Trade shape"
-            band={shape}
-            value={fmtPct(roundTripVol(row))}
-            raw={roundTripVol(row)}
-            suspect
-            note={`Round-trip vol % 24h across ${fmtInt(roundTripWallets(row))} wallets. A research heuristic from trade shape — market making looks like this too.`}
-          />
-          <VerdictChip
-            label="Driven by"
-            band={{
-              label: whaleNet24h == null ? "no data" : num(whaleNet24h) > 0 ? "accumulating" : "distributing",
-              tone: whaleNet24h == null ? "faint" : netTone(whaleNet24h),
-            }}
-            value={fmtPct(row?.["Whale Vol % 24h"])}
-            raw={row?.["Whale Vol % 24h"]}
-            note={`Whale Vol % 24h — share of volume from whale-tier wallets. Whale net ${fmtUsdSigned(whaleNet24h)}.`}
-          />
-          <VerdictChip
-            label="Holding?"
-            band={hold}
-            value={fmtPct(row?.["Survive 1d %"])}
-            raw={row?.["Survive 1d %"]}
-            note={`Survive 1d % — first-time buyers from the 30d cohort (${fmtInt(row?.["1st Buyer Cohort 30d"])}) still holding a day later.`}
-          />
+          <Disclosure title="Snapshot standing" note="Opp · Mom · Sus — not from this pulse">
+            <div className="cw-mono" style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.7 }}>
+              {[
+                ["Opp", clawdRow?.Opp, opportunityRank],
+                ["Mom", clawdRow?.Mom, momentumRank],
+                ["Sus", clawdRow?.Sus, sustainabilityRank],
+              ].map(([label, score, rank]) => (
+                <div key={label}>
+                  {label} {fmtScore(score)}
+                  {rank != null && totalProjects ? ` · #${rank}/${totalProjects}` : ""}
+                </div>
+              ))}
+              <div style={{ marginTop: "4px" }}>
+                Qlty {fmtPct(clawdRow?.["Qlty %"])} · Risk {fmtPct(clawdRow?.["Risk %"])}
+              </div>
+              <div style={{ fontSize: "11px", color: "var(--text-xfaint)" }}>
+                Shared dashboard snapshot — not recomputed per pulse.
+              </div>
+            </div>
+          </Disclosure>
         </div>
 
         <div style={{ marginTop: "13px", fontSize: "10px", color: "var(--text-xfaint)", lineHeight: 1.6 }}>
@@ -1227,29 +1228,3 @@ function SubHead({ children }) {
   );
 }
 
-function VerdictChip({ label, band, value, raw, note, suspect = false }) {
-  return (
-    <div className="cw-chip" data-suspect={suspect ? "true" : undefined}>
-      <div className="cw-chip-head">
-        <span className="cw-chip-label">{label}</span>
-        {suspect ? (
-          <SuspectBadge />
-        ) : (
-          <span className="cw-chip-band" style={{ color: toneColor(band.tone) }}>
-            <LiveDot tone={band.tone} />
-            {band.label}
-          </span>
-        )}
-      </div>
-      <div className="cw-chip-value cw-mono" style={{ color: raw == null ? "var(--text-faint)" : "var(--text)" }}>
-        <FlashNum raw={raw}>{value}</FlashNum>
-        {suspect ? (
-          <span className="cw-chip-band" style={{ color: toneColor(band.tone), marginLeft: "8px" }}>
-            {band.label}
-          </span>
-        ) : null}
-      </div>
-      <div className="cw-chip-note">{note}</div>
-    </div>
-  );
-}

@@ -61,6 +61,32 @@ export const CLAWDWIRE_CSS = `
   display: grid; gap: 8px; margin-top: 16px;
   grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
 }
+/* Story strip — 3 shareable pulse metrics at secondary-hero size. */
+.cw-story {
+  display: grid; gap: 10px; margin-top: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.cw-story-cell {
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg); padding: 14px 14px 12px; min-width: 0;
+}
+.cw-story-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-faint);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 8px;
+}
+.cw-story-value {
+  font-size: clamp(26px, 3.6vw, 34px); font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1.05;
+}
+.cw-story-note { font-size: 11px; color: var(--text-faint); margin-top: 8px; line-height: 1.4; }
+.cw-shape-secondary {
+  margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center;
+  gap: 8px 14px; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--border); border-left: 2px solid var(--read-amber-text);
+  background: var(--bg-muted); font-size: 12px; color: var(--text-muted);
+}
 .cw-chip {
   border: 1px solid var(--border); border-radius: 8px;
   background: var(--bg); padding: 10px 12px; min-width: 0;
@@ -417,22 +443,13 @@ export const CLAWDWIRE_CSS = `
     order: 4; flex: 1 1 100%; white-space: normal; overflow: visible;
     font-size: 10.5px; line-height: 1.45; padding-top: 2px;
   }
-  /* Two chips per row and a single wrapped standing line, so the rail and the
-     top of the flow layer still land inside the first phone viewport. */
   .cw-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
   .cw-chip { padding: 9px 10px; }
   .cw-chip-head { flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
   .cw-chip-value { font-size: 18px; }
   .cw-chip-note { font-size: 10px; }
-  .cw-standing {
-    border-left: none; padding-left: 0; border-top: 1px solid var(--border);
-    padding-top: 10px; margin-top: 4px; width: 100%; flex: 1 1 100%;
-    flex-direction: row; flex-wrap: wrap; align-items: baseline;
-    justify-content: flex-start; gap: 3px 14px;
-  }
-  .cw-standing-row { gap: 6px; }
-  .cw-standing-row > span:nth-child(1),
-  .cw-standing-row > span:nth-child(2) { width: auto; text-align: left; }
+  .cw-story { grid-template-columns: 1fr; gap: 8px; }
+  .cw-story-value { font-size: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
