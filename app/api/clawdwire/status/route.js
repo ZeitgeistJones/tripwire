@@ -1,5 +1,7 @@
 import { canUseClawdWire } from "@/lib/gateAccess";
+import { CLAWD_TOKEN_ADDRESS } from "@/lib/clawdWire";
 import { enrichClawdWireRows, fetchClawdMarketCap } from "@/lib/clawdWireFetch";
+import { writePulse, normalizeTokenAddress } from "@/lib/clawdWirePulse";
 
 export async function GET(request) {
   const wallet = request.headers.get("x-wallet-address") || "";
@@ -39,10 +41,23 @@ export async function GET(request) {
       statusJson.execution_ended_at ||
       new Date().toISOString();
 
+    // Cache the finished run so everyone else reads it for free.
+    const token = normalizeTokenAddress(
+      searchParams.get("token") || rows[0]?.Address || CLAWD_TOKEN_ADDRESS
+    );
+    await writePulse({
+      address: token,
+      symbol: rows[0]?.Project || null,
+      rows,
+      lastRunAt,
+      executionId,
+    });
+
     return Response.json({
       state: "QUERY_STATE_COMPLETED",
       rows,
       lastRunAt,
+      token,
     });
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 });
