@@ -569,7 +569,7 @@ export default function ClawdWirePanel({
           </div>
         </div>
 
-        {/* Story strip — shareable pulse numbers at secondary-hero size. */}
+        {/* Story strip — fixed windows on purpose; only Net flow follows the rail toggle. */}
         <div className="cw-story">
           <div className="cw-story-cell">
             <div className="cw-story-label">
@@ -627,6 +627,12 @@ export default function ClawdWirePanel({
           </div>
         </div>
 
+        <p style={{ margin: "10px 0 0", fontSize: "11px", color: "var(--text-xfaint)", lineHeight: 1.45 }}>
+          Only <strong style={{ color: "var(--text-faint)", fontWeight: 600 }}>Net flow</strong> follows the
+          15m / 1h / 6h / 24h toggle. Whale · Heat · Survive (and trade shape) use fixed windows — they won’t
+          change when you flip the rail. Quiet hours often read 0% heat / round-trip; that’s real, not stuck.
+        </p>
+
         <div style={{ marginTop: "14px", maxWidth: "640px", display: "flex", flexDirection: "column", gap: "4px" }}>
           <Disclosure title="Why don’t they match?" note="price vs net flow">
             <ul
@@ -674,12 +680,13 @@ export default function ClawdWirePanel({
           </Disclosure>
           <Disclosure
             title="Trade shape (advanced)"
-            note={`${fmtPct(roundTripVol(row))} · dig deeper`}
+            note={`24h fixed · ${fmtPct(roundTripVol(row))} ${shape.label}`}
           >
             <p style={{ margin: "0 0 8px", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
               <SuspectBadge />{" "}
-              Round-trip vol % and related size/timing patterns — research heuristics for people who want them.
-              Full detail lives in Shape &amp; conviction below. Not accusations.
+              Round-trip vol % over the last <strong style={{ color: "var(--text)" }}>24h</strong> — does not
+              follow the rail toggle. Quiet days often show 0%. Full strip is under Shape &amp; conviction.
+              Research heuristic, not an accusation.
             </p>
             <div className="cw-mono" style={{ fontSize: "13px", color: "var(--text)", fontWeight: 700 }}>
               {fmtPct(roundTripVol(row))} {shape.label}
