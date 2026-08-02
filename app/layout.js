@@ -9,11 +9,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning style={{ background: "#1c1b22" }}>
+    <html lang="en" data-theme="dark" suppressHydrationWarning style={{ background: "#16181c" }}>
       <head>
         <script
   dangerouslySetInnerHTML={{
-    __html: `document.documentElement.setAttribute('data-theme','dark');try{var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){}`,
+    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=t==='light'?'#f8f7f4':'#16181c';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();`,
   }}
 />
         <style
@@ -40,8 +40,8 @@ export default function RootLayout({ children }) {
                 --clawd-row-bg:     rgba(59,109,17,0.06);
                 --clawd-row-border: #3B6D11;
 
-                --btn-active-bg:    #3d3a52;
-                --btn-active-text:  #f0eeff;
+                --btn-active-bg:    #3B6D11;
+                --btn-active-text:  #f4faf0;
                 --btn-inactive-bg:  #f8f7f4;
                 --btn-inactive-text:#3a3830;
                 --btn-inactive-border:#c8c4ba;
@@ -67,35 +67,35 @@ export default function RootLayout({ children }) {
                 --card-header-bg:   #eceae4;
               }
 
-              /* ── Dark mode — warm slate with lavender accent ─────────── */
+              /* ── Dark mode — cool charcoal + CLAWD green (no lavender) ─ */
               [data-theme="dark"] {
-                --bg:               #1c1b22;
-                --bg-subtle:        #23222b;
-                --bg-muted:         #2a2933;
-                --border:           #383644;
-                --border-strong:    #4a4758;
-                --text:             #e8e6f0;
-                --text-muted:       #a8a4bc;
-                --text-faint:       #6e6a80;
-                --text-xfaint:      #4e4a5e;
+                --bg:               #16181c;
+                --bg-subtle:        #1c1f24;
+                --bg-muted:         #24282f;
+                --border:           #323840;
+                --border-strong:    #454c56;
+                --text:             #eef0f2;
+                --text-muted:       #b4bac4;
+                --text-faint:       #8a929e;
+                --text-xfaint:      #636b78;
 
-                --pill-bg:          #2a2933;
-                --pill-border:      #38364a;
-                --pill-text:        #ccc8e0;
-                --pill-label:       #6e6a80;
-                --pill-value:       #e8e6f0;
+                --pill-bg:          #24282f;
+                --pill-border:      #323840;
+                --pill-text:        #d8dce2;
+                --pill-label:       #8a929e;
+                --pill-value:       #eef0f2;
 
-                --clawd-row-bg:     rgba(130,180,80,0.08);
+                --clawd-row-bg:     rgba(130,180,80,0.10);
                 --clawd-row-border: #7ab84a;
 
-                --btn-active-bg:    #7c6fcd;
-                --btn-active-text:  #f0eeff;
-                --btn-inactive-bg:  #23222b;
-                --btn-inactive-text:#a8a4bc;
-                --btn-inactive-border:#38364a;
+                --btn-active-bg:    #7ab84a;
+                --btn-active-text:  #0f140c;
+                --btn-inactive-bg:  #1c1f24;
+                --btn-inactive-text:#b4bac4;
+                --btn-inactive-border:#323840;
 
-                --badge-neutral-bg: #2a2933;
-                --badge-neutral-text:#ccc8e0;
+                --badge-neutral-bg: #24282f;
+                --badge-neutral-text:#d8dce2;
 
                 --gate-ok-bg:       #1a2e24;
                 --gate-ok-text:     #74c99a;
@@ -109,10 +109,10 @@ export default function RootLayout({ children }) {
                 --read-coral-bg:    #2e1a1a;
                 --read-coral-text:  #e08878;
 
-                --chart-grid:       rgba(200,190,255,0.08);
-                --chart-tick:       #6e6a80;
-                --card-bg:          #23222b;
-                --card-header-bg:   #2a2933;
+                --chart-grid:       rgba(180,200,220,0.08);
+                --chart-tick:       #8a929e;
+                --card-bg:          #1c1f24;
+                --card-header-bg:   #24282f;
               }
 
               *, *::before, *::after { box-sizing: border-box; }
@@ -129,7 +129,10 @@ export default function RootLayout({ children }) {
               }
 
               html {
-                background: #1c1b22;
+                background: #16181c;
+              }
+              html[data-theme="light"] {
+                background: #f8f7f4;
               }
 
               body {

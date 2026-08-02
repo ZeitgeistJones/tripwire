@@ -20,12 +20,36 @@ import {
  *   green  = CLAWD identity + the primary action, nothing else
  * Everything else is greyscale. Motion only ever marks a value that changed.
  *
+ * `.cw-root` can nudge local tokens (brighter labels) without affecting Snapshot.
+ *
  * Every class is `cw-` prefixed and the stylesheet is injected by the panel,
  * so nothing here can leak into Tripwire's other pages.
  */
 
 export const CLAWDWIRE_CSS = `
-.cw-root { max-width: 1180px; }
+.cw-root {
+  max-width: 1180px;
+  /* Light: one step stronger label contrast than global cream theme */
+  --text-muted: #4a4740;
+  --text-faint: #6e6b63;
+  --text-xfaint: #9a968c;
+  --bg-subtle: #efece6;
+  --bg-muted: #e6e2da;
+  --border: #d4d0c6;
+  --border-strong: #b8b3a6;
+}
+[data-theme="dark"] .cw-root {
+  /* Align with charcoal theme; keep Wire labels a touch brighter */
+  --bg: #16181c;
+  --bg-subtle: #1c1f24;
+  --bg-muted: #24282f;
+  --border: #323840;
+  --border-strong: #454c56;
+  --text: #eef0f2;
+  --text-muted: #c0c6ce;
+  --text-faint: #949ca8;
+  --text-xfaint: #6a7280;
+}
 .cw-mono {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   font-variant-numeric: tabular-nums;
@@ -251,9 +275,9 @@ export const CLAWDWIRE_CSS = `
 }
 .cw-sechead[data-interactive="true"] { cursor: pointer; }
 .cw-sechead[data-interactive="true"]:hover .cw-sectitle { color: var(--clawd-row-border); }
-.cw-secidx { font-size: 11px; font-weight: 700; color: var(--text-xfaint); letter-spacing: 0.04em; }
+.cw-secidx { font-size: 11px; font-weight: 700; color: var(--text-faint); letter-spacing: 0.04em; }
 .cw-sectitle {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.11em;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text); white-space: nowrap;
   transition: color 120ms ease;
 }
@@ -263,12 +287,16 @@ export const CLAWDWIRE_CSS = `
   min-width: 0; overflow: hidden; text-overflow: ellipsis;
 }
 .cw-secchev {
-  font-size: 10px; color: var(--text-faint); transition: transform 200ms ease;
+  font-size: 10px; color: var(--text-muted); transition: transform 200ms ease;
   display: inline-block; width: 12px; text-align: center;
 }
 .cw-sechead[aria-expanded="false"] .cw-secchev,
 .cw-disc-head[aria-expanded="false"] .cw-secchev { transform: rotate(-90deg); }
-.cw-secsub { font-size: 11.5px; color: var(--text-faint); margin: 0 0 12px; line-height: 1.5; max-width: 780px; }
+.cw-secsub { font-size: 12px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; max-width: 780px; }
+.cw-subhead {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+}
 .cw-collapse { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
 .cw-collapse[data-open="true"] { grid-template-rows: 1fr; }
 /* visibility (not just zero height) so links inside a collapsed section stay
@@ -280,21 +308,34 @@ export const CLAWDWIRE_CSS = `
 }
 .cw-collapse[data-open="true"] > .cw-collapse-inner { visibility: visible; }
 
-/* ── Disclosure (nested, inside a section) ────────────────────────────── */
-.cw-disc { margin-top: 16px; }
+/* ── Disclosure (nested) — bordered control, not a faint hairline ─────── */
+.cw-disc { margin-top: 14px; }
 .cw-disc-head {
-  appearance: none; background: transparent; border: none; padding: 0 0 8px;
-  display: flex; align-items: center; gap: 9px; cursor: pointer;
-  color: inherit; font: inherit; text-align: left; width: 100%;
+  appearance: none;
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  width: 100%; text-align: left; color: inherit; font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg-muted);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.cw-disc-head:hover {
+  border-color: var(--clawd-row-border);
+  background: var(--bg-subtle);
+}
+.cw-disc-head[aria-expanded="true"] {
+  border-color: var(--clawd-row-border);
+  background: var(--clawd-row-bg);
 }
 .cw-disc-title {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-faint); white-space: nowrap; transition: color 120ms ease;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text); white-space: nowrap;
 }
-.cw-disc-head:hover .cw-disc-title { color: var(--text); }
-.cw-disc-rule { flex: 1 1 20px; height: 1px; background: var(--border); }
-.cw-disc-count { font-size: 10.5px; color: var(--text-xfaint); white-space: nowrap; }
-.cw-disc-head .cw-secchev { font-size: 9px; }
+.cw-disc-rule { flex: 1 1 20px; height: 1px; background: var(--border); opacity: 0.85; }
+.cw-disc-count { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.cw-disc-head .cw-secchev { font-size: 10px; color: var(--text-muted); }
+.cw-disc .cw-collapse[data-open="true"] { margin-top: 10px; }
 
 /* ── Matrix ───────────────────────────────────────────────────────────── */
 .cw-matrix-wrap {
@@ -601,8 +642,8 @@ export function Section({
 
 /* ── Disclosure ─────────────────────────────────────────────────────────── */
 
-/** A quieter collapse for depth *inside* a section, so it never reads as a peer
- *  of the numbered layers. Closed state still states what is inside. */
+/** Nested collapse for secondary depth. Styled as a bordered control so closed
+ *  extras stay findable — not a peer of numbered sections. */
 export function Disclosure({ title, note, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();

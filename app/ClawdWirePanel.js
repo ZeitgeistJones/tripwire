@@ -922,16 +922,17 @@ export default function ClawdWirePanel({
               />
             </div>
 
-            <Disclosure title="Wallet lens · 24h" note="top buyers, sellers, accumulators, prints">
+            <div style={{ marginTop: "18px" }}>
+              <SubHead>Wallet lens · 24h</SubHead>
               <WalletLens title="Top buyers 24h" subtitle="wallet · buy $ · buy txs · net · biggest trade" raw={row["Top Buyers 24h"]} />
               <WalletLens title="Top sellers 24h" subtitle="wallet · sell $ · sell txs · net · biggest trade" raw={row["Top Sellers 24h"]} />
               <WalletLens title="Top net accumulators 24h" subtitle="largest buy − sell net, with total txs" raw={row["Top Net Accumulators 24h"]} />
               <WalletLens title="Biggest prints 24h" subtitle="largest single DEX trades — side · $ · wallet · tx" raw={row["Biggest Prints 24h"]} />
-              <p style={{ margin: "4px 0 0", fontSize: "10.5px", color: "var(--text-xfaint)", lineHeight: 1.5 }}>
+              <p style={{ margin: "4px 0 0", fontSize: "10.5px", color: "var(--text-muted)", lineHeight: 1.5 }}>
                 One address is not one person. A single actor can split across wallets, and one wallet can be a
                 router, a market maker, or an exchange hot wallet moving for many users.
               </p>
-            </Disclosure>
+            </div>
           </Section>
 
           {/* ── 04 Shape & conviction ───────────────────────────────────── */}
@@ -1185,19 +1186,6 @@ export default function ClawdWirePanel({
 }
 
 function SubHead({ children }) {
-  return (
-    <div
-      style={{
-        fontSize: "10px",
-        fontWeight: 700,
-        letterSpacing: "0.1em",
-        textTransform: "uppercase",
-        color: "var(--text-faint)",
-        marginBottom: "8px",
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <div className="cw-subhead">{children}</div>;
 }
 

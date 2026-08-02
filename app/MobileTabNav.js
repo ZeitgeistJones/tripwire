@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import AppearanceToggle from "./AppearanceToggle";
 
 /** Public primary chrome — live pulse first. Snapshot tables live under More. */
 export const MOBILE_PRIMARY_TABS = ["ClawdWire", "About"];
@@ -182,7 +183,7 @@ export function MoreMenu({ items, activeKey, onSelect, renderItem, chipLabel = "
 export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
   const labelOf = (tab) => (tabLabel ? tabLabel(tab) : tab);
   return (
-    <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "6px" }}>
+    <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "6px", alignItems: "center" }}>
       <Link href="/" style={chipStyle(false)}>Movers</Link>
       {MOBILE_PRIMARY_TABS.map((tab) => (
         <button
@@ -200,6 +201,7 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
         activeKey={activeTab}
         onSelect={(key) => onTabChange(key)}
       />
+      <AppearanceToggle compact />
     </div>
   );
 }
@@ -212,7 +214,7 @@ export function LinkMobileNav({ currentPage }) {
     { key: "Movers", label: "Movers" },
   ];
   return (
-    <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "16px" }}>
+    <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "16px", alignItems: "center" }}>
       <Link href={dashHref("ClawdWire")} style={chipStyle(false)}>
         ClawdWire
       </Link>
@@ -244,6 +246,7 @@ export function LinkMobileNav({ currentPage }) {
           </Link>
         )}
       />
+      <AppearanceToggle compact />
     </div>
   );
 }

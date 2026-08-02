@@ -12,6 +12,7 @@ import WireBanner from "./WireBanner";
 import ClawdWireBanner from "./ClawdWireBanner";
 import DefSheet from "./DefSheet";
 import { DashboardMobileNav, MoreMenu, SNAPSHOT_TABS } from "./MobileTabNav";
+import AppearanceToggle from "./AppearanceToggle";
 import { isWireTester } from "@/lib/wireAccess";
 
 const SNAPSHOT_TAB_SET = new Set(SNAPSHOT_TABS);
@@ -1295,7 +1296,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         onDragOver={isPinned ? (e) => e.preventDefault() : undefined}
         style={{
           ...(isClawdRow   ? { borderLeft: "3px solid #3B6D11", background: "var(--clawd-row-bg)" } : {}),
-          ...(isPinned     ? { background: isDragTarget ? "var(--bg-subtle)" : "rgba(124,111,205,0.07)" } : {}),
+          ...(isPinned     ? { background: isDragTarget ? "var(--bg-subtle)" : "var(--clawd-row-bg)" } : {}),
           ...(isDragTarget ? { outline: "2px solid var(--btn-active-bg)", outlineOffset: "-2px" } : {}),
           cursor: isPinned ? "grab" : "default",
         }}
@@ -1629,6 +1630,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         <button type="button" onClick={() => handleTabChange("About")} style={navChip(activeTab === "About")}>
           About
         </button>
+        <span style={{ flex: "1 1 8px" }} />
+        <AppearanceToggle />
       </div>
 
       <DashboardMobileNav
