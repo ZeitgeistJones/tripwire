@@ -1658,7 +1658,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
             {lastUpdated ? (
               <>
                 {" "}
-                · Dune {new Date(lastUpdated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZoneName: "short" })}
+                · Dune {new Date(lastUpdated).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
               </>
             ) : null}
           </span>

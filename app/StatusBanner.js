@@ -2,15 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatLocalDateTime } from "@/lib/snapshotTime";
 
 /** Always format in the viewer's local timezone (client-side). */
 function formatTs(value) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZoneName: "short",
-  });
+  return formatLocalDateTime(value) || "—";
 }
 
 function tsMs(value) {
