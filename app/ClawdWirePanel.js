@@ -40,7 +40,7 @@ import {
   toneColor,
   utcHourKey,
 } from "@/lib/clawdWireFormat";
-import { defaultPulseToken } from "@/lib/clawdWire";
+import { CLAWD_TOKEN_ADDRESS, defaultPulseToken } from "@/lib/clawdWire";
 import ClawdWireTokenPicker from "./ClawdWireTokenPicker";
 const SYNC_MS = 45_000;
 /**
@@ -307,7 +307,11 @@ export default function ClawdWirePanel({
     }
   }
   const isRunning = status === "starting" || status === "running";
-  const marketCap = row?.marketCapUsd ?? clawdRow?.marketCapUsd ?? null;
+  const isClawdToken = tokenAddress?.toLowerCase() === CLAWD_TOKEN_ADDRESS.toLowerCase();
+  // Snapshot price/Δ are CLAWD-only; never show them under another ticker.
+  const displayPrice = isClawdToken ? clawdRow?.priceUsd : null;
+  const displayChange24h = isClawdToken ? clawdRow?.priceChange7d : null;
+  const marketCap = row?.marketCapUsd ?? (isClawdToken ? clawdRow?.marketCapUsd : null) ?? null;
   // ── Derived reads (presentation only — every band names one source metric) ──
   const activeNet = row ? row[`Net USD ${activeWindow}`] : null;
   const activeBuy = row ? row[`Buy USD ${activeWindow}`] : null;
@@ -442,19 +446,25 @@ export default function ClawdWirePanel({
               symbol={tokenSymbol}
               onChange={setToken}
             />
-            <span className="cw-mono" style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>
-              <FlashNum raw={clawdRow?.priceUsd}>{fmtPrice(clawdRow?.priceUsd)}</FlashNum>
-            </span>
-            <span
-              className="cw-mono"
-              style={{ fontSize: "13px", fontWeight: 700, color: toneColor(netTone(clawdRow?.priceChange7d)) }}
-            >
-              {fmtPctSigned(clawdRow?.priceChange7d)}
-              <span style={{ color: "var(--text-xfaint)", fontWeight: 400 }}> 24h</span>
-            </span>
-            <span className="cw-mono" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-              MC {fmtUsd(marketCap)}
-            </span>
+            {displayPrice != null ? (
+              <span className="cw-mono" style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>
+                <FlashNum raw={displayPrice}>{fmtPrice(displayPrice)}</FlashNum>
+              </span>
+            ) : null}
+            {displayChange24h != null ? (
+              <span
+                className="cw-mono"
+                style={{ fontSize: "13px", fontWeight: 700, color: toneColor(netTone(displayChange24h)) }}
+              >
+                {fmtPctSigned(displayChange24h)}
+                <span style={{ color: "var(--text-xfaint)", fontWeight: 400 }}> 24h</span>
+              </span>
+            ) : null}
+            {marketCap != null ? (
+              <span className="cw-mono" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                MC {fmtUsd(marketCap)}
+              </span>
+            ) : null}
           </div>
           <div className="cw-net">
             <div className="cw-flow-window" data-window={activeWindow}>

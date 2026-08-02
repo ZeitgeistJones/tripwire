@@ -30,7 +30,7 @@ export default function ClawdWireBanner() {
         ClawdWire
       </span>
       <span style={{ fontSize: "11.5px", color: "var(--text-faint)" }}>
-        Live on-chain pulse for CLAWD on Base
+        Live on-chain pulse on Base
       </span>
     </div>
   );
