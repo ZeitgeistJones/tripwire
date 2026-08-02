@@ -334,6 +334,12 @@ export const CLAWDWIRE_CSS = `
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   width: 100%;
 }
+/* Sparse strips (≤3 cells): hug content instead of stretching across the row. */
+.cw-strip[data-fit="true"] {
+  width: fit-content;
+  max-width: 100%;
+  grid-template-columns: repeat(var(--cw-strip-n, 3), minmax(148px, auto));
+}
 .cw-strip > div {
   padding: 10px 12px; min-width: 0;
   box-shadow: inset -1px 0 0 var(--border), inset 0 -1px 0 var(--border);
@@ -450,6 +456,9 @@ export const CLAWDWIRE_CSS = `
   .cw-wallet-grid { grid-template-columns: 1fr; }
   .cw-matrix .cw-rowhead { width: 140px; }
   .cw-strip { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
+  .cw-strip[data-fit="true"] {
+    grid-template-columns: repeat(var(--cw-strip-n, 3), minmax(108px, auto));
+  }
   .cw-rail-spacer { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -675,10 +684,15 @@ export function Matrix({ columns, rows, rowHeadLabel = "" }) {
 
 /* ── Stat strip ─────────────────────────────────────────────────────────── */
 
-/** items: [{ label, value, tone?, raw? }] */
-export function StatStrip({ items }) {
+/** items: [{ label, value, tone?, raw? }] — set fit to hug content; auto for ≤3 cells. */
+export function StatStrip({ items, fit }) {
+  const hug = fit ?? items.length <= 3;
   return (
-    <div className="cw-strip">
+    <div
+      className="cw-strip"
+      data-fit={hug ? "true" : undefined}
+      style={hug ? { "--cw-strip-n": items.length } : undefined}
+    >
       {items.map((it) => (
         <div key={it.label}>
           <div className="cw-strip-label" title={it.label}>

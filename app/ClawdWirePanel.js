@@ -21,7 +21,6 @@ import {
   fmtMins,
   fmtPct,
   fmtPctSigned,
-  fmtPctSmall,
   fmtPrice,
   fmtRatio,
   fmtUsd,
@@ -912,12 +911,11 @@ export default function ClawdWirePanel({
                       items={[
                         { label: "Vol per 1% move $", value: fmtUsd(row["Vol per 1% Move $"]), raw: row["Vol per 1% Move $"] },
                         { label: "Abs move % 24h", value: fmtPct(row["Abs Move % 24h"]), raw: row["Abs Move % 24h"] },
-                        { label: "Impact % per $1k", value: fmtPctSmall(row["Impact % per $1k"]), raw: row["Impact % per $1k"] },
                       ]}
                     />
                     <p className="cw-note" style={{ fontSize: "10.5px", color: "var(--text-xfaint)" }}>
-                      Straight arithmetic on observed volume and price — no inference. High volume per 1% move means the
-                      book absorbed size; read it next to the shape signals above.
+                      Straight arithmetic on observed 24h volume and open→close price — no inference. High volume per 1%
+                      move means the book absorbed size; read it next to the shape signals above.
                     </p>
                   </div>
 

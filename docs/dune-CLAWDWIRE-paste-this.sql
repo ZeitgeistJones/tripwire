@@ -664,38 +664,6 @@ wash_pressure_24h AS (
     GROUP BY 1, 2
 ),
 
-impact_24h AS (
-    SELECT
-        project,
-        address,
-        ROUND(AVG(impact_per_1k), 4) AS impact_pct_per_1k
-    FROM (
-        SELECT
-            project,
-            address,
-            ABS(price_usd - prev_price) / NULLIF(prev_price, 0) * 100.0
-                / NULLIF(amount_usd / 1000.0, 0) AS impact_per_1k
-        FROM (
-            SELECT
-                project,
-                address,
-                amount_usd,
-                price_usd,
-                LAG(price_usd) OVER (
-                    PARTITION BY project ORDER BY block_time, tx_hash
-                ) AS prev_price
-            FROM recent_trades
-            WHERE block_time >= now() - interval '24' hour
-              AND price_usd IS NOT NULL
-              AND price_usd > 0
-              AND amount_usd > 0
-        ) o
-        WHERE prev_price IS NOT NULL
-          AND prev_price > 0
-    ) i
-    GROUP BY 1, 2
-),
-
 bucket_5m AS (
     SELECT
         project,
@@ -1541,7 +1509,6 @@ SELECT
     sc.size_cv AS "Size CV 24h",
     wpr.vol_per_1pct_move AS "Vol per 1% Move $",
     wpr.abs_move_pct AS "Abs Move % 24h",
-    imp.impact_pct_per_1k AS "Impact % per $1k",
     COALESCE(ss.longest_buy_streak, 0) AS "Longest Buy Streak",
     COALESCE(ss.longest_sell_streak, 0) AS "Longest Sell Streak",
     ROUND(fspeed.median_flip_mins, 0) AS "Median Flip Mins",
@@ -1635,8 +1602,6 @@ LEFT JOIN size_cv_24h sc
     ON COALESCE(ap.project, fp.project) = sc.project
 LEFT JOIN wash_pressure_24h wpr
     ON COALESCE(ap.project, fp.project) = wpr.project
-LEFT JOIN impact_24h imp
-    ON COALESCE(ap.project, fp.project) = imp.project
 LEFT JOIN streak_stats ss
     ON COALESCE(ap.project, fp.project) = ss.project
 LEFT JOIN flip_speed fspeed
