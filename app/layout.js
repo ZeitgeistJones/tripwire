@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
       <head>
         <script
   dangerouslySetInnerHTML={{
-    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t==='dark')t='wire';else if(t==='light')t='paper';else if(t==='volt')t='lilac';var ok={minimal:1,wire:1,lilac:1,tide:1,ember:1,ink:1,paper:1,bone:1};if(!ok[t])t='bone';var bg={minimal:'#0c0d0f',wire:'#16181c',lilac:'#5b35c5',tide:'#0a1218',ember:'#14110f',ink:'#0b0e16',paper:'#f8f7f4',bone:'#eef1f4'};document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=bg[t]||'#eef1f4';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','bone');document.documentElement.style.background='#eef1f4'}})();`,
+    __html: `(function(){try{var t=localStorage.getItem('zdash-theme');if(t==='dark')t='wire';else if(t==='light')t='paper';else if(t==='volt'||t==='lilac')t='zap';var ok={minimal:1,wire:1,zap:1,tide:1,ember:1,ink:1,paper:1,bone:1};if(!ok[t])t='bone';var bg={minimal:'#0c0d0f',wire:'#16181c',zap:'#120816',tide:'#0a1218',ember:'#14110f',ink:'#0b0e16',paper:'#f8f7f4',bone:'#eef1f4'};document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=bg[t]||'#eef1f4';var n=window.matchMedia('(max-width:1023px)').matches;if(n){if(localStorage.getItem('zdash-compact-mobile')!=='1')document.documentElement.classList.add('comfort-view')}else{var c=localStorage.getItem('zdash-compact');var cw=false;try{cw=new URLSearchParams(location.search).get('tab')==='ClawdWire'}catch(e2){}if(c==='0'||(c===null&&cw))document.documentElement.classList.add('comfort-view')}}catch(e){document.documentElement.setAttribute('data-theme','bone');document.documentElement.style.background='#eef1f4'}})();`,
   }}
 />
         <style
@@ -105,46 +105,47 @@ export default function RootLayout({ children }) {
                 --card-header-bg:   #181a1e;
               }
 
-              /* Lilac: purple hero backdrop, light type, white accents */
+              /* Zap: hot pink + acid lime on near-black (weird on purpose) */
+              [data-theme="zap"],
               [data-theme="lilac"],
               [data-theme="volt"] {
-                --bg:               #5b35c5;
-                --bg-subtle:        #6743d0;
-                --bg-muted:         #7554d8;
-                --border:           #8a6ee0;
-                --border-strong:    #a892ef;
-                --text:             #f7f4ff;
-                --text-muted:       #d9cef8;
-                --text-faint:       #b5a3e8;
-                --text-xfaint:      #917bcf;
-                --pill-bg:          #6743d0;
-                --pill-border:      #8a6ee0;
-                --pill-text:        #f7f4ff;
-                --pill-label:       #b5a3e8;
-                --pill-value:       #ffffff;
-                --clawd-row-bg:     rgba(255,255,255,0.12);
-                --clawd-row-border: #ffffff;
-                --btn-active-bg:    #ffffff;
-                --btn-active-text:  #4a28b0;
-                --btn-inactive-bg:  #5b35c5;
-                --btn-inactive-text:#d9cef8;
-                --btn-inactive-border:#a892ef;
-                --badge-neutral-bg: #7554d8;
-                --badge-neutral-text:#f7f4ff;
-                --gate-ok-bg:       #2a5a48;
-                --gate-ok-text:     #b8f0d4;
-                --gate-fail-bg:     #6a3030;
-                --gate-fail-text:   #f0c0b8;
-                --read-teal-bg:     #2a5a48;
-                --read-teal-text:   #b8f0d4;
-                --read-amber-bg:    #6a5020;
-                --read-amber-text:  #f0d890;
-                --read-coral-bg:    #6a3030;
-                --read-coral-text:  #f0c0b8;
-                --chart-grid:       rgba(255,255,255,0.12);
-                --chart-tick:       #b5a3e8;
-                --card-bg:          #6743d0;
-                --card-header-bg:   #7554d8;
+                --bg:               #120816;
+                --bg-subtle:        #1a0e22;
+                --bg-muted:         #241430;
+                --border:           #4a2458;
+                --border-strong:    #7a3a88;
+                --text:             #ffe8f4;
+                --text-muted:       #d4a0c0;
+                --text-faint:       #9a7088;
+                --text-xfaint:      #6a4860;
+                --pill-bg:          #241430;
+                --pill-border:      #4a2458;
+                --pill-text:        #ffe8f4;
+                --pill-label:       #9a7088;
+                --pill-value:       #ffe8f4;
+                --clawd-row-bg:     rgba(255,45,149,0.14);
+                --clawd-row-border: #ff2d95;
+                --btn-active-bg:    #c8ff00;
+                --btn-active-text:  #120816;
+                --btn-inactive-bg:  #1a0e22;
+                --btn-inactive-text:#d4a0c0;
+                --btn-inactive-border:#7a3a88;
+                --badge-neutral-bg: #241430;
+                --badge-neutral-text:#ffe8f4;
+                --gate-ok-bg:       #1a3020;
+                --gate-ok-text:     #c8ff00;
+                --gate-fail-bg:     #3a1020;
+                --gate-fail-text:   #ff6b9a;
+                --read-teal-bg:     #102828;
+                --read-teal-text:   #00ffc8;
+                --read-amber-bg:    #302818;
+                --read-amber-text:  #ffc800;
+                --read-coral-bg:    #3a1020;
+                --read-coral-text:  #ff6b9a;
+                --chart-grid:       rgba(255,45,149,0.12);
+                --chart-tick:       #9a7088;
+                --card-bg:          #1a0e22;
+                --card-header-bg:   #241430;
               }
 
               /* Tide: deep sea + cyan */
@@ -370,7 +371,7 @@ export default function RootLayout({ children }) {
               html { background: #eef1f4; }
               html[data-theme="minimal"] { background: #0c0d0f; }
               html[data-theme="wire"], html[data-theme="dark"] { background: #16181c; }
-              html[data-theme="lilac"], html[data-theme="volt"] { background: #5b35c5; }
+              html[data-theme="zap"], html[data-theme="lilac"], html[data-theme="volt"] { background: #120816; }
               html[data-theme="tide"] { background: #0a1218; }
               html[data-theme="ember"] { background: #14110f; }
               html[data-theme="ink"] { background: #0b0e16; }

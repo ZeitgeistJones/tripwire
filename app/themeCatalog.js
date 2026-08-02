@@ -36,12 +36,12 @@ export const THEMES = [
     bg: "#16181c",
   },
   {
-    id: "lilac",
-    label: "Lilac",
-    blurb: "Purple field, white accents.",
-    swatch: "#5b35c5",
-    accent: "#ffffff",
-    bg: "#5b35c5",
+    id: "zap",
+    label: "Zap",
+    blurb: "Hot pink, acid lime, no chill.",
+    swatch: "#120816",
+    accent: "#ff2d95",
+    bg: "#120816",
   },
   {
     id: "tide",
@@ -83,7 +83,7 @@ const THEME_IDS = new Set(THEMES.map((t) => t.id));
 export function normalizeThemeId(raw) {
   if (raw === "dark") return "wire";
   if (raw === "light") return "paper";
-  if (raw === "volt") return "lilac";
+  if (raw === "volt" || raw === "lilac") return "zap";
   if (THEME_IDS.has(raw)) return raw;
   return "bone";
 }
