@@ -30,12 +30,17 @@ WITH clawd AS (
     --   from_hex(...)  -> address columns in base.transactions / dex.trades
     --                     are varbinary, not text, so the pasted string has
     --                     to be converted.
-    --   replace/lower  -> accepts the address with or without the 0x prefix,
-    --                     in any case. ('0x' cannot occur inside a valid hex
-    --                     body, since x is not a hex digit.)
+    --   trim/lower     -> a stray space or newline from pasting is otherwise
+    --                     passed straight into from_hex and fails.
+    --   regexp '^0x'   -> strips the prefix only at the START, so it cannot
+    --                     eat anything inside the address body.
+    --
+    -- from_hex needs exactly 40 hex characters. If it reports "invalid input
+    -- length N", the parameter is not a full address — check the value before
+    -- suspecting the SQL.
     SELECT
-        from_hex(replace(lower('{{token_address}}'), '0x', '')) AS address,
-        '{{token_name}}' AS name
+        from_hex(regexp_replace(lower(trim('{{token_address}}')), '^0x', '')) AS address,
+        trim('{{token_name}}') AS name
 ),
 
 recent_tx AS (
