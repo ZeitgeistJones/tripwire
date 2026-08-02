@@ -82,6 +82,60 @@ export const CLAWDWIRE_CSS = `
 .cw-chip-value { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
 .cw-chip-note { font-size: 10.5px; color: var(--text-faint); margin-top: 5px; line-height: 1.4; }
 
+/* ── Token picker ─────────────────────────────────────────────────────── */
+.cw-tokenpick { position: relative; display: inline-flex; }
+.cw-tokenpick-btn {
+  appearance: none; background: transparent; border: none; padding: 0;
+  cursor: pointer; color: inherit; font: inherit;
+  display: inline-flex; align-items: baseline; gap: 7px;
+}
+.cw-tokenpick-btn:hover .cw-ticker,
+.cw-tokenpick-btn[aria-expanded="true"] .cw-ticker { color: var(--clawd-row-border); }
+.cw-tokenpick-caret {
+  font-size: 12px; color: var(--text-faint); transition: transform 160ms ease;
+}
+.cw-tokenpick-btn[aria-expanded="true"] .cw-tokenpick-caret { transform: rotate(180deg); }
+.cw-tokenpick-pop {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
+  width: min(340px, 86vw);
+  background: var(--bg); border: 1px solid var(--border-strong);
+  border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  padding: 8px; display: flex; flex-direction: column; gap: 7px;
+}
+.cw-tokenpick-search {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg-subtle); border: 1px solid var(--border);
+  border-radius: 7px; padding: 8px 10px; font-size: 13px; color: var(--text);
+  outline: none;
+}
+.cw-tokenpick-search:focus { border-color: var(--clawd-row-border); }
+.cw-tokenpick-list {
+  max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px;
+}
+.cw-tokenpick-item {
+  appearance: none; background: transparent; border: none; cursor: pointer;
+  width: 100%; text-align: left; padding: 7px 9px; border-radius: 6px;
+  display: flex; align-items: baseline; gap: 9px; color: var(--text); font: inherit;
+}
+.cw-tokenpick-item:hover, .cw-tokenpick-item[data-active="true"] { background: var(--bg-muted); }
+.cw-tokenpick-item[aria-current="true"] { box-shadow: inset 0 0 0 1px var(--clawd-row-border); }
+.cw-tokenpick-sym {
+  font-size: 13px; font-weight: 700; min-width: 74px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.cw-tokenpick-name {
+  font-size: 11.5px; color: var(--text-faint); flex: 1 1 auto;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cw-tokenpick-fresh {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--read-teal-text); white-space: nowrap;
+}
+.cw-tokenpick-empty { padding: 10px; font-size: 12px; color: var(--text-faint); }
+.cw-tokenpick-note {
+  font-size: 10px; color: var(--text-xfaint); padding: 0 4px 2px; line-height: 1.45;
+}
+
 /* ── Command rail (sticky control surface) ────────────────────────────── */
 .cw-rail {
   position: sticky; top: 0; z-index: 30;
