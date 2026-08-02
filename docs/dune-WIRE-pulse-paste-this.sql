@@ -1,7 +1,7 @@
 -- The Wire pulse (lean) - paste into Dune query 7765068
 -- 24h scan only: raw wallets + txs for 15m / 1h / 6h / 24h
 -- No first-time / new-buyer / new-seller paths (those forced the old 90d cost)
--- Contract list synced from lib/tokens.js (115 addresses)
+-- Contract list synced from lib/tokens.js (108 addresses)
 
 WITH agentic_contracts AS (
     SELECT address, name FROM (
@@ -46,9 +46,6 @@ WITH agentic_contracts AS (
         (0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825, 'AIXBT'),
         (0xC44141a684f6AA4E36cD9264ab55550B03C88643, 'Ethy AI'),
         (0x58Db197E91Bc8Cf1587F75850683e4bd0730e6BF, 'Axelrod'),
-        (0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870, 'VADER'),
-        (0xA4A2E2ca3fBfE21aed83471D28b6f65A233C6e00, 'Ribbita'),
-        (0x55cd6469f597452b5a7536e2cd98fde4c1247ee4, 'LUNA'),
         (0x1c4cca7c5db003824208adda61bd749e55f463a3, 'GAME by Virtuals'),
         (0x2d90785e30a9df6cce329c0171cb8ba0f4a5c17b, 'BYTE by Virtuals'),
         (0xea87169699dabd028a78d4b91544b4298086baf6, 'SWARM'),
@@ -121,13 +118,7 @@ WITH agentic_contracts AS (
         -- AGENT VIA BANKR
         (0x16332535E2c27da578bC2e82bEb09Ce9d3C8EB07, 'ClawBank'),
         (0x5f980dcfc4c0fa3911554cf5ab288ed0eb13dba3, 'Gitlawb'),
-        (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory'),
-        -- NON-AGENT VIA CLANKER
-        (0xB695559b26BB2c9703ef1935c37AeaE9526bab07, 'Moltbook'),
-        -- NON-AGENT INFRASTRUCTURE
-        (0x91dA780BC7f4B7Cf19ABE90411a2a296Ec5FF787, 'Hive Intelligence'),
-        (0x67543CF0304C19CA62AC95ba82FD4F4B40788dc1, 'Rivalz Token'),
-        (0xb942B75A602fA318ac091370D93d9143Ba345Ba3, 'Mythos Router')
+        (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory')
     ) AS t(address, name)
 ),
 

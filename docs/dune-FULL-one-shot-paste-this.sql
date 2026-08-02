@@ -52,9 +52,6 @@ WITH tracked_tokens AS (
         (0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825, 'AIXBT', 'AIXBT', 'agent-via-virtuals'),
         (0xC44141a684f6AA4E36cD9264ab55550B03C88643, 'Ethy AI', 'ETHY', 'agent-via-virtuals'),
         (0x58Db197E91Bc8Cf1587F75850683e4bd0730e6BF, 'Axelrod', 'AXR', 'agent-via-virtuals'),
-        (0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870, 'VADER', 'VADER', 'agent-via-virtuals'),
-        (0xA4A2E2ca3fBfE21aed83471D28b6f65A233C6e00, 'Ribbita', 'TIBBIR', 'agent-via-virtuals'),
-        (0x55cd6469f597452b5a7536e2cd98fde4c1247ee4, 'LUNA', 'LUNA', 'agent-via-virtuals'),
         (0x1c4cca7c5db003824208adda61bd749e55f463a3, 'GAME by Virtuals', 'GAME', 'agent-via-virtuals'),
         (0x2d90785e30a9df6cce329c0171cb8ba0f4a5c17b, 'BYTE by Virtuals', 'BYTE', 'agent-via-virtuals'),
         (0xea87169699dabd028a78d4b91544b4298086baf6, 'SWARM', 'SWARM', 'agent-via-virtuals'),
@@ -130,15 +127,7 @@ WITH tracked_tokens AS (
         -- AGENT VIA BANKR
         (0x16332535E2c27da578bC2e82bEb09Ce9d3C8EB07, 'ClawBank', 'CLAWBANK', 'agent-via-bankr'),
         (0x5f980dcfc4c0fa3911554cf5ab288ed0eb13dba3, 'Gitlawb', 'GITLAWB', 'agent-via-bankr'),
-        (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory', 'SMCF', 'agent-via-bankr'),
-
-        -- NON-AGENT VIA CLANKER
-        (0xB695559b26BB2c9703ef1935c37AeaE9526bab07, 'Moltbook', 'MOLT', 'non-agent-via-clanker'),
-
-        -- NON-AGENT INFRASTRUCTURE
-        (0x91dA780BC7f4B7Cf19ABE90411a2a296Ec5FF787, 'Hive Intelligence', 'HINT', 'non-agent-infrastructure'),
-        (0x67543CF0304C19CA62AC95ba82FD4F4B40788dc1, 'Rivalz Token', 'RIZ', 'non-agent-infrastructure'),
-        (0xb942B75A602fA318ac091370D93d9143Ba345Ba3, 'Mythos Router', 'MYTHOS', 'non-agent-infrastructure')
+        (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory', 'SMCF', 'agent-via-bankr')
     ) AS t(address, name, symbol, tag)
 ),
 
@@ -152,7 +141,6 @@ token_ages (age_address, deployed_at) AS (
     (0xc0041ef357b183448b235a8ea73ce4e4ec8c265f, TIMESTAMP '2024-06-03 12:21:29'),
     (0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b, TIMESTAMP '2024-03-14 13:36:05'),
     (0x22af33fe49fd1fa80c7149773dde5890d3c76f3b, TIMESTAMP '2024-12-03 04:44:53'),
-    (0x55cd6469f597452b5a7536e2cd98fde4c1247ee4, TIMESTAMP '2024-10-16 12:59:47'),
     (0x352b850b733ab8bab50aed1dab5d22e3186ce984, TIMESTAMP '2024-12-13 02:31:49'),
     (0x79dacb99a8698052a9898e81fdf883c29efb93cb, TIMESTAMP '2024-12-02 23:29:43'),
     (0x1bc0c42215582d5a085795f4badbac3ff36d1bcb, TIMESTAMP '2024-11-08 20:43:33'),
@@ -171,13 +159,10 @@ token_ages (age_address, deployed_at) AS (
     (0xfc48314ad4ad5bd36a84e8307b86a68a01d95d9c, TIMESTAMP '2024-12-13 13:14:05'),
     (0x645c7aa841087e2e7f741c749ab27422ff5bba8e, TIMESTAMP '2024-09-24 03:55:31'),
     (0xcf67815cce72e682eb4429eca46843bed81ca739, TIMESTAMP '2024-11-27 22:45:53'),
-    (0xa4a2e2ca3fbfe21aed83471d28b6f65a233c6e00, TIMESTAMP '2025-01-12 00:30:03'),
     (0x161e113b8e9bbaefb846f73f31624f6f9607bd44, TIMESTAMP '2024-11-29 15:04:53'),
     (0x815269d17c10f0f3df7249370e0c1b9efe781aa8, TIMESTAMP '2024-12-23 10:10:21'),
-    (0x67543cf0304c19ca62ac95ba82fd4f4b40788dc1, TIMESTAMP '2025-01-20 15:17:19'),
     (0xb33ff54b9f7242ef1593d2c9bcd8f9df46c77935, TIMESTAMP '2024-11-23 00:44:59'),
     (0x000000000000012def132e61759048be5b5c6033, TIMESTAMP '2024-12-14 01:02:31'),
-    (0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870, TIMESTAMP '2024-11-01 19:29:21'),
     (0xdd78523217390bb0d49c7601e7e54c36d71622f0, TIMESTAMP '2025-01-27 13:26:05'),
     (0x83abfc4beec2ecf12995005d751a42df691c09c1, TIMESTAMP '2024-12-24 14:14:25'),
     (0x84a9aae8fcc085dbe11524f570716d89b772f430, TIMESTAMP '2025-01-14 13:02:37'),
@@ -186,7 +171,6 @@ token_ages (age_address, deployed_at) AS (
     (0xbdf317f9c153246c429f23f4093087164b145390, TIMESTAMP '2024-10-30 15:57:53'),
     (0x2d90785e30a9df6cce329c0171cb8ba0f4a5c17b, TIMESTAMP '2025-01-14 15:02:35'),
     (0xe2816b27a5613b0aaf5d6dafa80584156e2fb1b6, TIMESTAMP '2025-01-10 07:02:59'),
-    (0x91da780bc7f4b7cf19abe90411a2a296ec5ff787, TIMESTAMP '2024-12-17 12:24:21'),
     (0xf7b0dd0b642a6ccc2fc4d8ffe2bffb0cac8c43c8, TIMESTAMP '2024-12-20 00:12:33'),
     (0x9e271ec4d66f2b400ad92de8a10e5c9c1914259c, TIMESTAMP '2024-12-05 17:17:07'),
     (0x4d70f1058b73198f12a76c193aef5db5dd75babd, TIMESTAMP '2024-12-04 12:04:05'),
@@ -228,12 +212,10 @@ token_ages (age_address, deployed_at) AS (
     (0xe095b8127823708dc07e739ef4149050acc836e7, TIMESTAMP '2025-10-13 10:55:55'),
     (0x9f86db9fc6f7c9408e8fda3ff8ce4e78ac7a6b07, TIMESTAMP '2026-01-26 21:48:55'),
     (0xb2aca4ca8b7bbd9a5388ccb044c87dedf8a51c7c, TIMESTAMP '2025-10-15 10:31:15'),
-    (0xb695559b26bb2c9703ef1935c37aeae9526bab07, TIMESTAMP '2026-01-28 17:21:07'),
     (0x50d2280441372486beecdd328c1854743ebacb07, TIMESTAMP '2026-01-30 15:39:09'),
     (0xa1f72459dfa10bad200ac160ecd78c6b77a747be, TIMESTAMP '2026-01-31 03:13:57'),
     (0xea17df5cf6d172224892b5477a16acb111182478, TIMESTAMP '2025-10-09 03:58:53'),
     (0x380337d0180db7d0df76ac4faae2fcea908ee1fc, TIMESTAMP '2025-10-09 12:26:19'),
-    (0xb942b75a602fa318ac091370d93d9143ba345ba3, TIMESTAMP '2026-04-16 18:04:35'),
     (0x22c0a2e55aed8b317a285ccbd4f3d8ee24c9e5e3, TIMESTAMP '2025-09-04 14:01:59'),
     (0xd63f21e7f4205d59c5b486273c42e261d5cd4d1d, TIMESTAMP '2025-11-20 23:59:15'),
     (0xd88fd4a11255e51f64f78b4a7d74456325c2d8dc, TIMESTAMP '2026-02-01 17:06:39'),
