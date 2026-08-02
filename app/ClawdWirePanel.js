@@ -40,7 +40,8 @@ import {
   toneColor,
   utcHourKey,
 } from "@/lib/clawdWireFormat";
-import { CLAWD_TOKEN_ADDRESS } from "@/lib/clawdWire";
+import { CLAWD_TOKEN_ADDRESS, defaultPulseToken } from "@/lib/clawdWire";
+import ClawdWireTokenPicker from "./ClawdWireTokenPicker";
 
 const SYNC_MS = 45_000;
 
@@ -76,8 +77,7 @@ function roundTripWallets(row) {
 export default function ClawdWirePanel({
   hasAccess,
   walletAddress = null,
-  tokenAddress = CLAWD_TOKEN_ADDRESS,
-  tokenSymbol = "CLAWD",
+  initialToken = null,
   onMeta = null,
   clawdRow = null,
   opportunityRank = null,
@@ -91,6 +91,9 @@ export default function ClawdWirePanel({
   const [errorMsg, setErrorMsg] = useState("");
   const [syncHint, setSyncHint] = useState("");
   const [activeWindow, setActiveWindow] = useState("1h");
+  const [token, setToken] = useState(() => initialToken || defaultPulseToken());
+  const tokenAddress = token.address;
+  const tokenSymbol = token.symbol;
   const [stuck, setStuck] = useState(false);
   const pollRef = useRef(null);
   const attemptsRef = useRef(0);
@@ -428,7 +431,11 @@ export default function ClawdWirePanel({
       {/* ── Pulse: state layer ──────────────────────────────────────────── */}
       <div className="cw-hero">
         <div className="cw-hero-top">
-          <span className="cw-ticker">{tokenSymbol}</span>
+          <ClawdWireTokenPicker
+            value={tokenAddress}
+            symbol={tokenSymbol}
+            onChange={setToken}
+          />
           <span className="cw-mono" style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>
             <FlashNum raw={clawdRow?.priceUsd}>{fmtPrice(clawdRow?.priceUsd)}</FlashNum>
           </span>
@@ -677,8 +684,18 @@ export default function ClawdWirePanel({
             fontSize: "13px",
           }}
         >
-          No pulse results yet. Hit <strong>Trip ClawdWire</strong> for a fresh Dune execute — this page
-          auto-syncs every ~45s and will fill in on its own once a run lands.
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)", marginBottom: "6px" }}>
+            No pulse yet for {tokenSymbol}
+          </div>
+          <div style={{ maxWidth: "460px", margin: "0 auto", lineHeight: 1.55 }}>
+            Nobody has run a live pulse on this token. Hit <strong>Trip ClawdWire</strong> to run one —
+            it takes about a minute, and once it lands it is cached, so everyone else can read it for
+            free.
+          </div>
+          <div style={{ marginTop: "10px", fontSize: "11.5px", color: "var(--text-xfaint)" }}>
+            Browsing other tokens never starts a run. Tokens with a pulse already are marked in the
+            picker.
+          </div>
         </div>
       ) : (
         <>
