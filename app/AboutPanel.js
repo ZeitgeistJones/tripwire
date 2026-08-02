@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { CHANGELOG } from "@/lib/changelog";
 
 const GLOSSARY_ROWS = [
@@ -56,31 +59,6 @@ export default function AboutPanel() {
           Price, Market Cap, Signal, and Movers sit alongside as separate layers.
           This is an experiment — not financial advice; data may be incomplete.
         </p>
-
-        <h3 id="changelog" style={{ color: "var(--text)" }}>Changelog</h3>
-        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
-          Curated product / methodology notes — not every deploy. Newest first.
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "18px", marginBottom: "8px" }}>
-          {CHANGELOG.map((entry) => (
-            <div key={`${entry.date}-${entry.title}`}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline", marginBottom: "4px" }}>
-                <time
-                  dateTime={entry.date}
-                  style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-faint)", letterSpacing: "0.02em" }}
-                >
-                  {entry.date}
-                </time>
-                <strong style={{ color: "var(--text)", fontSize: "14px" }}>{entry.title}</strong>
-              </div>
-              <ul style={{ margin: "0", paddingLeft: "20px", color: "var(--text-muted)", fontSize: "13px" }}>
-                {entry.bullets.map((b) => (
-                  <li key={b} style={{ marginBottom: "4px" }}>{b}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
 
         <h3 style={{ color: "var(--text)" }}>Key Terms</h3>
         <p style={{ color: "var(--text-muted)" }}>
@@ -281,10 +259,12 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
-          <li><strong style={{ color: "var(--text)" }}>ClawdWire</strong> — CLAWD-only live pulse; same Tripwire holder wallet gate as the rest of the app</li>
+          <li><strong style={{ color: "var(--text)" }}>ClawdWire</strong> — live on-chain pulse for any tracked Base token (holder-gated Trip)</li>
           <li><strong style={{ color: "var(--text)" }}>The Wire</strong> — on-demand pulse across tracked tokens (under construction; team testing)</li>
-          <li><strong style={{ color: "var(--text)" }}>About</strong> — this page (includes Changelog)</li>
+          <li><strong style={{ color: "var(--text)" }}>About</strong> — this page</li>
         </ul>
+
+        <ChangelogDropdown />
 
         <h3 style={{ marginTop: "32px", color: "var(--text)" }}>Thanks</h3>
         <p style={{ color: "var(--text-muted)" }}>
@@ -317,6 +297,86 @@ export default function AboutPanel() {
           }}
         />
       </div>
+    </div>
+  );
+}
+
+function ChangelogDropdown() {
+  const [open, setOpen] = useState(false);
+  const latest = CHANGELOG[0]?.date;
+
+  return (
+    <div
+      id="changelog"
+      style={{
+        marginTop: "28px",
+        border: "1px solid var(--border)",
+        borderRadius: "10px",
+        background: "var(--bg-subtle)",
+        overflow: "hidden",
+      }}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          appearance: "none",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+          padding: "14px 16px",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          textAlign: "left",
+          color: "var(--text)",
+        }}
+      >
+        <span>
+          <strong style={{ fontSize: "14px", letterSpacing: "0.02em" }}>Changelog</strong>
+          <span style={{ display: "block", marginTop: "2px", fontSize: "12px", color: "var(--text-faint)" }}>
+            What’s new, in plain English{latest ? ` · latest ${latest}` : ""} — tap to expand
+          </span>
+        </span>
+        <span aria-hidden="true" style={{ color: "var(--text-faint)", fontSize: "12px", flexShrink: 0 }}>
+          {open ? "▴" : "▾"}
+        </span>
+      </button>
+
+      {open ? (
+        <div
+          style={{
+            borderTop: "1px solid var(--border)",
+            padding: "14px 16px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "18px",
+          }}
+        >
+          {CHANGELOG.map((entry) => (
+            <div key={`${entry.date}-${entry.title}`}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline", marginBottom: "4px" }}>
+                <time
+                  dateTime={entry.date}
+                  style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-faint)", letterSpacing: "0.02em" }}
+                >
+                  {entry.date}
+                </time>
+                <strong style={{ color: "var(--text)", fontSize: "14px" }}>{entry.title}</strong>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "20px", color: "var(--text-muted)", fontSize: "13px" }}>
+                {entry.bullets.map((b) => (
+                  <li key={b} style={{ marginBottom: "4px" }}>{b}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
