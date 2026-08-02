@@ -437,7 +437,30 @@ export default function ClawdPanel({ clawdRow, totalProjects, opportunityRank, m
 
   return (
     <div>
-      <h2 style={{ marginTop: 0, marginBottom: "10px", color: "var(--text)", fontSize: "20px" }}>CLAWD — Health Check</h2>
+      <h2 style={{ marginTop: 0, marginBottom: "8px", color: "var(--text)", fontSize: "20px" }}>CLAWD — Health Check</h2>
+      <div
+        style={{
+          marginBottom: "14px",
+          padding: "10px 12px",
+          borderRadius: "8px",
+          border: "1px solid var(--border)",
+          borderLeft: "3px solid var(--clawd-row-border)",
+          background: "var(--bg-subtle)",
+          fontSize: "13px",
+          lineHeight: 1.45,
+          color: "var(--text-muted)",
+        }}
+      >
+        <p style={{ margin: "0 0 6px", color: "var(--text)" }}>
+          This tab is a <strong style={{ fontWeight: 600 }}>CLAWD-only</strong> deep dive from the shared board snapshot —
+          scores, peer ranks, trends, and the full metric breakdown.
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "var(--text)", fontWeight: 600 }}>ClawdWire</strong> is different: a live on-chain pulse
+          (15m → 24h) you can Trip for <em>any</em> tracked Base token. Use this tab for “how is CLAWD doing vs peers?”;
+          use ClawdWire for “what’s happening on-chain right now?”
+        </p>
+      </div>
 
       <ProfileSignalBanner profile={clawdRow?.["Prof"]} signal={clawdRow?.signal} read={clawdRow?.read} />
 

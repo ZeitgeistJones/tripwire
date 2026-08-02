@@ -257,8 +257,8 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Growth</strong> — WoW rates: Vol/Tx/User Grw %, Retention %, Signal</li>
           <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — Flow (<code>24h | 7d</code>) + Context (threshold, concentration, scores, age)</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
-          <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
-          <li><strong style={{ color: "var(--text)" }}>ClawdWire</strong> — live on-chain pulse for any tracked Base token (holder-gated Trip)</li>
+          <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — CLAWD-only health check from the board snapshot (scores, ranks, trends vs peers)</li>
+          <li><strong style={{ color: "var(--text)" }}>ClawdWire</strong> — live on-chain pulse for any tracked Base token (holder-gated Trip); not the same as the CLAWD tab</li>
           <li><strong style={{ color: "var(--text)" }}>The Wire</strong> — on-demand pulse across tracked tokens (under construction; team testing)</li>
           <li><strong style={{ color: "var(--text)" }}>About</strong> — this page</li>
         </ul>
