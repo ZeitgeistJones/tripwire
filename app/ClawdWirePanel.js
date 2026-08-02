@@ -40,6 +40,7 @@ import {
   toneColor,
   utcHourKey,
 } from "@/lib/clawdWireFormat";
+import { CLAWD_TOKEN_ADDRESS } from "@/lib/clawdWire";
 
 const SYNC_MS = 45_000;
 
@@ -75,6 +76,8 @@ function roundTripWallets(row) {
 export default function ClawdWirePanel({
   hasAccess,
   walletAddress = null,
+  tokenAddress = CLAWD_TOKEN_ADDRESS,
+  tokenSymbol = "CLAWD",
   onMeta = null,
   clawdRow = null,
   opportunityRank = null,
@@ -139,7 +142,7 @@ export default function ClawdWirePanel({
       if (executingRef.current) return;
       try {
         if (!quiet) publishMeta(lastRunRef.current, true);
-        const res = await fetch("/api/clawdwire/latest", {
+        const res = await fetch(`/api/clawdwire/latest?token=${tokenAddress}`, {
           headers: wireHeaders(),
           cache: "no-store",
         });
@@ -159,8 +162,20 @@ export default function ClawdWirePanel({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [applyPayload, publishMeta, walletAddress]
+    [applyPayload, publishMeta, walletAddress, tokenAddress]
   );
+
+  // Switching tokens must blank the old numbers immediately. Leaving them up
+  // while the new pulse loads would show one coin's data under another's
+  // ticker — briefly, but that is exactly the failure this whole design is
+  // built to prevent.
+  useEffect(() => {
+    setRow(null);
+    setLastRunAt(null);
+    setErrorMsg("");
+    setSyncHint("");
+    lastRunRef.current = null;
+  }, [tokenAddress]);
 
   useEffect(() => {
     if (!hasAccess) return undefined;
@@ -210,7 +225,7 @@ export default function ClawdWirePanel({
     publishMeta(lastRunRef.current, true);
 
     try {
-      const startRes = await fetch("/api/clawdwire/start", {
+      const startRes = await fetch(`/api/clawdwire/start?token=${tokenAddress}`, {
         method: "POST",
         headers: wireHeaders(),
       });
@@ -232,7 +247,7 @@ export default function ClawdWirePanel({
         }
         try {
           const statusRes = await fetch(
-            `/api/clawdwire/status?executionId=${startJson.executionId}`,
+            `/api/clawdwire/status?executionId=${startJson.executionId}&token=${tokenAddress}`,
             { headers: wireHeaders() }
           );
           const statusJson = await statusRes.json();
@@ -413,7 +428,7 @@ export default function ClawdWirePanel({
       {/* ── Pulse: state layer ──────────────────────────────────────────── */}
       <div className="cw-hero">
         <div className="cw-hero-top">
-          <span className="cw-ticker">CLAWD</span>
+          <span className="cw-ticker">{tokenSymbol}</span>
           <span className="cw-mono" style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>
             <FlashNum raw={clawdRow?.priceUsd}>{fmtPrice(clawdRow?.priceUsd)}</FlashNum>
           </span>
