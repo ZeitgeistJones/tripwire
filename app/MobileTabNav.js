@@ -182,7 +182,7 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
   const labelOf = (tab) => (tabLabel ? tabLabel(tab) : tab);
   return (
     <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "6px", alignItems: "center" }}>
-      <Link href="/" style={chipStyle(false)}>Movers</Link>
+      <Link href="/movers" style={chipStyle(false)}>Movers</Link>
       {MOBILE_PRIMARY_TABS.map((tab) => (
         <button
           key={tab}
@@ -203,31 +203,35 @@ export function DashboardMobileNav({ activeTab, onTabChange, tabLabel }) {
   );
 }
 
-/** Link-based mobile nav (Movers page) with ?tab= deep links */
+/** Link-based mobile nav (Movers page) — order matches DashboardMobileNav: Movers · ClawdWire · About · Snapshot */
 export function LinkMobileNav({ currentPage }) {
   const dashHref = (tab) => `/dashboard?tab=${encodeURIComponent(tab)}`;
-  const moreItems = [
-    ...MOBILE_MORE_TABS.map((t) => ({ key: t, label: t === "Whales & Risk" ? "Whales" : t })),
-    { key: "Movers", label: "Movers" },
-  ];
+  const moreItems = MOBILE_MORE_TABS.map((t) => ({
+    key: t,
+    label: t === "Whales & Risk" ? "Whales" : t,
+  }));
   return (
     <div className="tw-tab-strip tw-nav-mobile" style={{ display: "none", gap: "8px", marginBottom: "16px", alignItems: "center" }}>
+      {currentPage === "movers" ? (
+        <span style={chipStyle(true)}>Movers</span>
+      ) : (
+        <Link href="/movers" style={chipStyle(false)}>
+          Movers
+        </Link>
+      )}
       <Link href={dashHref("ClawdWire")} style={chipStyle(false)}>
         ClawdWire
       </Link>
       <Link href={dashHref("About")} style={chipStyle(false)}>
         About
       </Link>
-      {currentPage === "movers" ? (
-        <span style={chipStyle(true)}>Movers</span>
-      ) : null}
       <MoreMenu
         chipLabel="Snapshot"
         items={moreItems}
-        activeKey={currentPage === "movers" ? "Movers" : null}
+        activeKey={null}
         renderItem={({ key, label, active, close }) => (
           <Link
-            href={key === "Movers" ? "/movers" : dashHref(key)}
+            href={dashHref(key)}
             onClick={close}
             style={{
               ...chipBase,

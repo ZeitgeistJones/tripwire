@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import StatusBanner from "./StatusBanner";
-import { LinkMobileNav } from "./MobileTabNav";
+import { LinkMobileNav, MoreMenu, SNAPSHOT_TABS } from "./MobileTabNav";
 import { rankMovers } from "@/lib/moversRank";
 
 // ── formatting ────────────────────────────────────────────────
@@ -13,16 +13,6 @@ function fmtUsd(n) {
   if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
   return `$${Math.round(n).toLocaleString()}`;
 }
-
-/** Snapshot / secondary destinations (ClawdWire is the front door). */
-const SNAPSHOT_LINKS = [
-  "Overview",
-  "Flow",
-  "Whales & Risk",
-  "Watchlist",
-  "CLAWD",
-  "The Wire",
-];
 
 const PERIOD_VALUES = new Set(["24h", "7d", "30d"]);
 
@@ -204,21 +194,51 @@ function TabBar() {
     fontSize: "14px",
   });
 
+  const dashHref = (tab) => `/dashboard?tab=${encodeURIComponent(tab)}`;
+  const snapshotItems = [
+    ...SNAPSHOT_TABS.map((t) => ({
+      key: t,
+      label: t === "Whales & Risk" ? "Whales" : t,
+    })),
+    { key: "__movers", label: "Movers" },
+  ];
+
   return (
     <>
-      <div className="tw-tab-strip tw-nav-desktop" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
-        <Link href="/dashboard?tab=ClawdWire" style={tabStyle(false)}>
+      <div
+        className="tw-tab-strip tw-nav-desktop"
+        style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}
+      >
+        <Link href={dashHref("ClawdWire")} style={tabStyle(false)}>
           ClawdWire
         </Link>
-        <span style={tabStyle(true)}>Movers</span>
-        <Link href="/dashboard?tab=About" style={tabStyle(false)}>
+        <MoreMenu
+          chipLabel="Snapshot"
+          items={snapshotItems}
+          activeKey="__movers"
+          renderItem={({ key, label, active, close }) => (
+            <Link
+              href={key === "__movers" ? "/movers" : dashHref(key)}
+              onClick={close}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "6px",
+                textDecoration: "none",
+                fontSize: "14px",
+                display: "block",
+                border: "none",
+                background: active ? "var(--btn-active-bg)" : "transparent",
+                color: active ? "var(--btn-active-text)" : "var(--text)",
+                fontWeight: active ? 600 : 400,
+              }}
+            >
+              {label}
+            </Link>
+          )}
+        />
+        <Link href={dashHref("About")} style={tabStyle(false)}>
           About
         </Link>
-        {SNAPSHOT_LINKS.map((tab) => (
-          <Link key={tab} href={`/dashboard?tab=${encodeURIComponent(tab)}`} style={tabStyle(false)}>
-            {tab === "Whales & Risk" ? "Whales" : tab}
-          </Link>
-        ))}
       </div>
       <LinkMobileNav currentPage="movers" />
     </>
