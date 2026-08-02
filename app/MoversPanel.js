@@ -20,7 +20,6 @@ const SNAPSHOT_LINKS = [
   "Flow",
   "Whales & Risk",
   "Watchlist",
-  "Discover",
   "CLAWD",
   "The Wire",
 ];

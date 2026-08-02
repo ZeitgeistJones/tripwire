@@ -414,7 +414,7 @@ function SegmentedControl({ options, value, onChange, ariaLabel }) {
   );
 }
 
-const TAB_ORDER = ["Overview", "Flow", "Whales & Risk", "Watchlist", "Discover", "CLAWD", "ClawdWire", "The Wire", "About"];
+const TAB_ORDER = ["Overview", "Flow", "Whales & Risk", "Watchlist", "CLAWD", "ClawdWire", "The Wire", "About"];
 
 const GATE_ADDRESS = "0xc22B7b983EC81523c969753c2385106835E8CfCE";
 const GATE_ABI = [
@@ -563,13 +563,6 @@ const TABS = {
     { key: "Qlty %",            label: "Qlty %",          type: "number", format: "pct1", window: "score", tooltip: "How clean the activity looks \u2014 penalizes bot-like patterns, extreme concentration, and unrealistic retention" },
     { key: "Risk %",            label: "Risk %",          type: "number", format: "pct1", window: "score", tooltip: "How concentrated the volume is in a few wallets \u2014 higher means more concentrated" },
     { key: "Token Age Days",    label: "Age (days)",      type: "number", format: "int", tooltip: "Days since this token's contract was first deployed on Base" },
-  ],
-  Discover: [
-    { key: "name",         label: "Project",    type: "string" },
-    { key: "symbol",       label: "Symbol",     type: "string" },
-    { key: "marketCapUsd", label: "Market Cap", type: "number", format: "usd", window: "live", tooltip: "Live market cap in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "priceUsd",     label: "Price",      type: "number", format: "price", window: "live", tooltip: "Live token price in USD from CoinGecko (* = via DexScreener for tokens CoinGecko doesn’t track)" },
-    { key: "address",      label: "Address",    type: "string" },
   ],
 };
 
@@ -918,7 +911,7 @@ function ProfSignalKey() {
 }
 
 
-export default function DashboardTable({ data, discoveryData = [], lastUpdated, pricesUpdatedAt = null, snapshotBuiltAt = null }) {
+export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = null, snapshotBuiltAt = null }) {
   const [activeTab, setActiveTab] = useState("ClawdWire");
   const [sortKey, setSortKey] = useState("Opp");
   const [sortDir, setSortDir] = useState("desc");
@@ -959,6 +952,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         setFlowFamily(LEGACY_TAB_TO_FLOW[tab]);
         tab = "Flow";
       }
+      if (tab === "Discover") tab = "Overview";
       if (tab && TAB_ORDER.includes(tab)) {
         setActiveTab(tab);
         if (!["The Wire", "ClawdWire", "About", "CLAWD", "Watchlist"].includes(tab)) {
@@ -1067,7 +1061,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   const isClawdWire = activeTab === "ClawdWire";
   const isAbout    = activeTab === "About";
   const isClawd    = activeTab === "CLAWD";
-  const isDiscover = activeTab === "Discover";
   const isWatchlist = activeTab === "Watchlist";
   const isSpecialTab = isTripwire || isClawdWire || isAbout || isClawd || isWatchlist;
   const rawColumns = isSpecialTab ? [] : (TABS[columnSourceFor(activeTab, flowFamily)] || []);
@@ -1092,9 +1085,8 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
     setSortKey(firstNumeric ? firstNumeric.key : filtered[0]?.key || "Project");
     setSortDir("desc");
   }
-  const rawSource = isDiscover ? discoveryData : data;
-  const sourceData = isSpecialTab ? [] : Array.isArray(rawSource) ? rawSource : [];
-  const rowKeyField = isDiscover ? "address" : "Address";
+  const sourceData = isSpecialTab ? [] : Array.isArray(data) ? data : [];
+  const rowKeyField = "Address";
 
   const dataArr = Array.isArray(data) ? data : [];
   const clawdRow = dataArr.find((d) => d["Project"] === "CLAWD") || null;
@@ -1176,7 +1168,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   }
 
   function getCellRank(colKey, colType, rowData) {
-    if (colType !== "number" || isDiscover) return null;
+    if (colType !== "number") return null;
     return peerRank(colKey, rowData[colKey], dataArr);
   }
 
@@ -1233,7 +1225,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   }
 
   // AND between groups, OR within group
-  const filtered = isSpecialTab || isDiscover
+  const filtered = isSpecialTab
     ? sourceData
     : activeFilters.size === 0
       ? sourceData
@@ -1262,26 +1254,21 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
       });
 
   function tabLabel(tab) {
-    if (tab === "Discover") return `Discover${discoveryData.length > 0 ? ` (${discoveryData.length})` : ""}`;
     if (tab === "Watchlist") return `Watchlist${watchedAddresses.length > 0 ? ` (${watchedAddresses.length})` : ""}`;
     return tab;
   }
 
-  const pinnedRows = !isDiscover
-    ? pinnedKeys.map((k) => sorted.find((d) => d[rowKeyField] === k)).filter(Boolean)
-    : [];
-  const unpinnedRows = !isDiscover
-    ? sorted.filter((d) => !pinnedKeys.includes(d[rowKeyField]))
-    : sorted;
+  const pinnedRows = pinnedKeys.map((k) => sorted.find((d) => d[rowKeyField] === k)).filter(Boolean);
+  const unpinnedRows = sorted.filter((d) => !pinnedKeys.includes(d[rowKeyField]));
   const displayRows = [...pinnedRows, ...unpinnedRows];
 
   function renderRow(d, idx) {
-    const isPinned     = !isDiscover && pinnedKeys.includes(d[rowKeyField]);
+    const isPinned     = pinnedKeys.includes(d[rowKeyField]);
     const unpinnedIdx  = idx - pinnedRows.length;
-    const isRowGated   = !isDiscover && !isPinned && unpinnedIdx >= FREE_ROW_COUNT && !hasAccess;
-    const isClawdRow   = !isDiscover && d["Project"] === "CLAWD";
+    const isRowGated   = !isPinned && unpinnedIdx >= FREE_ROW_COUNT && !hasAccess;
+    const isClawdRow   = d["Project"] === "CLAWD";
     const isDragTarget = dragOver === d[rowKeyField] && isPinned;
-    const isWatched    = !isDiscover && watchedAddresses.includes((d["Address"] || "").toLowerCase());
+    const isWatched    = watchedAddresses.includes((d["Address"] || "").toLowerCase());
     const rowKey = d[rowKeyField];
     const expandCol = rankExpand?.rowKey === rowKey ? columns.find((c) => c.key === rankExpand.colKey) : null;
     const expandRank = expandCol ? getCellRank(expandCol.key, expandCol.type, d) : null;
@@ -1301,8 +1288,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
           cursor: isPinned ? "grab" : "default",
         }}
       >
-        {!isDiscover && (
-          <td className="tw-sticky-actions" style={{ padding: compact ? "2px 2px" : "4px 4px", whiteSpace: "nowrap", width: compact ? "40px" : "52px" }}>
+        <td className="tw-sticky-actions" style={{ padding: compact ? "2px 2px" : "4px 4px", whiteSpace: "nowrap", width: compact ? "40px" : "52px" }}>
             <button
               className="tw-icon-btn"
               onClick={() => toggleWatch(d["Address"])}
@@ -1336,7 +1322,6 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
               📍
             </button>
           </td>
-        )}
         {columns.map((col) => {
           const rankInfo = !isRowGated ? getCellRank(col.key, col.type, d) : null;
           const isFallbackPrice =
@@ -1438,7 +1423,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
         {mainRow}
         <tr key={`${rowKey}-rank-expand`}>
           <td
-            colSpan={columns.length + (isDiscover ? 0 : 1)}
+            colSpan={columns.length + 1}
             style={{
               padding: "8px 12px",
               background: "var(--bg-subtle)",
@@ -1463,13 +1448,13 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
   const tableBody = !isSpecialTab && (
     <div
       data-h-scroll
-      className={`tw-full-table tw-hscroll${!isDiscover ? " has-actions" : ""}`}
+      className="tw-full-table tw-hscroll has-actions"
       style={{ overflowX: "auto", fontSize: compact ? "11px" : undefined }}
     >
       <table style={{ borderCollapse: "collapse", marginTop: "8px", width: "100%" }}>
         <thead>
           <tr>
-            {!isDiscover && <th className="tw-sticky-actions" style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />}
+            <th className="tw-sticky-actions" style={{ width: compact ? "40px" : "52px", borderBottom: "1px solid var(--border-strong)", padding: compact ? "4px 4px" : "6px 8px" }} />
             {columns.map((col) => {
               const isProjectCol = col.key === "Project" || col.key === "name";
               const openDef = () => {
@@ -1558,7 +1543,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
           {displayRows.length === 0 ? (
             <tr>
               <td colSpan={columns.length + 1} style={{ padding: "16px", color: "var(--text-muted)" }}>
-                {isDiscover ? "No new candidates found." : "No data."}
+                No data.
               </td>
             </tr>
           ) : (
@@ -1770,19 +1755,11 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
       </div>
       )}
 
-      {!isSpecialTab && !isDiscover && (
+      {!isSpecialTab && (
         <>
           <FilterBar activeFilters={activeFilters} onToggle={handleFilterToggle} onClear={handleFilterClear} />
           <SummaryBar data={filtered} />
         </>
-      )}
-
-      {isDiscover && (
-        <p style={{ color: "var(--text-muted)", marginBottom: "12px", fontSize: "14px" }}>
-          AI-category coins from CoinGecko (AI Agents, AI Agent Launchpad, AI Framework, DeFAI) with a Base
-          contract address, not yet in your tracked list. Verify each before adding — category tagging on
-          CoinGecko isn't perfect either.
-        </p>
       )}
 
       {activeTab === "Overview" && (
@@ -1905,9 +1882,7 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
             />
           </GatedSection>
         )}
-        {isDiscover ? (
-          <GatedSection blurred={!hasAccess}>{tableBody}</GatedSection>
-        ) : showHybrid ? (
+        {showHybrid ? (
           <div className={hybridClass}>
             <MobileSummaryList
               rows={displayRows}

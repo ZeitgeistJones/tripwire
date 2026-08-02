@@ -256,7 +256,6 @@ export default function AboutPanel() {
           <li><strong style={{ color: "var(--text)" }}>Buyers</strong> — traders, buyers/sellers, first buyers/sellers, buy/sell ratio, Buy Vol %</li>
           <li><strong style={{ color: "var(--text)" }}>Growth</strong> — WoW rates: Vol/Tx/User Grw %, Retention %, Signal</li>
           <li><strong style={{ color: "var(--text)" }}>Whales &amp; Risk</strong> — Flow (<code>24h | 7d</code>) + Context (threshold, concentration, scores, age)</li>
-          <li><strong style={{ color: "var(--text)" }}>Discover</strong> — CoinGecko AI-category candidates not yet tracked</li>
           <li><strong style={{ color: "var(--text)" }}>Watchlist</strong> — saved tokens (wallet-gated)</li>
           <li><strong style={{ color: "var(--text)" }}>CLAWD</strong> — deep health check for CLAWD</li>
           <li><strong style={{ color: "var(--text)" }}>ClawdWire</strong> — live on-chain pulse for any tracked Base token (holder-gated Trip)</li>

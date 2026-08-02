@@ -11,7 +11,6 @@ export const SNAPSHOT_TABS = [
   "Flow",
   "Whales & Risk",
   "Watchlist",
-  "Discover",
   "CLAWD",
   "The Wire",
 ];
