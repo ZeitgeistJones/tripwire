@@ -75,7 +75,7 @@ function roundTripWallets(row) {
 }
 
 export default function ClawdWirePanel({
-  hasAccess,
+  canTrip = false,
   walletAddress = null,
   initialToken = null,
   onMeta = null,
@@ -180,8 +180,9 @@ export default function ClawdWirePanel({
     lastRunRef.current = null;
   }, [tokenAddress]);
 
+  // Reads are cache-first and free, so everyone syncs — the wallet only ever
+  // decides whether the Trip button can spend.
   useEffect(() => {
-    if (!hasAccess) return undefined;
     pullLatest({ quiet: true });
     const id = setInterval(() => pullLatest({ quiet: true }), SYNC_MS);
 
@@ -192,10 +193,10 @@ export default function ClawdWirePanel({
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
-      // Do NOT stopExecPoll here. pullLatest/hasAccess churn used to clear the
+      // Do NOT stopExecPoll here. pullLatest churn used to clear the
       // Trip interval while status stayed "running" (stuck forever).
     };
-  }, [hasAccess, pullLatest]);
+  }, [pullLatest]);
 
   // Clear Trip poll only on unmount.
   useEffect(() => {
@@ -217,7 +218,7 @@ export default function ClawdWirePanel({
     });
     io.observe(el);
     return () => io.disconnect();
-  }, [hasAccess]);
+  }, []);
 
   async function runClawdWire() {
     executingRef.current = true;
@@ -407,14 +408,6 @@ export default function ClawdWirePanel({
       pair("Net result $", "Net Closed PnL $ 24h", "Net Closed PnL $ 30d", fmtUsdSigned, true),
     ];
   }, [row]);
-
-  if (!hasAccess) {
-    return (
-      <div style={{ paddingTop: "24px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
-        Tester wallet only while under construction.
-      </div>
-    );
-  }
 
   const railStatus = isRunning
     ? status === "starting"
@@ -642,8 +635,18 @@ export default function ClawdWirePanel({
         <button type="button" className="cw-btn" onClick={() => pullLatest({ quiet: false })} disabled={isRunning}>
           Sync
         </button>
-        <button type="button" className="cw-btn cw-btn-primary" onClick={runClawdWire} disabled={isRunning}>
-          {isRunning ? "Running…" : "Trip ClawdWire"}
+        <button
+          type="button"
+          className="cw-btn cw-btn-primary"
+          onClick={runClawdWire}
+          disabled={isRunning || !canTrip}
+          title={
+            canTrip
+              ? `Run a fresh pulse for ${tokenSymbol}`
+              : "Connect a CLAWD-holder wallet to run a fresh pulse"
+          }
+        >
+          {isRunning ? "Running…" : canTrip ? "Trip ClawdWire" : "Trip · holders"}
         </button>
       </div>
 
@@ -688,9 +691,19 @@ export default function ClawdWirePanel({
             No pulse yet for {tokenSymbol}
           </div>
           <div style={{ maxWidth: "460px", margin: "0 auto", lineHeight: 1.55 }}>
-            Nobody has run a live pulse on this token. Hit <strong>Trip ClawdWire</strong> to run one —
-            it takes about a minute, and once it lands it is cached, so everyone else can read it for
-            free.
+            {canTrip ? (
+              <>
+                Nobody has run a live pulse on this token. Hit <strong>Trip ClawdWire</strong> to run
+                one — it takes about a minute, and once it lands it is cached, so everyone else can
+                read it for free.
+              </>
+            ) : (
+              <>
+                Nobody has run a live pulse on this token yet. Running one costs Dune credits, so it
+                is limited to CLAWD holders — but once anybody runs it, the result is cached and free
+                for everyone to read.
+              </>
+            )}
           </div>
           <div style={{ marginTop: "10px", fontSize: "11.5px", color: "var(--text-xfaint)" }}>
             Browsing other tokens never starts a run. Tokens with a pulse already are marked in the

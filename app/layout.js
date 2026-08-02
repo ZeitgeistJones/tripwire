@@ -117,6 +117,17 @@ export default function RootLayout({ children }) {
 
               *, *::before, *::after { box-sizing: border-box; }
 
+              /* Figures line up in a column and stop twitching as digits change
+                 width. Applied to tables and explicitly-marked numerics only —
+                 prose keeps proportional figures, which read better in a
+                 sentence. This is the cheapest thing on the site that makes it
+                 look like one product. */
+              table td, table th,
+              .tw-num, .tw-hscroll table {
+                font-variant-numeric: tabular-nums;
+                font-feature-settings: "tnum" 1;
+              }
+
               html {
                 background: #1c1b22;
               }

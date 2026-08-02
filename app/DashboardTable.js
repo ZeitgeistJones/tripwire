@@ -1774,50 +1774,18 @@ export default function DashboardTable({ data, discoveryData = [], lastUpdated, 
           )
         )}
         {isClawdWire && (
-          (hasAccess || wireTester) ? (
-            <div>
-              <ClawdWirePanel
-                hasAccess={hasAccess || wireTester}
-                walletAddress={address}
-                onMeta={setClawdWireMeta}
-                clawdRow={clawdRow}
-                opportunityRank={opportunityRank}
-                momentumRank={momentumRank}
-                sustainabilityRank={sustainabilityRank}
-                totalProjects={totalProjects}
-              />
-            </div>
-          ) : (
-            <div style={{
-              marginTop: "24px",
-              padding: "40px 24px",
-              border: "1px solid var(--border)",
-              borderRadius: "10px",
-              background: "var(--bg-subtle)",
-              textAlign: "center",
-            }}>
-              <div style={{
-                display: "inline-block",
-                fontSize: "11px",
-                fontWeight: 700,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: "var(--read-amber-text)",
-                background: "var(--read-amber-bg)",
-                padding: "4px 10px",
-                borderRadius: "999px",
-                marginBottom: "12px",
-              }}>
-                Holders
-              </div>
-              <p style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--text)" }}>
-                ClawdWire needs Tripwire access
-              </p>
-              <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)", maxWidth: "440px", marginLeft: "auto", marginRight: "auto" }}>
-                Connect the same CLAWD-holder wallet that unlocks Tripwire scores to trip or sync the CLAWD pulse.
-              </p>
-            </div>
-          )
+          <div>
+            <ClawdWirePanel
+              canTrip={hasAccess || wireTester}
+              walletAddress={address}
+              onMeta={setClawdWireMeta}
+              clawdRow={clawdRow}
+              opportunityRank={opportunityRank}
+              momentumRank={momentumRank}
+              sustainabilityRank={sustainabilityRank}
+              totalProjects={totalProjects}
+            />
+          </div>
         )}
         {isAbout     && <AboutPanel />}
         {isClawd     && (
