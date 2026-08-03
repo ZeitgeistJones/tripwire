@@ -101,6 +101,7 @@ export async function POST(request) {
     // Always prefer explicit params. Relying on the query's saved defaults would
     // mean the result depends on whatever token was last run by hand in Dune.
     const withParamsBody = {
+      performance: "medium",
       query_parameters: {
         token_address: token.address,
         token_name: token.symbol,
