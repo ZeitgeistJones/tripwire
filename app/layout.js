@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "Tripwire",
-  description: "On-chain intelligence for CLAWD holders on Base",
+  description: "On-chain intelligence for Base AI-agent tokens — open board, ClawdWire Trip for CLAWD holders",
 };
 
 export default function RootLayout({ children }) {

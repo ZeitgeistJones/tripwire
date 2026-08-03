@@ -7,7 +7,7 @@ export async function GET(request) {
   const wallet = request.headers.get("x-wallet-address") || "";
   if (!(await canUseClawdWire(wallet))) {
     return Response.json(
-      { error: "Connect a Tripwire-eligible wallet (CLAWD holder access) to use ClawdWire." },
+      { error: "Connect a wallet with 10M+ CLAWD to use ClawdWire Trip." },
       { status: 403 }
     );
   }

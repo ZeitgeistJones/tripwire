@@ -430,8 +430,6 @@ const GATE_ABI = [
   },
 ];
 
-const FREE_ROW_COUNT = 5;
-
 /** Shared window tokens — never tooltip-only; rendered under every column header. */
 const WINDOW_ORDER = ["24h", "7d", "30d", "30d thr", "WoW", "live", "score"];
 
@@ -604,29 +602,6 @@ function ReadBadge({ value }) {
   );
 }
 
-function GatedCell({ blurred, children }) {
-  if (!blurred) return children;
-  return <span style={{ filter: "blur(6px)", userSelect: "none", display: "inline-block" }}>{children}</span>;
-}
-
-function GatedSection({ blurred, children }) {
-  if (!blurred) return children;
-  return (
-    <div style={{ position: "relative" }}>
-      <div style={{ filter: "blur(8px)", pointerEvents: "none", userSelect: "none" }}>{children}</div>
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{
-          fontSize: "14px", fontWeight: 600, color: "var(--text)", background: "var(--bg)",
-          padding: "12px 20px", borderRadius: "8px", border: "1px solid var(--border)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        }}>
-          🔒 Connect a wallet holding 10M+ CLAWD to unlock
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function formatValue(val, format) {
   if (val == null || val === "") return "—";
   // String columns (Project, Signal, Prof, …) have no numeric format — pass through.
@@ -653,7 +628,6 @@ function MobileSummaryList({
   pinnedRows,
   tab,
   period,
-  hasAccess,
   watchedAddresses,
   pinnedKeys,
   rowKeyField,
@@ -674,8 +648,6 @@ function MobileSummaryList({
       )}
       {rows.map((d, idx) => {
         const isPinned = pinnedKeys.includes(d[rowKeyField]);
-        const unpinnedIdx = idx - pinnedRows.length;
-        const isRowGated = !isPinned && unpinnedIdx >= FREE_ROW_COUNT && !hasAccess;
         const isClawd = d["Project"] === "CLAWD";
         const isWatched = watchedAddresses.includes((d["Address"] || "").toLowerCase());
 
@@ -688,7 +660,6 @@ function MobileSummaryList({
               padding: "12px 14px",
               background: isClawd ? "var(--clawd-row-bg)" : "var(--card-bg)",
               borderLeft: isClawd ? "3px solid var(--clawd-row-border)" : undefined,
-              opacity: isRowGated ? 0.85 : 1,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
@@ -719,12 +690,11 @@ function MobileSummaryList({
                 📍
               </button>
               <span style={{ fontWeight: 700, fontSize: "15px", color: "var(--text)", flex: 1 }}>
-                <GatedCell blurred={isRowGated}>{d["Project"] ?? "—"}</GatedCell>
+                {d["Project"] ?? "—"}
               </span>
-              {d.read ? <GatedCell blurred={isRowGated}><ReadBadge value={d.read} /></GatedCell> : null}
+              {d.read ? <ReadBadge value={d.read} /> : null}
             </div>
-            <GatedCell blurred={isRowGated}>
-              {isWhales ? (
+            {isWhales ? (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", fontSize: "12px" }}>
                   <span style={{ color: "var(--text-muted)" }}>Whale Net <span style={{ color: "var(--text-faint)" }}>{whaleWin}</span> <strong style={{ color: "var(--text)" }}>{formatValue(d[whaleNetKey], "usdSign")}</strong></span>
                   <span style={{ color: "var(--text-muted)" }}>Accum <span style={{ color: "var(--text-faint)" }}>{whaleWin}</span> <strong style={{ color: "var(--text)" }}>{formatValue(d[accumKey], "pct1")}</strong></span>
@@ -746,7 +716,6 @@ function MobileSummaryList({
                   </span>
                 </div>
               )}
-            </GatedCell>
           </div>
         );
       })}
@@ -1254,8 +1223,6 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
 
   function renderRow(d, idx) {
     const isPinned     = pinnedKeys.includes(d[rowKeyField]);
-    const unpinnedIdx  = idx - pinnedRows.length;
-    const isRowGated   = !isPinned && unpinnedIdx >= FREE_ROW_COUNT && !hasAccess;
     const isClawdRow   = d["Project"] === "CLAWD";
     const isDragTarget = dragOver === d[rowKeyField] && isPinned;
     const isWatched    = watchedAddresses.includes((d["Address"] || "").toLowerCase());
@@ -1313,7 +1280,7 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
             </button>
           </td>
         {columns.map((col) => {
-          const rankInfo = !isRowGated ? getCellRank(col.key, col.type, d) : null;
+          const rankInfo = getCellRank(col.key, col.type, d);
           const isFallbackPrice =
             (col.key === "priceUsd" || col.key === "marketCapUsd") &&
             d.priceSource === "dexscreener" &&
@@ -1395,18 +1362,16 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
               {...tipHandlers}
               {...touchExpandHandlers}
             >
-              <GatedCell blurred={isRowGated}>
-                {isProjectCol ? (
+              {isProjectCol ? (
                   <span className="tw-name-clip" title={String(d[col.key] ?? "")}>{cellContent}</span>
                 ) : cellContent}
-              </GatedCell>
             </td>
           );
         })}
       </tr>
     );
 
-    if (!expandCol || !expandRank || isRowGated) return mainRow;
+    if (!expandCol || !expandRank) return mainRow;
 
     return (
       <>
@@ -1842,8 +1807,7 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
         )}
         {isAbout     && <AboutPanel />}
         {isClawd     && (
-          <GatedSection blurred={!hasAccess}>
-            <ClawdPanel
+          <ClawdPanel
               clawdRow={clawdRow}
               totalProjects={totalProjects}
               opportunityRank={opportunityRank}
@@ -1853,11 +1817,9 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
               walletsRank={walletsRank}
               ranks={ranks}
             />
-          </GatedSection>
         )}
         {isWatchlist && (
-          <GatedSection blurred={!hasAccess}>
-            <WatchlistPanel
+          <WatchlistPanel
               data={dataArr}
               watchedAddresses={watchedAddresses}
               onUnwatch={toggleWatch}
@@ -1870,7 +1832,6 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
               toggleTooltip={toggleTooltip}
               compact={compact}
             />
-          </GatedSection>
         )}
         {showHybrid ? (
           <div className={hybridClass}>
@@ -1879,7 +1840,6 @@ export default function DashboardTable({ data, lastUpdated, pricesUpdatedAt = nu
               pinnedRows={pinnedRows}
               tab={activeTab}
               period={period}
-              hasAccess={hasAccess}
               watchedAddresses={watchedAddresses}
               pinnedKeys={pinnedKeys}
               rowKeyField={rowKeyField}

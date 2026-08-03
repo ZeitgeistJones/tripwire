@@ -649,10 +649,10 @@ export default function ClawdWirePanel({
           title={
             canTrip
               ? `Run a fresh pulse for ${tokenSymbol}`
-              : "Connect a CLAWD-holder wallet to run a fresh pulse"
+              : "Connect a wallet with 10M+ CLAWD to Trip"
           }
         >
-          {isRunning ? "Running…" : canTrip ? "Trip ClawdWire" : "Trip · holders"}
+          {isRunning ? "Running…" : canTrip ? "Trip ClawdWire" : "Trip · 10M CLAWD"}
         </button>
       </div>
       {fresh.tone === "caution" && lastRunAt && !isRunning ? (
@@ -686,9 +686,9 @@ export default function ClawdWirePanel({
                 </>
               ) : (
                 <>
-                  Nobody has run a live pulse on this token yet. Running one costs Dune credits, so it
-                  is limited to CLAWD holders — but once anybody runs it, the result is cached and free
-                  for everyone to read.
+                  Nobody has run a live pulse on this token yet. Running one costs Dune credits, so{" "}
+                  <strong>Trip</strong> needs a wallet with 10M+ CLAWD — once anybody runs it, the
+                  result is cached and free for everyone to read.
                 </>
               )}
             </div>

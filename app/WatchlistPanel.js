@@ -276,7 +276,7 @@ export default function WatchlistPanel({
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "48px", gap: "12px" }}>
         <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text)", background: "var(--bg)", padding: "12px 20px", borderRadius: "8px", border: "1px solid var(--border)" }}>
-          🔒 Connect a wallet holding 10M+ CLAWD to use the Watchlist
+          🔒 Connect a wallet to save a Watchlist
         </p>
       </div>
     );

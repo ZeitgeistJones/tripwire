@@ -6,6 +6,7 @@ function shortAddress(addr) {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+/** @deprecated Header owns wallet chrome; kept for stray imports. */
 export default function GateButton({ hasAccess }) {
   const { address, isConnected } = useAccount();
   const { connectors, connect, isPending } = useConnect();
@@ -23,7 +24,7 @@ export default function GateButton({ hasAccess }) {
             fontWeight: 600,
           }}
         >
-          {hasAccess ? "✓ CLAWD holder — scores unlocked" : "Connected — 10M CLAWD required to unlock"}
+          {hasAccess ? "✓ Trip ClawdWire unlocked" : "Connected — 10M CLAWD to Trip ClawdWire"}
         </span>
         <span style={{ color: "#888" }}>{shortAddress(address)}</span>
         <button
@@ -52,7 +53,7 @@ export default function GateButton({ hasAccess }) {
         marginBottom: "12px",
       }}
     >
-      {isPending ? "Connecting…" : "Connect Wallet to Unlock Scores"}
+      {isPending ? "Connecting…" : "Connect Wallet"}
     </button>
   );
 }

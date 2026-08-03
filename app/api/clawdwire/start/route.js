@@ -8,7 +8,7 @@ import { readPulse, isCoolingDown, RETRIP_COOLDOWN_MS } from "@/lib/clawdWirePul
 
 function unauthorized() {
   return Response.json(
-    { error: "Connect a Tripwire-eligible wallet (CLAWD holder access) to run ClawdWire." },
+    { error: "Connect a wallet with 10M+ CLAWD to Trip ClawdWire." },
     { status: 403 }
   );
 }
