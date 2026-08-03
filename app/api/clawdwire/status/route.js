@@ -44,6 +44,18 @@ export async function GET(request) {
     );
     const known = resolvePulseToken(ranAddress);
 
+    // Empty result = broken/unsaved SQL or bad params. Never cache that — it
+    // would overwrite a good pulse and the UI would look like "no pulse ever".
+    if (!rawRows.length) {
+      return Response.json({
+        state: "QUERY_STATE_FAILED",
+        error:
+          "Dune finished with 0 rows. Check the ClawdWire query SQL is pasted and token_address / token_name params are set.",
+        token: ranAddress,
+        symbol: known?.symbol || null,
+      });
+    }
+
     const quote = await fetchClawdQuote(ranAddress);
     const rows = enrichClawdWireRows(rawRows, quote, ranAddress);
     const lastRunAt =

@@ -1,5 +1,5 @@
 -- ClawdWire — paste into Dune query 8180604 (replace body)
--- CLAWD only: 7d txs + 30d dex.trades
+-- CLAWD only: 7d txs + 30d dex.trades (+ V4/Clanker transfer fallback for Buy $)
 -- Pulse $: 15m / 1h / 6h / 24h
 -- Chunk C: whale / hump / retail 24h + 7d
 -- Chunk D: stickiness (new/returning traders, 1st buy/sell, vol)
@@ -47,8 +47,9 @@ activity_pulse AS (
     GROUP BY 1, 2
 ),
 
--- Single 30d CLAWD trade scan: short pulse windows + whale thresholds + 7d/24h tiers
-recent_trades AS (
+-- Single 30d CLAWD trade scan: short pulse windows + whale thresholds + 7d/24h tiers.
+-- Clanker / Uniswap V4 hooked pools often miss from dex.trades — see xfer_fills.
+dex_trades AS (
     SELECT
         c.name    AS project,
         c.address AS address,
@@ -77,6 +78,120 @@ recent_trades AS (
         OR dt.token_sold_address   = c.address
     WHERE dt.blockchain = 'base'
       AND dt.block_time >= now() - interval '30' day
+      AND dt.amount_usd IS NOT NULL
+      AND dt.amount_usd > 0
+),
+
+xfer_net AS (
+    SELECT
+        tr.evt_block_time AS block_time,
+        tr.evt_tx_hash AS tx_hash,
+        tx."from" AS trader,
+        c.address,
+        c.name AS project,
+        SUM(
+            CASE
+                WHEN tr."to" = tx."from" THEN CAST(tr.value AS DOUBLE)
+                WHEN tr."from" = tx."from" THEN -CAST(tr.value AS DOUBLE)
+                ELSE 0.0
+            END
+        ) / POWER(10, MAX(COALESCE(tok.decimals, 18))) AS net_token
+    FROM erc20_base.evt_Transfer tr
+    INNER JOIN clawd c ON tr.contract_address = c.address
+    INNER JOIN base.transactions tx
+        ON tx.hash = tr.evt_tx_hash
+       AND tx.block_time >= now() - interval '30' day
+    LEFT JOIN tokens.erc20 tok
+        ON tok.blockchain = 'base'
+       AND tok.contract_address = c.address
+    WHERE tr.evt_block_time >= now() - interval '30' day
+    GROUP BY 1, 2, 3, 4, 5
+    HAVING ABS(
+        SUM(
+            CASE
+                WHEN tr."to" = tx."from" THEN CAST(tr.value AS DOUBLE)
+                WHEN tr."from" = tx."from" THEN -CAST(tr.value AS DOUBLE)
+                ELSE 0.0
+            END
+        ) / POWER(10, MAX(COALESCE(tok.decimals, 18)))
+    ) >= 1e-9
+),
+
+xfer_weth_out AS (
+    SELECT
+        tr.evt_tx_hash AS tx_hash,
+        tr."from" AS trader,
+        SUM(CAST(tr.value AS DOUBLE) / 1e18) AS weth_out
+    FROM erc20_base.evt_Transfer tr
+    WHERE tr.contract_address = 0x4200000000000000000000000000000000000006
+      AND tr.evt_block_time >= now() - interval '30' day
+    GROUP BY 1, 2
+),
+
+xfer_weth_in AS (
+    SELECT
+        tr.evt_tx_hash AS tx_hash,
+        tr."to" AS trader,
+        SUM(CAST(tr.value AS DOUBLE) / 1e18) AS weth_in
+    FROM erc20_base.evt_Transfer tr
+    WHERE tr.contract_address = 0x4200000000000000000000000000000000000006
+      AND tr.evt_block_time >= now() - interval '30' day
+    GROUP BY 1, 2
+),
+
+xfer_fills AS (
+    SELECT
+        n.project,
+        n.address,
+        n.trader,
+        n.tx_hash,
+        n.block_time,
+        eth_amt * p.price AS amount_usd,
+        CASE WHEN n.net_token > 0 THEN 'buy' ELSE 'sell' END AS side,
+        ABS(n.net_token) AS clawd_amt,
+        CASE
+            WHEN ABS(n.net_token) > 0 THEN (eth_amt * p.price) / ABS(n.net_token)
+            ELSE NULL
+        END AS price_usd
+    FROM (
+        SELECT
+            n.*,
+            CASE
+                WHEN n.net_token > 0 THEN
+                    CASE
+                        WHEN CAST(tx.value AS DOUBLE) / 1e18 > 0
+                            THEN CAST(tx.value AS DOUBLE) / 1e18
+                        ELSE COALESCE(wo.weth_out, 0)
+                    END
+                ELSE COALESCE(wi.weth_in, 0)
+            END AS eth_amt
+        FROM xfer_net n
+        INNER JOIN base.transactions tx ON tx.hash = n.tx_hash
+        LEFT JOIN xfer_weth_out wo
+            ON wo.tx_hash = n.tx_hash AND wo.trader = n.trader
+        LEFT JOIN xfer_weth_in wi
+            ON wi.tx_hash = n.tx_hash AND wi.trader = n.trader
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dex_trades d
+            WHERE d.tx_hash = n.tx_hash
+              AND d.address = n.address
+        )
+    ) n
+    INNER JOIN prices.usd p
+        ON p.blockchain = 'base'
+       AND p.contract_address = 0x4200000000000000000000000000000000000006
+       AND p.minute = date_trunc('minute', n.block_time)
+    WHERE n.eth_amt > 0
+      AND p.price IS NOT NULL
+      AND p.price > 0
+),
+
+recent_trades AS (
+    SELECT * FROM dex_trades
+    UNION ALL
+    SELECT * FROM xfer_fills
+    WHERE amount_usd IS NOT NULL AND amount_usd > 0
 ),
 
 whale_thresholds AS (

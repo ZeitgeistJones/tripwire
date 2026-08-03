@@ -24,7 +24,9 @@ export async function GET(request) {
   }
 
   const cached = await readPulse(token.address);
-  if (cached) {
+  // Treat empty cached pulses as a miss — a bad Trip once wrote 0 rows over a
+  // good run and the UI looked like the token had never been pulsed.
+  if (cached && Array.isArray(cached.rows) && cached.rows.length > 0) {
     return Response.json({
       rows: cached.rows,
       lastRunAt: cached.lastRunAt,

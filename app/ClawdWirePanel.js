@@ -296,7 +296,9 @@ export default function ClawdWirePanel({
             stopExecPoll();
             executingRef.current = false;
             setStatus("error");
-            setErrorMsg("Dune query failed or was cancelled.");
+            setErrorMsg(
+              statusJson.error || "Dune query failed or was cancelled."
+            );
             publishMeta(lastRunRef.current, false);
           }
         } catch {
