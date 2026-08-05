@@ -1,49 +1,56 @@
--- ClawdWire V4 / Clanker gap-fill — SEPARATE query / materialized view.
--- Do NOT paste into the main ClawdWire pulse query (stage limit).
+-- ClawdWire V4 / Clanker gap-fill — CLAWD ONLY — materialize this query.
+-- Do NOT paste into the main ClawdWire pulse (stage limit).
+--
+-- ESTIMATE: transfer-netting with ETH/WETH payment legs. V4 flash accounting
+-- can leave dust / cleared deltas; treat Amount USD as approximate.
 --
 -- Purpose: catch buys/sells that dex.trades misses when Uniswap V4 hooks
--- zero Swap event deltas (Clanker fee lockers), while avoiding false positives
--- from plain transfers / airdrops.
+-- zero Swap event deltas (Clanker fee lockers), without counting airdrops
+-- or plain sends as trades.
 --
 -- Guardrails:
---   * Only txs that touch a known swap router / Uniswap V4 PoolManager
---   * Net token flow per (tx, initiator), priced from native ETH or WETH
---   * Skip tx hashes already present in dex.trades for this token
+--   * Only txs whose top-level `to` is a known Base swap venue
+--   * Net CLAWD flow per (tx, initiator)
+--   * Require native ETH or WETH payment leg matching buy/sell side
+--   * Skip tx hashes already in dex.trades for CLAWD
 --
--- Params (same as any-token pulse):
---   token_address  TEXT
---   token_name     TEXT
+-- Dune steps:
+--   1) New query → paste this whole file → Run once
+--   2) Materialize as: result_clawdwire_v4_gapfill  (refresh ~daily on Hobby)
+--   3) In docs/dune-CLAWDWIRE-any-token.sql, replace YOUR_DUNE_USER with your
+--      Dune username/team so the pulse can UNION from:
+--        dune.YOUR_DUNE_USER.result_clawdwire_v4_gapfill
+--
+-- Output grain matches pulse recent_trades (lowercase aliases for the MV table).
 
 WITH clawd AS (
     SELECT
-        from_hex(regexp_replace(lower(trim('{{token_address}}')), '^0x', '')) AS address,
-        trim('{{token_name}}') AS name
+        0x9f86db9fc6f7c9408e8fda3ff8ce4e78ac7a6b07 AS address,
+        CAST('CLAWD' AS VARCHAR) AS name
 ),
 
--- Known swap entrypoints on Base (routers / singleton). Extend as needed.
+-- Base swap entrypoints end-users actually call (tx.to).
 swap_venues AS (
-    SELECT * FROM (VALUES
-        (0x498581ff718922c3f8e6a244956af099b2652b2b), -- Uniswap V4 PoolManager (Base)
-        (0x66a9893cc07d91d95644aedd05d03f95e1dba8af), -- Uniswap V4 PoolManager (alt / legacy)
+    SELECT addr FROM (VALUES
+        (0x498581ff718922c3f8e6a244956af099b2652b2b), -- Uniswap V4 PoolManager
+        (0x6ff5693b99212da76ad316178a184ab56d299b43), -- Uniswap V4 Universal Router (Base)
         (0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24), -- Uniswap V3 SwapRouter
-        (0x2626664c2603336e57b271c5c0b26f421741e481), -- Uniswap V3 SwapRouter02
-        (0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad)  -- Uniswap Universal Router
+        (0x2626664c2603336e57b271c5c0b26f421741e481)  -- Uniswap V3 SwapRouter02
     ) AS v(addr)
 ),
 
--- Txs that both moved this token and hit a known swap venue.
 candidate_txs AS (
     SELECT DISTINCT
         tx.hash AS tx_hash,
         tx."from" AS trader,
-        tx.block_time
+        tx.block_time,
+        CAST(tx.value AS DOUBLE) / 1e18 AS native_eth
     FROM base.transactions tx
     INNER JOIN swap_venues v ON tx."to" = v.addr
-    WHERE tx.block_time >= now() - interval '7' day
+    WHERE tx.block_time >= now() - interval '30' day
       AND tx.success = true
 ),
 
--- Net token flow to/from the initiator within candidate swap txs.
 net_token AS (
     SELECT
         c.name AS project,
@@ -51,6 +58,7 @@ net_token AS (
         ct.trader,
         ct.tx_hash,
         MAX(ct.block_time) AS block_time,
+        MAX(ct.native_eth) AS native_eth,
         SUM(
             CASE
                 WHEN tr."to" = ct.trader THEN CAST(tr.value AS DOUBLE)
@@ -63,6 +71,7 @@ net_token AS (
     INNER JOIN erc20_base.evt_Transfer tr
         ON tr.evt_tx_hash = ct.tx_hash
        AND tr.contract_address = c.address
+       AND tr.evt_block_time >= now() - interval '30' day
     GROUP BY 1, 2, 3, 4
     HAVING ABS(
         SUM(
@@ -75,8 +84,21 @@ net_token AS (
     ) >= 1e-9
 ),
 
--- Payment side: native ETH value or WETH moved by the initiator in the same tx.
-payment AS (
+weth_legs AS (
+    SELECT
+        tr.evt_tx_hash AS tx_hash,
+        SUM(CASE WHEN tr."from" = nt.trader THEN CAST(tr.value AS DOUBLE) ELSE 0 END) / 1e18 AS weth_out,
+        SUM(CASE WHEN tr."to"   = nt.trader THEN CAST(tr.value AS DOUBLE) ELSE 0 END) / 1e18 AS weth_in
+    FROM net_token nt
+    INNER JOIN erc20_base.evt_Transfer tr
+        ON tr.evt_tx_hash = nt.tx_hash
+       AND tr.contract_address = 0x4200000000000000000000000000000000000006
+       AND tr.evt_block_time >= now() - interval '30' day
+       AND (tr."from" = nt.trader OR tr."to" = nt.trader)
+    GROUP BY 1
+),
+
+fills AS (
     SELECT
         nt.project,
         nt.address,
@@ -84,72 +106,42 @@ payment AS (
         nt.tx_hash,
         nt.block_time,
         nt.net_token,
-        COALESCE(tx.value_eth, 0) AS native_eth,
-        COALESCE(wo.weth_out, 0) AS weth_out,
-        COALESCE(wi.weth_in, 0) AS weth_in
-    FROM net_token nt
-    LEFT JOIN (
-        SELECT hash AS tx_hash, CAST(value AS DOUBLE) / 1e18 AS value_eth
-        FROM base.transactions
-        WHERE block_time >= now() - interval '7' day
-    ) tx ON tx.tx_hash = nt.tx_hash
-    LEFT JOIN (
-        SELECT
-            tr.evt_tx_hash AS tx_hash,
-            tr."from" AS trader,
-            SUM(CAST(tr.value AS DOUBLE) / 1e18) AS weth_out
-        FROM erc20_base.evt_Transfer tr
-        WHERE tr.contract_address = 0x4200000000000000000000000000000000000006
-          AND tr.evt_block_time >= now() - interval '7' day
-        GROUP BY 1, 2
-    ) wo ON wo.tx_hash = nt.tx_hash AND wo.trader = nt.trader
-    LEFT JOIN (
-        SELECT
-            tr.evt_tx_hash AS tx_hash,
-            tr."to" AS trader,
-            SUM(CAST(tr.value AS DOUBLE) / 1e18) AS weth_in
-        FROM erc20_base.evt_Transfer tr
-        WHERE tr.contract_address = 0x4200000000000000000000000000000000000006
-          AND tr.evt_block_time >= now() - interval '7' day
-        GROUP BY 1, 2
-    ) wi ON wi.tx_hash = nt.tx_hash AND wi.trader = nt.trader
-),
-
-fills AS (
-    SELECT
-        p.*,
         CASE
-            WHEN p.net_token > 0 THEN
-                CASE WHEN p.native_eth > 0 THEN p.native_eth ELSE p.weth_out END
-            ELSE p.weth_in
+            WHEN nt.net_token > 0 THEN
+                CASE WHEN nt.native_eth > 0 THEN nt.native_eth ELSE COALESCE(w.weth_out, 0) END
+            ELSE COALESCE(w.weth_in, 0)
         END AS eth_amt
-    FROM payment p
+    FROM net_token nt
+    LEFT JOIN weth_legs w ON w.tx_hash = nt.tx_hash
     WHERE (
-            (p.net_token > 0 AND (p.native_eth > 0 OR p.weth_out > 0))
-         OR (p.net_token < 0 AND p.weth_in > 0)
+            (nt.net_token > 0 AND (nt.native_eth > 0 OR COALESCE(w.weth_out, 0) > 0))
+         OR (nt.net_token < 0 AND COALESCE(w.weth_in, 0) > 0)
           )
       AND NOT EXISTS (
           SELECT 1
           FROM dex.trades d
           WHERE d.blockchain = 'base'
-            AND d.tx_hash = p.tx_hash
-            AND (d.token_bought_address = p.address OR d.token_sold_address = p.address)
-            AND d.block_time >= now() - interval '7' day
+            AND d.tx_hash = nt.tx_hash
+            AND (d.token_bought_address = nt.address OR d.token_sold_address = nt.address)
+            AND d.block_time >= now() - interval '30' day
             AND d.amount_usd IS NOT NULL
             AND d.amount_usd > 0
       )
 )
 
 SELECT
-    f.project AS "Project",
-    bytearray_to_hex(f.address) AS "Address",
-    bytearray_to_hex(f.trader) AS "Trader",
-    bytearray_to_hex(f.tx_hash) AS "Tx Hash",
-    f.block_time AS "Block Time",
-    CASE WHEN f.net_token > 0 THEN 'buy' ELSE 'sell' END AS "Side",
-    ABS(f.net_token) AS "Token Amt",
-    f.eth_amt AS "ETH Amt",
-    f.eth_amt * pr.price AS "Amount USD"
+    f.project,
+    f.address,
+    f.trader,
+    f.tx_hash,
+    f.block_time,
+    f.eth_amt * pr.price AS amount_usd,
+    CASE WHEN f.net_token > 0 THEN 'buy' ELSE 'sell' END AS side,
+    ABS(f.net_token) AS clawd_amt,
+    CASE
+        WHEN ABS(f.net_token) > 0 THEN (f.eth_amt * pr.price) / ABS(f.net_token)
+        ELSE NULL
+    END AS price_usd
 FROM fills f
 INNER JOIN prices.usd pr
     ON pr.blockchain = 'base'

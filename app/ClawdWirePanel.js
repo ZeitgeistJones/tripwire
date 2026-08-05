@@ -370,18 +370,18 @@ export default function ClawdWirePanel({
       rows.push(
         {
           label: "Coverage %",
-          hint: "DEX tokens ÷ transfer tokens · upper bound",
+          hint: "DEX + CLAWD V4 gap-fill tokens ÷ transfer tokens · upper bound",
           emph: true,
           cells: per("Coverage %", fmtPct),
         },
         {
           label: "DEX accounted $",
-          hint: "buy + sell tagged in dex.trades",
+          hint: "buy + sell tagged in dex.trades (+ CLAWD V4 MV when live)",
           cells: per("Accounted USD", fmtUsdCompact),
         },
         {
           label: "Unclassified $",
-          hint: "transfer $ not tagged to a DEX venue",
+          hint: "transfer $ not tagged to a DEX / V4 venue",
           cells: per("Unclassified USD", fmtUsdCompact),
         }
       );
@@ -566,7 +566,7 @@ export default function ClawdWirePanel({
               <div
                 className="cw-mono"
                 style={{ marginTop: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-muted)" }}
-                title="Share of token transfer $ we could attribute to a known DEX trade (dex.trades). Unclassified includes V4/Clanker hooked swaps, plain transfers, and anything we couldn't venue-tag."
+                title="Share of token transfer $ tagged as a DEX or CLAWD V4/Clanker gap-fill trade. Unclassified includes remaining hooked swaps, plain transfers, and anything we couldn't venue-tag. V4 fills are estimates."
               >
                 {row[`Coverage % ${activeWindow}`] != null
                   ? `${activeWindow} coverage ${fmtPct(row[`Coverage % ${activeWindow}`])} · DEX ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])} · unclassified ${fmtUsdCompact(row[`Unclassified USD ${activeWindow}`])}`

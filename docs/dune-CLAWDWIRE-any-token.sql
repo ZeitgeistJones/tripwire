@@ -7,9 +7,12 @@
 -- With those defaults it reproduces the CLAWD numbers exactly — run it once
 -- unchanged first, and if the output matches, the wiring is correct.
 --
--- Trade $ source: dex.trades only in this query (already at Dune stage limit).
--- V4/Clanker gap-fill lives in docs/dune-CLAWDWIRE-v4-gapfill-mv.sql — do not
--- UNION it here. Re-paste this file after pulling.
+-- Trade $ source: dex.trades + CLAWD-only V4/Clanker gap-fill MV (tiny UNION).
+-- Before first Trip with V4 fills:
+--   1) Paste docs/dune-CLAWDWIRE-v4-gapfill-mv.sql as its own query
+--   2) Materialize it as result_clawdwire_v4_gapfill (refresh ~daily)
+--   3) Replace YOUR_DUNE_USER below with your Dune username/team
+-- Other tokens ignore the MV (address filter). Do not inline transfer-netting.
 --
 -- Cost scales with how many trades the token has over 30d, so test on a
 -- mid-volume token before a big one. A quiet token legitimately returns blanks
@@ -22,7 +25,7 @@
 --      because Trino renders small doubles as 9.0E-1 and a quiet token's tape
 --      came out as "05:+9.0E-1k". Everything else is unchanged.
 --
--- One token per run: 7d txs + 30d dex.trades
+-- One token per run: 7d txs + 30d dex.trades (+ CLAWD V4 MV when wired)
 -- Pulse $: 15m / 1h / 6h / 24h
 -- Chunk C: whale / hump / retail 24h + 7d
 -- Chunk D: stickiness (new/returning traders, 1st buy/sell, vol)
@@ -83,10 +86,8 @@ activity_pulse AS (
     GROUP BY 1, 2
 ),
 
--- Single 30d CLAWD trade scan: short pulse windows + whale thresholds + 7d/24h tiers.
--- Note: Uniswap V4 / Clanker hooked pools can miss from dex.trades (Swap deltas
--- zeroed by hooks). Do NOT inline a transfer-fallback UNION here — this query
--- is already at Dune's stage limit. Gap-fill belongs in a materialized view.
+-- 30d trade scan: dex.trades + CLAWD V4/Clanker gap-fill MV (estimate).
+-- Heavy transfer-netting stays in the MV — only a tiny UNION here.
 recent_trades AS (
     SELECT
         c.name    AS project,
@@ -116,6 +117,27 @@ recent_trades AS (
         OR dt.token_sold_address   = c.address
     WHERE dt.blockchain = 'base'
       AND dt.block_time >= now() - interval '30' day
+
+    UNION ALL
+
+    -- CLAWD-only V4 gap-fill. Replace YOUR_DUNE_USER after materializing
+    -- docs/dune-CLAWDWIRE-v4-gapfill-mv.sql as result_clawdwire_v4_gapfill.
+    -- Non-CLAWD Trips: address filter → 0 rows from this branch.
+    SELECT
+        g.project,
+        g.address,
+        g.trader,
+        g.tx_hash,
+        g.block_time,
+        g.amount_usd,
+        g.side,
+        g.clawd_amt,
+        g.price_usd
+    FROM dune.YOUR_DUNE_USER.result_clawdwire_v4_gapfill g
+    INNER JOIN clawd c ON g.address = c.address
+    WHERE g.block_time >= now() - interval '30' day
+      AND g.amount_usd IS NOT NULL
+      AND g.amount_usd > 0
 ),
 
 whale_thresholds AS (
@@ -1486,8 +1508,8 @@ SELECT
         ELSE ROUND(100.0 * fp.buy_usd_24h / (fp.buy_usd_24h + fp.sell_usd_24h), 1)
     END AS "Buy Vol % 24h",
 
-    -- Coverage honesty: dex.trades-attributed $ vs all transfer $ (upper bound).
-    -- Includes plain sends / router hops / hook legs, so % can read low.
+    -- Coverage honesty: tagged trade $ (dex.trades + CLAWD V4 MV) vs transfer $
+    -- (upper bound). Includes plain sends / router hops / remaining hook legs.
     -- Implied price = tagged trade $ / tagged tokens — no price table needed.
     ROUND(COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0), 2) AS "Accounted USD 24h",
     ROUND(GREATEST(
