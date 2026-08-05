@@ -129,18 +129,40 @@ whale_thresholds AS (
 
 -- Coverage honesty: how much of 24h token movement we could attribute to a
 -- known DEX trade vs all ERC-20 transfer $ (upper bound, includes non-trades).
--- Kept lean — no extra joins into the pulse beyond this one CTE.
+-- Price from recent_trades — CLAWD-class tokens are usually NOT in prices.usd,
+-- so joining prices.usd made Coverage % always null and the UI hid the line.
+implied_px_24h AS (
+    SELECT
+        project,
+        address,
+        SUM(amount_usd) FILTER (
+            WHERE block_time >= now() - interval '24' hour
+              AND clawd_amt IS NOT NULL
+              AND clawd_amt > 0
+        )
+        / NULLIF(
+            SUM(clawd_amt) FILTER (
+                WHERE block_time >= now() - interval '24' hour
+                  AND clawd_amt IS NOT NULL
+                  AND clawd_amt > 0
+            ),
+            0
+        ) AS px
+    FROM recent_trades
+    GROUP BY 1, 2
+),
+
 coverage_24h AS (
     SELECT
         c.name AS project,
         c.address,
-        ROUND(SUM(CAST(tr.value AS DOUBLE) / 1e18) * MAX(p.price), 2) AS transfer_usd_24h
+        ROUND(SUM(CAST(tr.value AS DOUBLE) / 1e18) * MAX(ip.px), 2) AS transfer_usd_24h
     FROM erc20_base.evt_Transfer tr
     INNER JOIN clawd c ON tr.contract_address = c.address
-    INNER JOIN prices.usd p
-        ON p.blockchain = 'base'
-       AND p.contract_address = c.address
-       AND p.minute = date_trunc('minute', tr.evt_block_time)
+    INNER JOIN implied_px_24h ip
+        ON ip.address = c.address
+       AND ip.px IS NOT NULL
+       AND ip.px > 0
     WHERE tr.evt_block_time >= now() - interval '24' hour
     GROUP BY 1, 2
 ),
