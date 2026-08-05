@@ -31,7 +31,7 @@ const GLOSSARY_ROWS = [
   ["Survive · 1h / 1d / 3d / 7d (ClawdWire)", "Of wallets whose first buy in the last 30 days is old enough to measure: share that still hadn't sold by that horizon. Cohort size = those new-in-30d buyers — not first buy ever"],
   ["Buy USD · 15m / 1h / 6h / 24h (ClawdWire)", "DEX buy dollars in that window from Dune dex.trades. Uniswap V4 / Clanker hooked pools can lag or miss until a separate gap-fill MV is wired"],
   ["Sell / Net USD · same windows (ClawdWire)", "Sell $ and buy−sell net from the same DEX trade source"],
-  ["Coverage % / Unclassified $ · 24h (ClawdWire)", "Share of 24h token transfer $ we could attribute to a known DEX trade. Unclassified includes hooked V4 swaps, plain transfers, and anything we couldn't venue-tag — an honesty bound, not a claim of total volume"],
+  ["Coverage % / DEX accounted / Unclassified $ · 15m / 1h / 6h / 24h (ClawdWire)", "Share of token transfer $ we could attribute to a known DEX trade in that window. Unclassified includes hooked V4 swaps, plain transfers, and anything we couldn't venue-tag — an honesty bound, not a claim of total volume"],
   ["Buy/Sell Ratio · 24h / 7d", "Buyers ÷ unique sellers in that window. Above 1.0 means more buying wallets than selling"],
   ["Buy Vol % · 24h / 7d", "Buys as a share of dollar volume — money-weighted complement to Buy/Sell Ratio"],
   ["Whale Net · 24h / 7d", "Net USD from large trades (buys minus sells). Positive = whales accumulating"],

@@ -127,18 +127,27 @@ whale_thresholds AS (
     GROUP BY 1
 ),
 
--- Coverage honesty (ONE cheap CTE — this query is at Dune's stage limit, so it
--- only counts tokens moved; USD conversion happens in the final SELECT using the
--- implied price from dex.trades. Do not add a price join here, and do not price
--- from prices.usd: CLAWD-class tokens are not listed there).
--- If Dune ever complains about stages again, deleting this CTE plus the
--- "Coverage %" block in the final SELECT is enough — nothing else depends on it.
-coverage_24h AS (
-    -- Assumes 18 decimals (true for Clanker / Virtuals style Base tokens). The
-    -- final SELECT sanity-checks this and returns NULL rather than a wrong %.
+-- Coverage honesty (ONE cheap CTE — this query is at Dune's stage limit).
+-- Counts tokens moved per window; USD conversion happens in the final SELECT
+-- using implied price from dex.trades. Do not add a price join here, and do
+-- not price from prices.usd: CLAWD-class tokens are not listed there.
+-- Assumes 18 decimals (Clanker / Virtuals style). Final SELECT sanity-checks.
+-- If Dune complains about stages, delete this CTE plus the Coverage columns.
+coverage_windows AS (
     SELECT
         c.name AS project,
-        SUM(CAST(tr.value AS DOUBLE)) / 1e18 AS transfer_tokens_24h
+        SUM(CAST(tr.value AS DOUBLE)) FILTER (
+            WHERE tr.evt_block_time >= now() - interval '15' minute
+        ) / 1e18 AS transfer_tokens_15m,
+        SUM(CAST(tr.value AS DOUBLE)) FILTER (
+            WHERE tr.evt_block_time >= now() - interval '1' hour
+        ) / 1e18 AS transfer_tokens_1h,
+        SUM(CAST(tr.value AS DOUBLE)) FILTER (
+            WHERE tr.evt_block_time >= now() - interval '6' hour
+        ) / 1e18 AS transfer_tokens_6h,
+        SUM(CAST(tr.value AS DOUBLE)) FILTER (
+            WHERE tr.evt_block_time >= now() - interval '24' hour
+        ) / 1e18 AS transfer_tokens_24h
     FROM erc20_base.evt_Transfer tr
     INNER JOIN clawd c ON tr.contract_address = c.address
     WHERE tr.evt_block_time >= now() - interval '24' hour
@@ -207,7 +216,19 @@ flow_pulse AS (
         COUNT(DISTINCT rt.trader) FILTER (
             WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '24' hour
         ) AS sellers_24h,
-        -- Tokens changing hands in tagged DEX trades — the price basis for coverage.
+        -- Tokens changing hands in tagged DEX trades — price basis for coverage.
+        SUM(rt.clawd_amt) FILTER (
+            WHERE rt.block_time >= now() - interval '15' minute
+              AND rt.clawd_amt > 0
+        ) AS traded_tokens_15m,
+        SUM(rt.clawd_amt) FILTER (
+            WHERE rt.block_time >= now() - interval '1' hour
+              AND rt.clawd_amt > 0
+        ) AS traded_tokens_1h,
+        SUM(rt.clawd_amt) FILTER (
+            WHERE rt.block_time >= now() - interval '6' hour
+              AND rt.clawd_amt > 0
+        ) AS traded_tokens_6h,
         SUM(rt.clawd_amt) FILTER (
             WHERE rt.block_time >= now() - interval '24' hour
               AND rt.clawd_amt > 0
@@ -1374,6 +1395,23 @@ SELECT
     ROUND(COALESCE(fp.sell_usd_15m, 0), 2) AS "Sell USD 15m",
     ROUND(COALESCE(fp.buy_usd_15m, 0) - COALESCE(fp.sell_usd_15m, 0), 2) AS "Net USD 15m",
     ROUND(COALESCE(fp.max_trade_usd_15m, 0), 2) AS "Max Trade USD 15m",
+    ROUND(COALESCE(fp.buy_usd_15m, 0) + COALESCE(fp.sell_usd_15m, 0), 2) AS "Accounted USD 15m",
+    ROUND(GREATEST(
+        COALESCE(cov.transfer_tokens_15m, 0)
+        * COALESCE(
+            (COALESCE(fp.buy_usd_15m, 0) + COALESCE(fp.sell_usd_15m, 0))
+            / NULLIF(fp.traded_tokens_15m, 0)
+        , 0)
+        - (COALESCE(fp.buy_usd_15m, 0) + COALESCE(fp.sell_usd_15m, 0))
+    , 0), 2) AS "Unclassified USD 15m",
+    CASE
+        WHEN COALESCE(fp.traded_tokens_15m, 0) <= 0
+          OR COALESCE(cov.transfer_tokens_15m, 0) <= 0 THEN NULL
+        WHEN fp.traded_tokens_15m > cov.transfer_tokens_15m * 1.5 THEN NULL
+        ELSE ROUND(LEAST(
+            100.0 * fp.traded_tokens_15m / cov.transfer_tokens_15m
+        , 100.0), 1)
+    END AS "Coverage % 15m",
 
     COALESCE(ap.wallets_1h, 0) AS "Wallets 1h",
     COALESCE(ap.txs_1h, 0)     AS "Txs 1h",
@@ -1387,6 +1425,23 @@ SELECT
         WHEN COALESCE(fp.buy_usd_1h, 0) + COALESCE(fp.sell_usd_1h, 0) = 0 THEN NULL
         ELSE ROUND(100.0 * fp.buy_usd_1h / (fp.buy_usd_1h + fp.sell_usd_1h), 1)
     END AS "Buy Vol % 1h",
+    ROUND(COALESCE(fp.buy_usd_1h, 0) + COALESCE(fp.sell_usd_1h, 0), 2) AS "Accounted USD 1h",
+    ROUND(GREATEST(
+        COALESCE(cov.transfer_tokens_1h, 0)
+        * COALESCE(
+            (COALESCE(fp.buy_usd_1h, 0) + COALESCE(fp.sell_usd_1h, 0))
+            / NULLIF(fp.traded_tokens_1h, 0)
+        , 0)
+        - (COALESCE(fp.buy_usd_1h, 0) + COALESCE(fp.sell_usd_1h, 0))
+    , 0), 2) AS "Unclassified USD 1h",
+    CASE
+        WHEN COALESCE(fp.traded_tokens_1h, 0) <= 0
+          OR COALESCE(cov.transfer_tokens_1h, 0) <= 0 THEN NULL
+        WHEN fp.traded_tokens_1h > cov.transfer_tokens_1h * 1.5 THEN NULL
+        ELSE ROUND(LEAST(
+            100.0 * fp.traded_tokens_1h / cov.transfer_tokens_1h
+        , 100.0), 1)
+    END AS "Coverage % 1h",
 
     COALESCE(ap.wallets_6h, 0) AS "Wallets 6h",
     COALESCE(ap.txs_6h, 0)     AS "Txs 6h",
@@ -1400,6 +1455,23 @@ SELECT
         WHEN COALESCE(fp.buy_usd_6h, 0) + COALESCE(fp.sell_usd_6h, 0) = 0 THEN NULL
         ELSE ROUND(100.0 * fp.buy_usd_6h / (fp.buy_usd_6h + fp.sell_usd_6h), 1)
     END AS "Buy Vol % 6h",
+    ROUND(COALESCE(fp.buy_usd_6h, 0) + COALESCE(fp.sell_usd_6h, 0), 2) AS "Accounted USD 6h",
+    ROUND(GREATEST(
+        COALESCE(cov.transfer_tokens_6h, 0)
+        * COALESCE(
+            (COALESCE(fp.buy_usd_6h, 0) + COALESCE(fp.sell_usd_6h, 0))
+            / NULLIF(fp.traded_tokens_6h, 0)
+        , 0)
+        - (COALESCE(fp.buy_usd_6h, 0) + COALESCE(fp.sell_usd_6h, 0))
+    , 0), 2) AS "Unclassified USD 6h",
+    CASE
+        WHEN COALESCE(fp.traded_tokens_6h, 0) <= 0
+          OR COALESCE(cov.transfer_tokens_6h, 0) <= 0 THEN NULL
+        WHEN fp.traded_tokens_6h > cov.transfer_tokens_6h * 1.5 THEN NULL
+        ELSE ROUND(LEAST(
+            100.0 * fp.traded_tokens_6h / cov.transfer_tokens_6h
+        , 100.0), 1)
+    END AS "Coverage % 6h",
 
     COALESCE(ap.wallets_24h, 0) AS "Wallets 24h",
     COALESCE(ap.txs_24h, 0)     AS "Txs 24h",
@@ -1414,10 +1486,9 @@ SELECT
         ELSE ROUND(100.0 * fp.buy_usd_24h / (fp.buy_usd_24h + fp.sell_usd_24h), 1)
     END AS "Buy Vol % 24h",
 
-    -- Coverage honesty (24h): dex.trades-attributed $ vs all transfer $.
-    -- Transfer $ is an UPPER BOUND on real trading: it includes plain sends,
-    -- router hops and hook/fee legs, so coverage can read low on a quiet day.
-    -- Implied price = tagged trade $ / tagged tokens, so no price table needed.
+    -- Coverage honesty: dex.trades-attributed $ vs all transfer $ (upper bound).
+    -- Includes plain sends / router hops / hook legs, so % can read low.
+    -- Implied price = tagged trade $ / tagged tokens — no price table needed.
     ROUND(COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0), 2) AS "Accounted USD 24h",
     ROUND(GREATEST(
         COALESCE(cov.transfer_tokens_24h, 0)
@@ -1430,9 +1501,8 @@ SELECT
     CASE
         WHEN COALESCE(fp.traded_tokens_24h, 0) <= 0
           OR COALESCE(cov.transfer_tokens_24h, 0) <= 0 THEN NULL
-        -- Every tagged trade implies at least one transfer, so tagged tokens can
-        -- never meaningfully exceed transferred tokens. If they do, the 1e18
-        -- assumption above is wrong for this token — report nothing, not a lie.
+        -- Tagged tokens shouldn't exceed transfers by much; if they do the
+        -- 1e18 assumption is wrong for this token — report nothing, not a lie.
         WHEN fp.traded_tokens_24h > cov.transfer_tokens_24h * 1.5 THEN NULL
         ELSE ROUND(LEAST(
             100.0 * fp.traded_tokens_24h / cov.transfer_tokens_24h
@@ -1679,7 +1749,7 @@ SELECT
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project
-LEFT JOIN coverage_24h cov
+LEFT JOIN coverage_windows cov
     ON COALESCE(ap.project, fp.project) = cov.project
 LEFT JOIN stickiness st
     ON COALESCE(ap.project, fp.project) = st.project

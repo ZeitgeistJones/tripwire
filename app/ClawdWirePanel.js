@@ -352,12 +352,6 @@ export default function ClawdWirePanel({
         const raw = row[`${field} ${w.key}`];
         return cell(raw, fmt(raw), toned ? netTone(raw) : undefined);
       });
-    const only24h = (raw, formatted, toned) =>
-      WINDOWS.map((w) =>
-        w.key === "24h"
-          ? cell(raw, formatted, toned)
-          : cell(null, "—")
-      );
     const rows = [
       { label: "Net $", hint: "buy − sell", emph: true, cells: per("Net USD", fmtUsdSigned, true) },
       { label: "Buy $", cells: per("Buy USD", fmtUsdCompact).map((c) => ({ ...c, tone: "pos" })) },
@@ -369,23 +363,26 @@ export default function ClawdWirePanel({
       { label: "Sellers", hint: "DEX swaps", cells: per("Sellers", fmtInt) },
       { label: "Max trade $", hint: "largest single swap", cells: per("Max Trade USD", fmtUsdCompact) },
     ];
-    if (row["Coverage % 24h"] != null || row["Accounted USD 24h"] != null) {
+    const hasCoverage = WINDOWS.some(
+      (w) => row[`Coverage % ${w.key}`] != null || row[`Accounted USD ${w.key}`] != null
+    );
+    if (hasCoverage) {
       rows.push(
         {
           label: "Coverage %",
-          hint: "DEX $ ÷ transfer $ · 24h upper bound",
+          hint: "DEX tokens ÷ transfer tokens · upper bound",
           emph: true,
-          cells: only24h(row["Coverage % 24h"], fmtPct(row["Coverage % 24h"])),
+          cells: per("Coverage %", fmtPct),
         },
         {
           label: "DEX accounted $",
-          hint: "buy + sell tagged in dex.trades · 24h",
-          cells: only24h(row["Accounted USD 24h"], fmtUsdCompact(row["Accounted USD 24h"])),
+          hint: "buy + sell tagged in dex.trades",
+          cells: per("Accounted USD", fmtUsdCompact),
         },
         {
           label: "Unclassified $",
-          hint: "transfer $ not tagged to a DEX venue · 24h",
-          cells: only24h(row["Unclassified USD 24h"], fmtUsdCompact(row["Unclassified USD 24h"])),
+          hint: "transfer $ not tagged to a DEX venue",
+          cells: per("Unclassified USD", fmtUsdCompact),
         }
       );
     }
@@ -565,15 +562,15 @@ export default function ClawdWirePanel({
               </span>
               <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
             </div>
-            {row && (row["Coverage % 24h"] != null || row["Accounted USD 24h"] != null) ? (
+            {row && (row[`Coverage % ${activeWindow}`] != null || row[`Accounted USD ${activeWindow}`] != null) ? (
               <div
                 className="cw-mono"
                 style={{ marginTop: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-muted)" }}
-                title="Share of 24h token transfer $ we could attribute to a known DEX trade (dex.trades). Unclassified includes V4/Clanker hooked swaps, plain transfers, and anything we couldn't venue-tag."
+                title="Share of token transfer $ we could attribute to a known DEX trade (dex.trades). Unclassified includes V4/Clanker hooked swaps, plain transfers, and anything we couldn't venue-tag."
               >
-                {row["Coverage % 24h"] != null
-                  ? `24h coverage ${fmtPct(row["Coverage % 24h"])} · DEX ${fmtUsdCompact(row["Accounted USD 24h"])} · unclassified ${fmtUsdCompact(row["Unclassified USD 24h"])}`
-                  : `24h DEX accounted ${fmtUsdCompact(row["Accounted USD 24h"])}`}
+                {row[`Coverage % ${activeWindow}`] != null
+                  ? `${activeWindow} coverage ${fmtPct(row[`Coverage % ${activeWindow}`])} · DEX ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])} · unclassified ${fmtUsdCompact(row[`Unclassified USD ${activeWindow}`])}`
+                  : `${activeWindow} DEX accounted ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])}`}
               </div>
             ) : null}
           </div>
