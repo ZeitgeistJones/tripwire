@@ -127,6 +127,24 @@ whale_thresholds AS (
     GROUP BY 1
 ),
 
+-- Coverage honesty: how much of 24h token movement we could attribute to a
+-- known DEX trade vs all ERC-20 transfer $ (upper bound, includes non-trades).
+-- Kept lean — no extra joins into the pulse beyond this one CTE.
+coverage_24h AS (
+    SELECT
+        c.name AS project,
+        c.address,
+        ROUND(SUM(CAST(tr.value AS DOUBLE) / 1e18) * MAX(p.price), 2) AS transfer_usd_24h
+    FROM erc20_base.evt_Transfer tr
+    INNER JOIN clawd c ON tr.contract_address = c.address
+    INNER JOIN prices.usd p
+        ON p.blockchain = 'base'
+       AND p.contract_address = c.address
+       AND p.minute = date_trunc('minute', tr.evt_block_time)
+    WHERE tr.evt_block_time >= now() - interval '24' hour
+    GROUP BY 1, 2
+),
+
 flow_pulse AS (
     SELECT
         rt.project,
@@ -1391,6 +1409,20 @@ SELECT
         ELSE ROUND(100.0 * fp.buy_usd_24h / (fp.buy_usd_24h + fp.sell_usd_24h), 1)
     END AS "Buy Vol % 24h",
 
+    -- Coverage honesty (24h): dex.trades-attributed $ vs all transfer $ (upper bound).
+    ROUND(COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0), 2) AS "Accounted USD 24h",
+    ROUND(GREATEST(
+        COALESCE(cov.transfer_usd_24h, 0)
+        - (COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0))
+    , 0), 2) AS "Unclassified USD 24h",
+    CASE
+        WHEN COALESCE(cov.transfer_usd_24h, 0) <= 0 THEN NULL
+        ELSE ROUND(
+            100.0 * (COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0))
+            / cov.transfer_usd_24h
+        , 1)
+    END AS "Coverage % 24h",
+
     ROUND(COALESCE(fp.whale_min_usd, 0), 2) AS "Whale Min $",
     ROUND(COALESCE(fp.hump_min_usd, 0), 2)  AS "Hump Min $",
 
@@ -1631,6 +1663,8 @@ SELECT
 FROM activity_pulse ap
 FULL OUTER JOIN flow_pulse fp
     ON ap.project = fp.project
+LEFT JOIN coverage_24h cov
+    ON COALESCE(ap.project, fp.project) = cov.project
 LEFT JOIN stickiness st
     ON COALESCE(ap.project, fp.project) = st.project
 LEFT JOIN first_side fs

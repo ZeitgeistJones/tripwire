@@ -538,6 +538,15 @@ export default function ClawdWirePanel({
               </span>
               <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
             </div>
+            {row && row["Coverage % 24h"] != null ? (
+              <div
+                className="cw-mono"
+                style={{ marginTop: "6px", fontSize: "11px", color: "var(--text-xfaint)" }}
+                title="Share of 24h token transfer $ we could attribute to a known DEX trade (dex.trades). Unclassified includes V4/Clanker hooked swaps, plain transfers, and anything we couldn't venue-tag."
+              >
+                24h coverage {fmtPct(row["Coverage % 24h"])} · unclassified {fmtUsdCompact(row["Unclassified USD 24h"])}
+              </div>
+            ) : null}
           </div>
             </div>
             <div className="cw-story">
