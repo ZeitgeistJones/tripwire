@@ -352,7 +352,13 @@ export default function ClawdWirePanel({
         const raw = row[`${field} ${w.key}`];
         return cell(raw, fmt(raw), toned ? netTone(raw) : undefined);
       });
-    return [
+    const only24h = (raw, formatted, toned) =>
+      WINDOWS.map((w) =>
+        w.key === "24h"
+          ? cell(raw, formatted, toned)
+          : cell(null, "—")
+      );
+    const rows = [
       { label: "Net $", hint: "buy − sell", emph: true, cells: per("Net USD", fmtUsdSigned, true) },
       { label: "Buy $", cells: per("Buy USD", fmtUsdCompact).map((c) => ({ ...c, tone: "pos" })) },
       { label: "Sell $", cells: per("Sell USD", fmtUsdCompact).map((c) => ({ ...c, tone: "neg" })) },
@@ -363,6 +369,27 @@ export default function ClawdWirePanel({
       { label: "Sellers", hint: "DEX swaps", cells: per("Sellers", fmtInt) },
       { label: "Max trade $", hint: "largest single swap", cells: per("Max Trade USD", fmtUsdCompact) },
     ];
+    if (row["Coverage % 24h"] != null || row["Accounted USD 24h"] != null) {
+      rows.push(
+        {
+          label: "Coverage %",
+          hint: "DEX $ ÷ transfer $ · 24h upper bound",
+          emph: true,
+          cells: only24h(row["Coverage % 24h"], fmtPct(row["Coverage % 24h"])),
+        },
+        {
+          label: "DEX accounted $",
+          hint: "buy + sell tagged in dex.trades · 24h",
+          cells: only24h(row["Accounted USD 24h"], fmtUsdCompact(row["Accounted USD 24h"])),
+        },
+        {
+          label: "Unclassified $",
+          hint: "transfer $ not tagged to a DEX venue · 24h",
+          cells: only24h(row["Unclassified USD 24h"], fmtUsdCompact(row["Unclassified USD 24h"])),
+        }
+      );
+    }
+    return rows;
   }, [row]);
   const cohortRows = useMemo(() => {
     if (!row) return [];
@@ -541,7 +568,7 @@ export default function ClawdWirePanel({
             {row && (row["Coverage % 24h"] != null || row["Accounted USD 24h"] != null) ? (
               <div
                 className="cw-mono"
-                style={{ marginTop: "6px", fontSize: "11px", color: "var(--text-muted)" }}
+                style={{ marginTop: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-muted)" }}
                 title="Share of 24h token transfer $ we could attribute to a known DEX trade (dex.trades). Unclassified includes V4/Clanker hooked swaps, plain transfers, and anything we couldn't venue-tag."
               >
                 {row["Coverage % 24h"] != null

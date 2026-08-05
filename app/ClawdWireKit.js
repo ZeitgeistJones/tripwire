@@ -311,20 +311,20 @@ export const CLAWDWIRE_CSS = `
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
 }
 .cw-matrix thead th {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
   color: var(--text-faint); border-bottom: 1px solid var(--border); padding-top: 10px; padding-bottom: 10px;
 }
 .cw-matrix thead th[data-active="true"] { color: var(--text); }
-.cw-matrix td { font-size: 12.5px; color: var(--text); }
+.cw-matrix td { font-size: 14.5px; color: var(--text); }
 .cw-matrix tbody tr + tr th, .cw-matrix tbody tr + tr td { border-top: 1px solid var(--border); }
 .cw-rowhead {
   text-align: left !important; position: sticky; left: 0; z-index: 1;
-  background: var(--bg-subtle); font-size: 12px; font-weight: 600;
+  background: var(--bg-subtle); font-size: 13.5px; font-weight: 600;
   color: var(--text-muted); box-shadow: 1px 0 0 var(--border);
 }
-.cw-rowhead small { display: block; font-size: 10px; font-weight: 400; color: var(--text-xfaint); margin-top: 1px; }
+.cw-rowhead small { display: block; font-size: 11px; font-weight: 400; color: var(--text-xfaint); margin-top: 1px; }
 .cw-matrix tbody tr:hover td, .cw-matrix tbody tr:hover .cw-rowhead { background: var(--bg-muted); }
-.cw-matrix tr[data-emph="true"] td { font-size: 14px; font-weight: 700; }
+.cw-matrix tr[data-emph="true"] td { font-size: 16px; font-weight: 700; }
 .cw-matrix tr[data-emph="true"] .cw-rowhead { color: var(--text); font-weight: 700; }
 .cw-matrix td[data-active="true"] { background: var(--bg-muted); }
 .cw-matrix tbody tr:hover td[data-active="true"] { background: var(--bg); }
