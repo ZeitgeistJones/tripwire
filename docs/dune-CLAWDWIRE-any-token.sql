@@ -127,44 +127,22 @@ whale_thresholds AS (
     GROUP BY 1
 ),
 
--- Coverage honesty: how much of 24h token movement we could attribute to a
--- known DEX trade vs all ERC-20 transfer $ (upper bound, includes non-trades).
--- Price from recent_trades — CLAWD-class tokens are usually NOT in prices.usd,
--- so joining prices.usd made Coverage % always null and the UI hid the line.
-implied_px_24h AS (
-    SELECT
-        project,
-        address,
-        SUM(amount_usd) FILTER (
-            WHERE block_time >= now() - interval '24' hour
-              AND clawd_amt IS NOT NULL
-              AND clawd_amt > 0
-        )
-        / NULLIF(
-            SUM(clawd_amt) FILTER (
-                WHERE block_time >= now() - interval '24' hour
-                  AND clawd_amt IS NOT NULL
-                  AND clawd_amt > 0
-            ),
-            0
-        ) AS px
-    FROM recent_trades
-    GROUP BY 1, 2
-),
-
+-- Coverage honesty (ONE cheap CTE — this query is at Dune's stage limit, so it
+-- only counts tokens moved; USD conversion happens in the final SELECT using the
+-- implied price from dex.trades. Do not add a price join here, and do not price
+-- from prices.usd: CLAWD-class tokens are not listed there).
+-- If Dune ever complains about stages again, deleting this CTE plus the
+-- "Coverage %" block in the final SELECT is enough — nothing else depends on it.
 coverage_24h AS (
+    -- Assumes 18 decimals (true for Clanker / Virtuals style Base tokens). The
+    -- final SELECT sanity-checks this and returns NULL rather than a wrong %.
     SELECT
         c.name AS project,
-        c.address,
-        ROUND(SUM(CAST(tr.value AS DOUBLE) / 1e18) * MAX(ip.px), 2) AS transfer_usd_24h
+        SUM(CAST(tr.value AS DOUBLE)) / 1e18 AS transfer_tokens_24h
     FROM erc20_base.evt_Transfer tr
     INNER JOIN clawd c ON tr.contract_address = c.address
-    INNER JOIN implied_px_24h ip
-        ON ip.address = c.address
-       AND ip.px IS NOT NULL
-       AND ip.px > 0
     WHERE tr.evt_block_time >= now() - interval '24' hour
-    GROUP BY 1, 2
+    GROUP BY 1
 ),
 
 flow_pulse AS (
@@ -229,6 +207,11 @@ flow_pulse AS (
         COUNT(DISTINCT rt.trader) FILTER (
             WHERE rt.side = 'sell' AND rt.block_time >= now() - interval '24' hour
         ) AS sellers_24h,
+        -- Tokens changing hands in tagged DEX trades — the price basis for coverage.
+        SUM(rt.clawd_amt) FILTER (
+            WHERE rt.block_time >= now() - interval '24' hour
+              AND rt.clawd_amt > 0
+        ) AS traded_tokens_24h,
 
         -- Whale / hump / retail (7d + 24h) — same tier logic as main dashboard
         COALESCE(SUM(rt.amount_usd) FILTER (
@@ -1431,18 +1414,29 @@ SELECT
         ELSE ROUND(100.0 * fp.buy_usd_24h / (fp.buy_usd_24h + fp.sell_usd_24h), 1)
     END AS "Buy Vol % 24h",
 
-    -- Coverage honesty (24h): dex.trades-attributed $ vs all transfer $ (upper bound).
+    -- Coverage honesty (24h): dex.trades-attributed $ vs all transfer $.
+    -- Transfer $ is an UPPER BOUND on real trading: it includes plain sends,
+    -- router hops and hook/fee legs, so coverage can read low on a quiet day.
+    -- Implied price = tagged trade $ / tagged tokens, so no price table needed.
     ROUND(COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0), 2) AS "Accounted USD 24h",
     ROUND(GREATEST(
-        COALESCE(cov.transfer_usd_24h, 0)
+        COALESCE(cov.transfer_tokens_24h, 0)
+        * COALESCE(
+            (COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0))
+            / NULLIF(fp.traded_tokens_24h, 0)
+        , 0)
         - (COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0))
     , 0), 2) AS "Unclassified USD 24h",
     CASE
-        WHEN COALESCE(cov.transfer_usd_24h, 0) <= 0 THEN NULL
-        ELSE ROUND(
-            100.0 * (COALESCE(fp.buy_usd_24h, 0) + COALESCE(fp.sell_usd_24h, 0))
-            / cov.transfer_usd_24h
-        , 1)
+        WHEN COALESCE(fp.traded_tokens_24h, 0) <= 0
+          OR COALESCE(cov.transfer_tokens_24h, 0) <= 0 THEN NULL
+        -- Every tagged trade implies at least one transfer, so tagged tokens can
+        -- never meaningfully exceed transferred tokens. If they do, the 1e18
+        -- assumption above is wrong for this token — report nothing, not a lie.
+        WHEN fp.traded_tokens_24h > cov.transfer_tokens_24h * 1.5 THEN NULL
+        ELSE ROUND(LEAST(
+            100.0 * fp.traded_tokens_24h / cov.transfer_tokens_24h
+        , 100.0), 1)
     END AS "Coverage % 24h",
 
     ROUND(COALESCE(fp.whale_min_usd, 0), 2) AS "Whale Min $",

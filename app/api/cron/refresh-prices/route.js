@@ -16,6 +16,8 @@ export const maxDuration = 60;
  * rather than getDashboardDataFresh(), because the latter would spend Dune
  * credits on a schedule, which is exactly what we are avoiding. Re-running the
  * expensive scan stays a deliberate, manual act.
+ *
+ * Schedule is once daily (Hobby plan: 1 cron/day max). See vercel.json.
  */
 export async function GET(request) {
   // Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. Without the secret
