@@ -1,22 +1,22 @@
--- ClawdWire V4 / Clanker gap-fill — CLAWD ONLY — materialize this query.
+-- ClawdWire V4 / Clanker gap-fill - CLAWD ONLY - materialize this query.
 -- Do NOT paste into the main ClawdWire pulse (stage limit).
 --
 -- ESTIMATE: transfer-netting with ETH/WETH payment legs. V4 flash accounting
--- can leave dust / cleared deltas; treat Amount USD as approximate.
+-- can leave dust / cleared deltas; treat amount_usd as approximate.
 --
 -- Purpose: catch buys/sells that dex.trades misses when Uniswap V4 hooks
 -- zero Swap event deltas (Clanker fee lockers), without counting airdrops
 -- or plain sends as trades.
 --
 -- Guardrails:
---   * Only txs whose top-level `to` is a known Base swap venue
+--   * Only txs whose top-level "to" is a known Base swap venue
 --   * Net CLAWD flow per (tx, initiator)
 --   * Require native ETH or WETH payment leg matching buy/sell side
 --   * Skip tx hashes already in dex.trades for CLAWD
 --
 -- Dune steps:
---   1) New query → paste this whole file → Run once
---   2) Materialize as: result_clawdwire_v4_gapfill  (refresh ~daily on Hobby)
+--   1) New blank query -> paste this WHOLE file (must start with WITH or --)
+--   2) Run once, then Materialize as: result_clawdwire_v4_gapfill (~daily)
 --   3) In docs/dune-CLAWDWIRE-any-token.sql, replace YOUR_DUNE_USER with your
 --      Dune username/team so the pulse can UNION from:
 --        dune.YOUR_DUNE_USER.result_clawdwire_v4_gapfill
