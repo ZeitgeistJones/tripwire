@@ -246,6 +246,29 @@ export const CLAWDWIRE_CSS = `
 .cw-flow-window-hint {
   margin-top: 3px; font-size: 11px; color: var(--text-muted); line-height: 1.35;
 }
+.cw-coverage-strip {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+.cw-coverage-strip[data-pending="true"] {
+  font-weight: 600;
+  color: var(--text-xfaint);
+  border-style: dashed;
+}
+.cw-coverage-24h {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-xfaint);
+}
 .cw-btn {
   appearance: none; cursor: pointer; border-radius: 8px;
   font-weight: 700; font-size: 12px; min-height: 32px; padding: 7px 14px;

@@ -330,6 +330,14 @@ export default function ClawdWirePanel({
   const activeSellers = row ? row[`Sellers ${activeWindow}`] : null;
   const activeContractTxs = row ? row[`Txs ${activeWindow}`] : null;
   const hasDexTraders = activeBuyers != null || activeSellers != null;
+  const activeCoverage = row ? row[`Coverage % ${activeWindow}`] : null;
+  const activeAccounted = row ? row[`Accounted USD ${activeWindow}`] : null;
+  const activeUnclassified = row ? row[`Unclassified USD ${activeWindow}`] : null;
+  const hasActiveCoverage = activeCoverage != null || activeAccounted != null;
+  const coverage24h = row ? row["Coverage % 24h"] : null;
+  const accounted24h = row ? row["Accounted USD 24h"] : null;
+  const unclassified24h = row ? row["Unclassified USD 24h"] : null;
+  const has24hCoverage = coverage24h != null || accounted24h != null;
   const heat = heatBand(row?.["Heat % 1h"]);
   const shape = roundTripBand(roundTripVol(row));
   const hold = holdBand(row?.["Survive 1d %"]);
@@ -534,7 +542,7 @@ export default function ClawdWirePanel({
               <div className="cw-flow-window-head">
                 <div>
                   <div className="cw-flow-window-label">Net flow</div>
-                  <div className="cw-flow-window-hint">DEX buy $ − sell $ — price can diverge</div>
+                  <div className="cw-flow-window-hint">DEX buy $ − sell $ — price can diverge. Coverage = share we could venue-tag.</div>
                 </div>
                 <WindowSeg value={activeWindow} onChange={setActiveWindow} />
               </div>
@@ -562,21 +570,27 @@ export default function ClawdWirePanel({
               </span>
               <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
             </div>
-            {row && (row[`Coverage % ${activeWindow}`] != null || row[`Accounted USD ${activeWindow}`] != null) ? (
+            {row && hasActiveCoverage ? (
               <div
-                className="cw-mono"
-                style={{ marginTop: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-muted)" }}
-                title="Share of token transfer $ tagged as a DEX trade (and CLAWD V4 gap-fill when that MV is enabled). Unclassified is an upper-bound remainder — not missing volume you can trade against."
+                className="cw-coverage-strip"
+                title="Share of token transfer $ tagged as a DEX trade. Unclassified is an upper-bound remainder (sends, hops, still-missed hooks) — not a second volume total."
               >
-                {row[`Coverage % ${activeWindow}`] != null
-                  ? `${activeWindow} coverage ${fmtPct(row[`Coverage % ${activeWindow}`])} · accounted ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])} · unclassified ${fmtUsdCompact(row[`Unclassified USD ${activeWindow}`])}`
-                  : `${activeWindow} accounted ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])}`}
+                {activeCoverage != null
+                  ? `${activeWindow} coverage ${fmtPct(activeCoverage)} · accounted ${fmtUsdCompact(activeAccounted)} · unclassified ${fmtUsdCompact(activeUnclassified)}`
+                  : `${activeWindow} accounted ${fmtUsdCompact(activeAccounted)}`}
+                {activeWindow !== "24h" && has24hCoverage ? (
+                  <span className="cw-coverage-24h">
+                    {coverage24h != null
+                      ? `24h ${fmtPct(coverage24h)} · accounted ${fmtUsdCompact(accounted24h)} · unclassified ${fmtUsdCompact(unclassified24h)}`
+                      : `24h accounted ${fmtUsdCompact(accounted24h)}`}
+                  </span>
+                ) : null}
               </div>
             ) : row ? (
               <div
-                className="cw-mono"
-                style={{ marginTop: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-xfaint)" }}
-                title="Re-paste docs/dune-CLAWDWIRE-any-token.sql and Trip to load Coverage % / Accounted / Unclassified. CLAWD V4 fills need the gap-fill MV enabled separately."
+                className="cw-coverage-strip"
+                data-pending="true"
+                title="Re-paste docs/dune-CLAWDWIRE-any-token.sql and Trip to load Coverage % / Accounted / Unclassified."
               >
                 coverage pending — Trip with latest pulse SQL
               </div>
@@ -751,7 +765,7 @@ export default function ClawdWirePanel({
                 <>
                   <h3 className="cw-chapter-head">Flow</h3>
                   <p className="cw-chapter-sub">
-                    Highlighted column = {activeWindow} (same as the net-flow toggle above). Net $ is buy minus sell.
+                    Highlighted column = {activeWindow} (same as the net-flow toggle above). Net $ is buy minus sell. Coverage % / Accounted / Unclassified are honesty bounds, not a second volume total.
                   </p>
                   <Matrix columns={flowColumns} rows={flowRows} rowHeadLabel="Metric" />
                   <div style={{ marginTop: "10px" }}>
