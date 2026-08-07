@@ -5,3 +5,6 @@ node_modules/
 debug-*.log
 .cursor/debug-*.log
 scripts/mobile-probe.png
+.tmp-leftclaw*
+.tmp-table*
+.git/COMMIT_EDITMSG_TMP

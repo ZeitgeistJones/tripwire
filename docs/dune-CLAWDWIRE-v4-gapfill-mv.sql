@@ -16,10 +16,12 @@
 --
 -- Dune steps:
 --   1) New blank query -> paste this WHOLE file (must start with WITH or --)
---   2) Run once, then Materialize as: result_clawdwire_v4_gapfill (~daily)
---   3) In docs/dune-CLAWDWIRE-any-token.sql, replace YOUR_DUNE_USER with your
---      Dune username/team so the pulse can UNION from:
---        dune.YOUR_DUNE_USER.result_clawdwire_v4_gapfill
+--   2) Run once. 0 rows can mean all CLAWD swaps already sit in dex.trades,
+--      or venues still miss the router your frontend calls — run
+--      docs/dune-CLAWDWIRE-v4-gapfill-smoke.sql to see candidate tx counts.
+--   3) Materialize as: result_clawdwire_v4_gapfill (~daily)
+--   4) In docs/dune-CLAWDWIRE-any-token.sql, uncomment the V4 UNION and replace
+--      YOUR_DUNE_USER with your Dune username/team
 --
 -- Output grain matches pulse recent_trades (lowercase aliases for the MV table).
 
@@ -34,6 +36,8 @@ swap_venues AS (
     SELECT addr FROM (VALUES
         (0x498581ff718922c3f8e6a244956af099b2652b2b), -- Uniswap V4 PoolManager
         (0x6ff5693b99212da76ad316178a184ab56d299b43), -- Uniswap V4 Universal Router (Base)
+        (0xfdf682f51fe81aa4898f0ae2163d8a55c127fbc7), -- Uniswap Universal Router 2.1.1 (Base)
+        (0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad), -- Legacy Universal Router (still used)
         (0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24), -- Uniswap V3 SwapRouter
         (0x2626664c2603336e57b271c5c0b26f421741e481)  -- Uniswap V3 SwapRouter02
     ) AS v(addr)

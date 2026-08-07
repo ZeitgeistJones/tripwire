@@ -7,12 +7,9 @@
 -- With those defaults it reproduces the CLAWD numbers exactly — run it once
 -- unchanged first, and if the output matches, the wiring is correct.
 --
--- Trade $ source: dex.trades + CLAWD-only V4/Clanker gap-fill MV (tiny UNION).
--- Before first Trip with V4 fills:
---   1) Paste docs/dune-CLAWDWIRE-v4-gapfill-mv.sql as its own query
---   2) Materialize it as result_clawdwire_v4_gapfill (refresh ~daily)
---   3) Replace YOUR_DUNE_USER below with your Dune username/team
--- Other tokens ignore the MV (address filter). Do not inline transfer-netting.
+-- Trade $ source: dex.trades by default. CLAWD V4/Clanker gap-fill is OPTIONAL:
+-- leave the UNION below commented until the MV exists, or Trip breaks on a
+-- missing table. Enable steps are next to the commented UNION in recent_trades.
 --
 -- Cost scales with how many trades the token has over 30d, so test on a
 -- mid-volume token before a big one. A quiet token legitimately returns blanks
@@ -25,7 +22,7 @@
 --      because Trino renders small doubles as 9.0E-1 and a quiet token's tape
 --      came out as "05:+9.0E-1k". Everything else is unchanged.
 --
--- One token per run: 7d txs + 30d dex.trades (+ CLAWD V4 MV when wired)
+-- One token per run: 7d txs + 30d dex.trades (optional CLAWD V4 MV UNION)
 -- Pulse $: 15m / 1h / 6h / 24h
 -- Chunk C: whale / hump / retail 24h + 7d
 -- Chunk D: stickiness (new/returning traders, 1st buy/sell, vol)
@@ -86,8 +83,8 @@ activity_pulse AS (
     GROUP BY 1, 2
 ),
 
--- 30d trade scan: dex.trades + CLAWD V4/Clanker gap-fill MV (estimate).
--- Heavy transfer-netting stays in the MV — only a tiny UNION here.
+-- 30d trade scan: dex.trades (+ optional CLAWD V4 MV — see commented UNION).
+-- Heavy transfer-netting stays in the MV. Do not inline it (stage limit).
 recent_trades AS (
     SELECT
         c.name    AS project,
@@ -118,26 +115,28 @@ recent_trades AS (
     WHERE dt.blockchain = 'base'
       AND dt.block_time >= now() - interval '30' day
 
-    UNION ALL
-
-    -- CLAWD-only V4 gap-fill. Replace YOUR_DUNE_USER after materializing
-    -- docs/dune-CLAWDWIRE-v4-gapfill-mv.sql as result_clawdwire_v4_gapfill.
-    -- Non-CLAWD Trips: address filter → 0 rows from this branch.
-    SELECT
-        g.project,
-        g.address,
-        g.trader,
-        g.tx_hash,
-        g.block_time,
-        g.amount_usd,
-        g.side,
-        g.clawd_amt,
-        g.price_usd
-    FROM dune.YOUR_DUNE_USER.result_clawdwire_v4_gapfill g
-    INNER JOIN clawd c ON g.address = c.address
-    WHERE g.block_time >= now() - interval '30' day
-      AND g.amount_usd IS NOT NULL
-      AND g.amount_usd > 0
+    -- ENABLE CLAWD V4 gap-fill (after MV is live):
+    --   1) Materialize docs/dune-CLAWDWIRE-v4-gapfill-mv.sql as result_clawdwire_v4_gapfill
+    --   2) Replace YOUR_DUNE_USER with your Dune username/team
+    --   3) Uncomment the UNION ALL block below
+    -- Leaving it commented keeps Trip working when the MV is missing.
+    --
+    -- UNION ALL
+    -- SELECT
+    --     g.project,
+    --     g.address,
+    --     g.trader,
+    --     g.tx_hash,
+    --     g.block_time,
+    --     g.amount_usd,
+    --     g.side,
+    --     g.clawd_amt,
+    --     g.price_usd
+    -- FROM dune.YOUR_DUNE_USER.result_clawdwire_v4_gapfill g
+    -- INNER JOIN clawd c ON g.address = c.address
+    -- WHERE g.block_time >= now() - interval '30' day
+    --   AND g.amount_usd IS NOT NULL
+    --   AND g.amount_usd > 0
 ),
 
 whale_thresholds AS (

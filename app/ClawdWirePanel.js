@@ -370,18 +370,18 @@ export default function ClawdWirePanel({
       rows.push(
         {
           label: "Coverage %",
-          hint: "DEX + CLAWD V4 gap-fill tokens ÷ transfer tokens · upper bound",
+          hint: "tagged tokens ÷ all transfer tokens (upper bound, not total volume)",
           emph: true,
           cells: per("Coverage %", fmtPct),
         },
         {
-          label: "DEX accounted $",
-          hint: "buy + sell tagged in dex.trades (+ CLAWD V4 MV when live)",
+          label: "Accounted $",
+          hint: "buy + sell in dex.trades (+ CLAWD V4 MV if enabled)",
           cells: per("Accounted USD", fmtUsdCompact),
         },
         {
           label: "Unclassified $",
-          hint: "transfer $ not tagged to a DEX / V4 venue",
+          hint: "transfer $ we could not venue-tag",
           cells: per("Unclassified USD", fmtUsdCompact),
         }
       );
@@ -566,11 +566,19 @@ export default function ClawdWirePanel({
               <div
                 className="cw-mono"
                 style={{ marginTop: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-muted)" }}
-                title="Share of token transfer $ tagged as a DEX or CLAWD V4/Clanker gap-fill trade. Unclassified includes remaining hooked swaps, plain transfers, and anything we couldn't venue-tag. V4 fills are estimates."
+                title="Share of token transfer $ tagged as a DEX trade (and CLAWD V4 gap-fill when that MV is enabled). Unclassified is an upper-bound remainder — not missing volume you can trade against."
               >
                 {row[`Coverage % ${activeWindow}`] != null
-                  ? `${activeWindow} coverage ${fmtPct(row[`Coverage % ${activeWindow}`])} · DEX ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])} · unclassified ${fmtUsdCompact(row[`Unclassified USD ${activeWindow}`])}`
-                  : `${activeWindow} DEX accounted ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])}`}
+                  ? `${activeWindow} coverage ${fmtPct(row[`Coverage % ${activeWindow}`])} · accounted ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])} · unclassified ${fmtUsdCompact(row[`Unclassified USD ${activeWindow}`])}`
+                  : `${activeWindow} accounted ${fmtUsdCompact(row[`Accounted USD ${activeWindow}`])}`}
+              </div>
+            ) : row ? (
+              <div
+                className="cw-mono"
+                style={{ marginTop: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-xfaint)" }}
+                title="Re-paste docs/dune-CLAWDWIRE-any-token.sql and Trip to load Coverage % / Accounted / Unclassified. CLAWD V4 fills need the gap-fill MV enabled separately."
+              >
+                coverage pending — Trip with latest pulse SQL
               </div>
             ) : null}
           </div>
