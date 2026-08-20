@@ -371,29 +371,6 @@ export default function ClawdWirePanel({
       { label: "Sellers", hint: "DEX swaps", cells: per("Sellers", fmtInt) },
       { label: "Max trade $", hint: "largest single swap", cells: per("Max Trade USD", fmtUsdCompact) },
     ];
-    const hasCoverage = WINDOWS.some(
-      (w) => row[`Coverage % ${w.key}`] != null || row[`Accounted USD ${w.key}`] != null
-    );
-    if (hasCoverage) {
-      rows.push(
-        {
-          label: "Coverage %",
-          hint: "tagged tokens ÷ all transfer tokens (upper bound, not total volume)",
-          emph: true,
-          cells: per("Coverage %", fmtPct),
-        },
-        {
-          label: "Accounted $",
-          hint: "buy + sell in dex.trades (+ CLAWD V4 MV if enabled)",
-          cells: per("Accounted USD", fmtUsdCompact),
-        },
-        {
-          label: "Unclassified $",
-          hint: "transfer $ we could not venue-tag",
-          cells: per("Unclassified USD", fmtUsdCompact),
-        }
-      );
-    }
     return rows;
   }, [row]);
   const cohortRows = useMemo(() => {
@@ -542,7 +519,9 @@ export default function ClawdWirePanel({
               <div className="cw-flow-window-head">
                 <div>
                   <div className="cw-flow-window-label">Net flow</div>
-                  <div className="cw-flow-window-hint">DEX buy $ − sell $ — price can diverge. Coverage = share we could venue-tag.</div>
+                  <div className="cw-flow-window-hint">
+                    Tagged DEX buys minus sells on Base — not every token transfer. Price can still diverge.
+                  </div>
                 </div>
                 <WindowSeg value={activeWindow} onChange={setActiveWindow} />
               </div>
@@ -570,40 +549,15 @@ export default function ClawdWirePanel({
               </span>
               <span style={{ color: "var(--read-coral-text)" }}>sell {fmtUsdCompact(activeSell)}</span>
             </div>
-            {row && hasActiveCoverage ? (
-              <div
-                className="cw-coverage-strip"
-                title="Share of token transfer $ tagged as a DEX trade. Unclassified is an upper-bound remainder (sends, hops, still-missed hooks) — not a second volume total."
-              >
-                {activeCoverage != null
-                  ? `${activeWindow} coverage ${fmtPct(activeCoverage)} · accounted ${fmtUsdCompact(activeAccounted)} · unclassified ${fmtUsdCompact(activeUnclassified)}`
-                  : `${activeWindow} accounted ${fmtUsdCompact(activeAccounted)}`}
-                {activeWindow !== "24h" && has24hCoverage ? (
-                  <span className="cw-coverage-24h">
-                    {coverage24h != null
-                      ? `24h ${fmtPct(coverage24h)} · accounted ${fmtUsdCompact(accounted24h)} · unclassified ${fmtUsdCompact(unclassified24h)}`
-                      : `24h accounted ${fmtUsdCompact(accounted24h)}`}
-                  </span>
-                ) : null}
-              </div>
-            ) : row ? (
-              <div
-                className="cw-coverage-strip"
-                data-pending="true"
-                title="Re-paste docs/dune-CLAWDWIRE-any-token.sql and Trip to load Coverage % / Accounted / Unclassified."
-              >
-                coverage pending — Trip with latest pulse SQL
-              </div>
-            ) : null}
           </div>
             </div>
             <div className="cw-story">
           <div className="cw-story-cell">
             <div className="cw-story-label">
-              <span>Whale net · 24h</span>
+              <span>Big wallets · 24h</span>
               <span className="cw-chip-band" style={{ color: toneColor(whaleNet24h == null ? "faint" : netTone(whaleNet24h)) }}>
                 <LiveDot tone={whaleNet24h == null ? "faint" : netTone(whaleNet24h)} />
-                {whaleNet24h == null ? "no data" : num(whaleNet24h) > 0 ? "accumulating" : "distributing"}
+                {whaleNet24h == null ? "no data" : num(whaleNet24h) > 0 ? "buying" : "selling"}
               </span>
             </div>
             <div
@@ -613,7 +567,7 @@ export default function ClawdWirePanel({
               <FlashNum raw={whaleNet24h}>{fmtUsdSigned(whaleNet24h)}</FlashNum>
             </div>
             <div className="cw-story-note">
-              Large-wallet buy $ − sell $. Whale vol {fmtPct(row?.["Whale Vol % 24h"])} of day.
+              Large-trade net (buy − sell). About {fmtPct(row?.["Whale Vol % 24h"])} of tagged day volume.
             </div>
           </div>
           <div className="cw-story-cell">
@@ -765,7 +719,7 @@ export default function ClawdWirePanel({
                 <>
                   <h3 className="cw-chapter-head">Flow</h3>
                   <p className="cw-chapter-sub">
-                    Highlighted column = {activeWindow} (same as the net-flow toggle above). Net $ is buy minus sell. Coverage % / Accounted / Unclassified are honesty bounds, not a second volume total.
+                    Highlighted column = {activeWindow} (same as the net-flow toggle above). Buy / Sell / Net are tagged DEX trades on Base — the cleanest read of trading pressure, not every token transfer.
                   </p>
                   <Matrix columns={flowColumns} rows={flowRows} rowHeadLabel="Metric" />
                   <div style={{ marginTop: "10px" }}>
@@ -781,6 +735,37 @@ export default function ClawdWirePanel({
                     <p className="cw-note" style={{ fontSize: "10.5px", color: "var(--text-xfaint)" }}>
                       Heat = share of 24h volume inside the window. Flat-day baselines: {FLAT_HOUR_SHARE.toFixed(1)}% at 1h, 25% at 6h.
                     </p>
+                    {hasActiveCoverage || has24hCoverage ? (
+                      <details className="cw-data-notes">
+                        <summary>Data notes</summary>
+                        <p>
+                          Buy / Sell / Net only count tagged DEX trades. Fees, router hops, and plain sends can move tokens without counting as a buy or sell — on purpose.
+                        </p>
+                        {hasActiveCoverage ? (
+                          <p className="cw-mono">
+                            {activeWindow} tagged share{" "}
+                            {activeCoverage != null ? fmtPct(activeCoverage) : "—"}
+                            {" · "}
+                            tagged {fmtUsdCompact(activeAccounted)}
+                            {" · "}
+                            other transfers {fmtUsdCompact(activeUnclassified)}
+                            {activeWindow !== "24h" && has24hCoverage ? (
+                              <>
+                                {" · "}24h tagged share{" "}
+                                {coverage24h != null ? fmtPct(coverage24h) : "—"}
+                                {" · "}
+                                tagged {fmtUsdCompact(accounted24h)}
+                                {" · "}
+                                other {fmtUsdCompact(unclassified24h)}
+                              </>
+                            ) : null}
+                          </p>
+                        ) : null}
+                        <p>
+                          Tagged share is not “how much trading we missed.” A middling % is common when a coin has lots of non-trade token movement.
+                        </p>
+                      </details>
+                    ) : null}
                   </div>
                 </>
               ) : null}

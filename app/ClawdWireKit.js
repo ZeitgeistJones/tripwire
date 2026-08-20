@@ -246,6 +246,34 @@ export const CLAWDWIRE_CSS = `
 .cw-flow-window-hint {
   margin-top: 3px; font-size: 11px; color: var(--text-muted); line-height: 1.35;
 }
+.cw-data-notes {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  background: var(--bg-subtle);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.cw-data-notes summary {
+  cursor: pointer;
+  font-weight: 650;
+  color: var(--text-faint);
+  list-style: none;
+}
+.cw-data-notes summary::-webkit-details-marker { display: none; }
+.cw-data-notes summary::before {
+  content: "▸ ";
+  color: var(--text-xfaint);
+}
+.cw-data-notes[open] summary::before { content: "▾ "; }
+.cw-data-notes p { margin: 8px 0 0; }
+.cw-data-notes .cw-mono {
+  font-size: 11px;
+  color: var(--text-faint);
+  word-break: break-word;
+}
 .cw-coverage-strip {
   margin-top: 10px;
   padding: 8px 10px;
