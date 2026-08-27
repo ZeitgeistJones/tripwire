@@ -30,7 +30,9 @@ WITH tracked_tokens AS (
         (0x29cc30f9d113b356ce408667aa6433589cecbdca, 'Elsa', 'HEYELSA', 'agent-independent'),
         (0x30c7235866872213f68cb1f08c37cb9eccb93452, 'Wayfinder', 'PROMPT', 'agent-independent'),
         (0x810affc8aadad2824c65e0a2c5ef96ef1de42ba3, 'AXOBOTL', 'AXOBOTL', 'agent-independent'),
+        (0xb22a793a81ff5b6ad37f40d5fe1e0ac4184d52f3, 'Big Tony', 'TONY', 'agent-independent'),
         (0xB3D7e0c3C39A1D3F1B304663065A2F83Ddf56d8e, 'AUTONOMOPOLY', 'AUTONO', 'agent-independent'),
+        (0xD88FD4a11255E51f64f78b4a7d74456325c2d8dC, 'BitVault Signal', 'BV7X', 'agent-independent'),
         (0x0086cFF0c1E5D17b19F5bCd4c8840a5B4251D959, 'ODEI AI', 'ODAI', 'agent-independent'),
         (0xdd32659b1e7a6a6b3c6e96cd8a4c936bcfea0607, 'Trackgood AI', 'TRAI', 'agent-independent'),
         (0xb2aca4ca8b7bbd9a5388ccb044c87dedf8a51c7c, 'Thirdfy', 'TFY', 'agent-independent'),
@@ -45,13 +47,15 @@ WITH tracked_tokens AS (
         (0x7Ce02e86354EA0Cc3b302AeAdC0Ab56bC7EB44b8, 'SIRE', 'SIRE', 'agent-independent'),
         (0x9d56c29e820Dd13b0580B185d0e0Dc301d27581d, 'Aubrai', 'AUBRAI', 'agent-independent'),
         (0xfc48314ad4aD5bD36a84E8307b86A68A01D95d9C, 'AION 5100', 'AION', 'agent-independent'),
-        (0x7300B37DfdfAb110d83290A29DfB31B1740219fE, 'Mamo', 'MAMO', 'agent-independent'),
 
         -- AGENT VIA VIRTUALS
         (0x96419929d7949d6a801a6909c145c8eef6a40431, 'Spectral', 'SPEC', 'agent-via-virtuals'),
         (0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825, 'AIXBT', 'AIXBT', 'agent-via-virtuals'),
         (0xC44141a684f6AA4E36cD9264ab55550B03C88643, 'Ethy AI', 'ETHY', 'agent-via-virtuals'),
         (0x58Db197E91Bc8Cf1587F75850683e4bd0730e6BF, 'Axelrod', 'AXR', 'agent-via-virtuals'),
+        (0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870, 'VADER', 'VADER', 'agent-via-virtuals'),
+        (0xA4A2E2ca3fBfE21aed83471D28b6f65A233C6e00, 'Ribbita', 'TIBBIR', 'agent-via-virtuals'),
+        (0x55cd6469f597452b5a7536e2cd98fde4c1247ee4, 'LUNA', 'LUNA', 'agent-via-virtuals'),
         (0x1c4cca7c5db003824208adda61bd749e55f463a3, 'GAME by Virtuals', 'GAME', 'agent-via-virtuals'),
         (0x2d90785e30a9df6cce329c0171cb8ba0f4a5c17b, 'BYTE by Virtuals', 'BYTE', 'agent-via-virtuals'),
         (0xea87169699dabd028a78d4b91544b4298086baf6, 'SWARM', 'SWARM', 'agent-via-virtuals'),
@@ -122,14 +126,84 @@ WITH tracked_tokens AS (
         -- AGENT VIA CLANKER
         (0x7D928816CC9c462DD7adef911De41535E444CB07, 'Faircaster', 'FAIR', 'agent-via-clanker'),
         (0xde61878b0b21ce395266c44d4d548d1c72a3eb07, 'Sairi', 'SAIRI', 'agent-via-clanker'),
-        (0xD88FD4a11255E51f64F78b4a7d74456325c2d8dC, 'BitVault Signal', 'BV7X', 'agent-via-clanker'),
 
         -- AGENT VIA BANKR
         (0x16332535E2c27da578bC2e82bEb09Ce9d3C8EB07, 'ClawBank', 'CLAWBANK', 'agent-via-bankr'),
         (0x5f980dcfc4c0fa3911554cf5ab288ed0eb13dba3, 'Gitlawb', 'GITLAWB', 'agent-via-bankr'),
         (0x9326314259102cfb0448e3a5022188d56e61cba3, 'SMC Factory', 'SMCF', 'agent-via-bankr'),
-        (0xc52aedec3374422d7510e294cfaa90799595cba3, 'Surplus Intelligence', 'SURP', 'agent-via-bankr'),
-        (0x572c4fA77623652411574c51B5dDB7e1b750AbA3, 'Supergemma4-26b-multimodal', 'SUPERGEMMA', 'agent-via-bankr')
+
+        -- NON-AGENT VIA BANKR
+        (0xc52aedec3374422d7510e294cfaa90799595cba3, 'Surplus Intelligence', 'SURP', 'non-agent-via-bankr'),
+        (0xBf8E8f0e8866a7052F948C16508644347c57aba3, 'aeon', 'AEON', 'non-agent-via-bankr'),
+        (0xb233bdffd437e60fa451f62c6c09d3804d285ba3, 'nookplot', 'NOOK', 'non-agent-via-bankr'),
+        (0xa601877977340862ca67f816eb079958e5bd0ba3, 'BOTCOIN', 'BOTCOIN', 'non-agent-via-bankr'),
+        (0x461d3c96d170e551611f54fa466d3d74a680aba3, 'Root Edge', 'ROOT', 'non-agent-via-bankr'),
+        (0x65021a79aeef22b17cdc1b768f5e79a8618beba3, 'Robot Money', 'ROBOT', 'non-agent-via-bankr'),
+        (0x07E61D8a4e197dfC269e90D7ECe1dF0D26702bA3, 'Basemate', 'BASE', 'non-agent-via-bankr'),
+        (0xf1e9baa65d418a9025e1851dd2d37f1ad208bba3, 'Ratspeak', 'RATS', 'non-agent-via-bankr'),
+        (0x67a7ca081dc79b45fd1fa059cd3b8dcca779aba3, 'FreeCode', 'FREE', 'non-agent-via-bankr'),
+        (0x7afe438411ee3959c7de6f7fb76bf9c769320ba3, 'Blocktronics', 'BLOCK', 'non-agent-via-bankr'),
+        (0x26E6e2E7a9289B6485c53Cd498dE510d3a8c8ba3, 'cyb3rwr3n', 'CYB3R', 'non-agent-via-bankr'),
+        (0x00cb1fbca324d51325a7264d54072bc073c28ba3, 'DARKSOL', 'DARKSOL', 'non-agent-via-bankr'),
+        (0x7b0ee9dcb5c1d4d7cd630c652959951936512ba3, 'Delu', 'DELU', 'non-agent-via-bankr'),
+        (0x753f2af0f46361c9ae6fc347797f99b0c9e82ba3, 'grantr', 'GRANTR', 'non-agent-via-bankr'),
+        (0x316ffb9c875f900adcf04889e415cc86b564eba3, 'LITCOIN', 'LIT', 'non-agent-via-bankr'),
+        (0x85eac631c800af804476b140f87039f742c28ba3, 'WOON', 'WOON', 'non-agent-via-bankr'),
+        (0x61d91cff0fc9fbbdb89f505cf8a7422bf95fdba3, '1clawAI', '1CLAW', 'non-agent-via-bankr'),
+        (0x721b072dbb616f29eea73ac004e03fd4e884bba3, 'evo', 'EVO', 'non-agent-via-bankr'),
+        (0x95ccfD2B81A9667b0Cc979992632F98fc853EBa3, 'HermesOS', 'HERMES', 'non-agent-via-bankr'),
+        (0xd7bc6a05a56655FB2052F742B012d1DFD66e1BA3, 'MiroShark', 'MIRO', 'non-agent-via-bankr'),
+        (0x39b4b879b8521d6a8c3a87cda64b969327b7fba3, 'TACHI', 'TACHI', 'non-agent-via-bankr'),
+        (0x0a56431ecc9d0b39be0b1e27e795f4c4f19d0ba3, 'HALO', 'HALO', 'non-agent-via-bankr'),
+        (0x2878cfc54aabdadd9bb5d70dd24d6b91485afba3, 'Polygraph', 'POLY', 'non-agent-via-bankr'),
+        (0x591666816c7c527b02a162a88aae75f20b90eba3, 'TEMPO', 'TEMPO', 'non-agent-via-bankr'),
+        (0xc46c41005a1a88b0c1491f2b542a4831d6d1eba3, 'A2H', 'A2H', 'non-agent-via-bankr'),
+        (0x8070b5e222f1ec077845e46ced2267e0def4cba3, 'Protean', 'PRTN', 'non-agent-via-bankr'),
+        (0x3722264aB15a1dfCe5a5af89e6547F7949A8ABA3, 'LienFi', 'LFI', 'non-agent-via-bankr'),
+        (0x572c4fA77623652411574c51B5dDB7e1b750AbA3, 'Supergemma4-26b-multimodal', 'SUPERGEMMA', 'non-agent-via-bankr'),
+
+        -- NON-AGENT VIA CLANKER
+        (0xB695559b26BB2c9703ef1935c37AeaE9526bab07, 'Moltbook', 'MOLT', 'non-agent-via-clanker'),
+        (0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf, 'Dickbutt', 'DICKBUTT', 'non-agent-via-clanker'),
+        (0x2f6c17fa9f9bC3600346ab4e48C0701e1d5962AE, 'Based Fartcoin', 'Fartcoin', 'non-agent-via-clanker'),
+        (0x2b5050F01d64FBb3e4Ac44dc07f0732BFb5ecadF, 'QR coin', 'QR', 'non-agent-via-clanker'),
+        (0x17d70172c7c4205bd39ce80f7f0ee660b7dc5a23, 'Dimes', 'DIME', 'non-agent-via-clanker'),
+        (0x9Cb41FD9dC6891BAe8187029461bfAADF6CC0C69, 'noice', 'noice', 'non-agent-via-clanker'),
+        (0x680BC6ed5c7222E2f29bdBc87f8E8f3400D8Ce04, 'WYDE End Hunger', 'EAT', 'non-agent-via-clanker'),
+        (0x0Db510e79909666d6dEc7f5e49370838c16D950f, 'Super Anon', 'ANON', 'non-agent-via-clanker'),
+        (0x2100A39f514d8FE3F26963A29B95b030A0A5d4b7, 'UPONLY', 'UPONLY', 'non-agent-via-clanker'),
+        (0x774EAeFE73Df7959496Ac92a77279A8D7d690b07, 'Minted Merch', 'mintedmerch', 'non-agent-via-clanker'),
+        (0x3d5e487b21e0569048c4d1a60e98c36e1b09db07, 'TurboUSD', 'TUSD', 'non-agent-via-clanker'),
+        (0x534b7aad1cdb6f02ec48cabe428f0d9131e40b07, 'minidev', 'MINI', 'non-agent-via-clanker'),
+        (0x3ec2156D4c0A9CBdAB4a016633b7BcF6a8d68Ea2, 'DebtReliefBot', 'DRB', 'non-agent-via-clanker'),
+        (0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07, 'Defense of the Agents', 'DOTA', 'non-agent-via-clanker'),
+        (0x2e7df1528f4eA427F48B49Ae8A1f78149db7185A, 'ProductClank', 'PRO', 'non-agent-via-clanker'),
+        (0x3977fc913dB86b01a257232C568317798B903B07, 'Cody', 'CODY', 'non-agent-via-clanker'),
+        (0x0fD7a301B51d0A83FCAf6718628174D527B373b6, 'luminous', 'LUM', 'non-agent-via-clanker'),
+        (0x6f89bcA4eA5931EdFCB09786267b251DeE752b07, 'Regent', 'REGENT', 'non-agent-via-clanker'),
+        (0x5eeB2662615782b58251b6f0c3E107571ae1AB07, 'RETAKE.TV', 'RETAKE', 'non-agent-via-clanker'),
+        (0x051024B653E8ec69E72693F776c41C2A9401FB07, 'BETRMINT', 'BETR', 'non-agent-via-clanker'),
+        (0x820C5F0fB255a1D18fd0eBB0F1CCefbC4D546dA7, 'A0x', 'A0X', 'non-agent-via-clanker'),
+        (0xC29832025E7652ef58D15F7fA3e232A2fDfaaB07, 'Zoe', 'ZOE', 'non-agent-via-clanker'),
+
+        -- NON-AGENT VIA VIRTUALS
+        (0xc2427bf51d99b6ed0da0da103bc51235638ee868, 'Wasabot', 'BOT', 'non-agent-via-virtuals'),
+        (0xefc6fd02b39142ffc4a42d1078157f609be0a5b8, 'Shadow Combat League', 'SCL', 'non-agent-via-virtuals'),
+        (0x296eB9c4D8fCbd00fBc6D5027e4202BF955fA76f, 'PEAK', 'PEAK', 'non-agent-via-virtuals'),
+        (0xbf8566956b4e2D8BEB90c4c19dbb8c67A9290C36, 'VIRGEN', 'VIRGEN', 'non-agent-via-virtuals'),
+        (0xd655790b0486fa681c23b955f5ca7cd5f5c8cb07, 'Bio Unit 000', 'BIO', 'non-agent-via-virtuals'),
+        (0x919e43a2cce006710090e64bde9e01b38fd7f32f, 'Agent YP', 'AIYP', 'non-agent-via-virtuals'),
+        (0xb56b5269c03421765c28aa61037536ea5690741c, 'DessalinesAI', 'DESSAI', 'non-agent-via-virtuals'),
+        (0x06a63c498ef95ad1fa4fff841955e512b4b2198a, 'Gluteus Maximus', 'GLUTEU', 'non-agent-via-virtuals'),
+
+        -- NON-AGENT INFRASTRUCTURE
+        (0x91dA780BC7f4B7Cf19ABE90411a2a296Ec5FF787, 'Hive Intelligence', 'HINT', 'non-agent-infrastructure'),
+        (0x67543CF0304C19CA62AC95ba82FD4F4B40788dc1, 'Rivalz Token', 'RIZ', 'non-agent-infrastructure'),
+        (0xb942B75A602fA318ac091370D93d9143Ba345Ba3, 'Mythos Router', 'MYTHOS', 'non-agent-infrastructure'),
+
+        -- NEITHER
+        (0x315B8c9A1123c10228d469551033440441b41F0b, 'BEATS on BASE', 'BEATS', 'neither'),
+        (0xEb6d78148F001F3aA2f588997c5E102E489Ad341, 'Super Champs', 'CHAMP', 'neither')
     ) AS t(address, name, symbol, tag)
 ),
 
@@ -241,7 +315,6 @@ token_ages (age_address, deployed_at) AS (
     (0x0086cff0c1e5d17b19f5bcd4c8840a5b4251d959, TIMESTAMP '2026-02-12 14:06:59'),
     (0xf714e60f85497d70508f7e356b5db80e64539ba3, TIMESTAMP '2026-02-12 21:32:05'),
     (0x7ffd8f91b0b1b5c7a2e6c7c9efb8be0a71885b07, TIMESTAMP '2026-02-13 21:00:09'),
-    (0x7300b37dfdfab110d83290a29dfb31b1740219fe, TIMESTAMP '2025-05-20 13:39:00'),
     (0xc52aedec3374422d7510e294cfaa90799595cba3, TIMESTAMP '2026-05-16 15:20:31'),
     (0x572c4fa77623652411574c51b5ddb7e1b750aba3, TIMESTAMP '2026-04-14 02:53:59')
 ),
