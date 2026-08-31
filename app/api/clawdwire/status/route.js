@@ -1,7 +1,11 @@
 import { canUseClawdWire } from "@/lib/gateAccess";
 import { CLAWD_TOKEN_ADDRESS, resolvePulseToken } from "@/lib/clawdWire";
 import { enrichClawdWireRows, fetchClawdQuote } from "@/lib/clawdWireFetch";
-import { writePulse, normalizeTokenAddress } from "@/lib/clawdWirePulse";
+import {
+  writePulse,
+  normalizeTokenAddress,
+  isValidClawdWirePulseRows,
+} from "@/lib/clawdWirePulse";
 
 export async function GET(request) {
   const wallet = request.headers.get("x-wallet-address") || "";
@@ -44,13 +48,14 @@ export async function GET(request) {
     );
     const known = resolvePulseToken(ranAddress);
 
-    // Empty result = broken/unsaved SQL or bad params. Never cache that — it
-    // would overwrite a good pulse and the UI would look like "no pulse ever".
-    if (!rawRows.length) {
+    // Empty / Wire-shaped result = wrong SQL on CLAWD_WIRE_QUERY_ID. Never cache.
+    if (!rawRows.length || !isValidClawdWirePulseRows(rawRows)) {
       return Response.json({
         state: "QUERY_STATE_FAILED",
         error:
-          "Dune finished with 0 rows. Check the ClawdWire query SQL is pasted and token_address / token_name params are set.",
+          !rawRows.length
+            ? "Dune finished with 0 rows. Check the ClawdWire query SQL is pasted and token_address / token_name params are set."
+            : "Dune returned Wire-pulse-shaped rows (many tokens, wallets/txs only). Paste docs/dune-CLAWDWIRE-paste-this.sql into query 8180604 — not the Wire/FULL board SQL.",
         token: ranAddress,
         symbol: known?.symbol || null,
       });
